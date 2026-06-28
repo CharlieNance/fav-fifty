@@ -1,0 +1,44 @@
+# Files & directories AI assistants should not read or index.
+# Keeps context focused and avoids leaking secrets.
+
+# Secrets — never read these
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Dependencies & virtual envs
+node_modules/
+.venv/
+venv/
+env/
+
+# Build output & caches
+frontend/dist/
+dist/
+build/
+cdk.out/
+.vite/
+.cache/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+
+# Infra state (can contain secrets)
+.terraform/
+*.tfstate
+*.tfstate.*
+
+# Lockfiles (large, low signal)
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+uv.lock
+poetry.lock
+
+# Logs
+*.log
+logs/

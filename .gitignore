@@ -1,0 +1,80 @@
+# ─── Secrets & environment ───────────────────────────────────────────────
+# NEVER commit real secrets. This repo is PUBLIC.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.json
+aws.json
+
+# ─── Python / FastAPI backend ─────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.egg-info/
+dist/
+build/
+.tox/
+
+# ─── Node / Vue frontend ──────────────────────────────────────────────────
+node_modules/
+.npm/
+.pnpm-store/
+.yarn/
+.vite/
+.cache/
+*.local
+frontend/dist/
+dist-ssr/
+.eslintcache
+
+# ─── Infrastructure as code (Terraform / CDK) ─────────────────────────────
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform.lock.hcl
+cdk.out/
+cdk.context.json
+
+# ─── Editors & IDEs ───────────────────────────────────────────────────────
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.shared.json
+.idea/
+
+# Claude Code: local, machine-specific settings (permissions, etc.)
+.claude/settings.local.json
+*.swp
+*.swo
+*~
+
+# ─── OS cruft ─────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── Logs & temp ──────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+logs/
+tmp/
+*.tmp
