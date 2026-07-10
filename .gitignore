@@ -78,3 +78,7 @@ pnpm-debug.log*
 logs/
 tmp/
 *.tmp
+
+# ─── Other ───────────────────────────────────────────────────────────────
+*.obsidian
+*.code-workspace
