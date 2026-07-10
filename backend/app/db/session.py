@@ -1,12 +1,24 @@
-"""Database session & engine setup.
+"""Database engine, session factory, and the ``get_db`` dependency."""
 
-Intentionally a placeholder — the current health-check slice needs no database.
+from collections.abc import Iterator
 
-When we add PostgreSQL (Aurora Serverless v2) this module will define:
-  * the SQLAlchemy ``engine`` (from ``settings.database_url``),
-  * a ``SessionLocal`` factory,
-  * the declarative ``Base`` that models inherit from,
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
 
-and ``app/api/deps.py`` will expose a ``get_db`` dependency that yields a session.
-Schema changes will be managed with Alembic migrations (never hand-edited).
-"""
+from app.core.config import settings
+
+# pool_pre_ping checks a connection is alive before use, avoiding errors from
+# connections the database dropped while idle (relevant with Aurora Serverless v2
+# scaling down / pausing).
+engine = create_engine(settings.database_url, pool_pre_ping=True)
+
+SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+
+
+def get_db() -> Iterator[Session]:
+    """FastAPI dependency that yields a session and always closes it."""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

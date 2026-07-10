@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     # development | staging | production
     app_env: str = "development"
 
+    # PostgreSQL connection URL (SQLAlchemy + psycopg 3 driver).
+    database_url: str = "postgresql+psycopg://favfifty:password@localhost:5432/favfifty"
+
     # Comma-separated allowed CORS origins (frontend dev server, prod site, ...).
     cors_allowed_origins: str = "http://localhost:5173"
 
