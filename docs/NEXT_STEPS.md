@@ -23,7 +23,7 @@ Goal: a clean repo and clear decisions before any app code.
 
 ## Phase 1 — Walking skeleton (thin end-to-end slice)
 
-Goal: prove the whole stack connects, with aPuth, before building features.
+Goal: prove the whole stack connects, with auth, before building features.
 
 - [ ] Scaffold `backend/` — FastAPI app, health check endpoint, config from env, pytest set up
 - [x] Scaffold `frontend/` — Vue 3 + Vite + TS app, Pinia, Vue Router, Tailwind, Vitest, ESLint/Prettier set up (2026-07-09)
