@@ -14,7 +14,7 @@ _Last updated: 2026-07-09_
 | **Auth** | **AWS Cognito**, social login only | **Google at launch.** Facebook/Apple possible later. Twitter/X dropped. No email/password. |
 | **IaC** | **Terraform** | Portable, declarative. |
 | **Frontend language** | **TypeScript** | Plus ESLint + a frontend test runner (Vitest). |
-| **Styling** | **Tailwind CSS** | Site should look fun and distinctive — custom theme/layout, not generic. (Color/theme design TBD.) |
+| **Styling** | **Tailwind CSS v4** | Configured CSS-first via semantic design tokens (`@theme`). Site should look fun and distinctive — custom theme/layout, not generic. **Dark-first** (light theme a later flip). Color/type/layout tracked in [DESIGN.md](DESIGN.md). |
 | **Repo structure** | **Monorepo** | `frontend/` + `backend/` (+ `infra/`) in one repo. |
 | **Domain / DNS** | Registered at **Squarespace**; DNS managed in **Route 53** | See [SETUP.md](SETUP.md) for migration steps. Keep Google Workspace email (preserve MX/SPF). |
 | **Email sending** | Not needed yet | Revisit (AWS SES) when notifications arrive. |
@@ -102,7 +102,7 @@ Later phases add: `comments`, `votes`, `suggestions`/`questions`, and possibly `
 
 ## Still open / deferred
 
-- Exact color theme, branding, and layout for the frontend (owner to design).
+- Exact color theme, branding, type, and layout for the frontend (owner to design) — tracked in [DESIGN.md](DESIGN.md).
 - Whether/when to add a staging environment.
 - Image storage (S3) — deferred until after MVP.
 - Category system — deferred; tags first.
