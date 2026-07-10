@@ -16,18 +16,19 @@ Goal: a clean repo and clear decisions before any app code.
 - [x] Choose a license and add `LICENSE` (MIT)
 - [ ] Make the initial git commit and push to GitHub (verify no secrets are tracked)
 - [ ] **External setup** — follow [SETUP.md](SETUP.md):
-  - [ ] Create Google OAuth Web Application client ID
-  - [ ] Set up AWS account + billing budget/alarm
+  - [x] Create Google OAuth Web Application client ID + secret
+  - [x] Set up AWS account (root MFA, IAM user/group, MFA) + billing budget/alarm
   - [ ] Create Route 53 hosted zone; copy Google email MX/SPF records; point Squarespace nameservers at it
+  - [ ] Cognito user pool + Google IdP (Phase 1)
 
 ## Phase 1 — Walking skeleton (thin end-to-end slice)
 
 Goal: prove the whole stack connects, with auth, before building features.
 
-- [ ] Scaffold `backend/` — FastAPI app, health check endpoint, config from env, pytest set up
-- [ ] Scaffold `frontend/` — Vue 3 + Vite + TS app, Pinia, Vue Router, Vitest set up
-- [ ] Local dev: docker-compose with Postgres so the stack runs end-to-end on one command
-- [ ] Database schema v1 + migrations tool (Alembic): `users`, `lists`, `list_items`, `tags`, `list_tags` (see [DECISIONS.md](DECISIONS.md) §Data model)
+- [x] Scaffold `backend/` — FastAPI app, health check endpoint, config from env, pytest set up
+- [x] Scaffold `frontend/` — Vue 3 + Vite + TS app, Pinia, Vue Router, Tailwind, Vitest, ESLint/Prettier set up (2026-07-09)
+- [x] Local dev: docker-compose Postgres for the backend to run against (`docker compose up -d db`)
+- [x] Database schema v1 + migrations tool (Alembic): `users`, `lists`, `list_items`, `tags`, `list_tags` (see [DECISIONS.md](DECISIONS.md) §Data model)
 - [ ] Auth: social login working end-to-end (login → callback → session) for at least Google
 - [ ] Protected `GET /me` endpoint returning the current user; frontend shows logged-in state
 - [ ] CI: run backend + frontend tests on every push (GitHub Actions)

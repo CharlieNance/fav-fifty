@@ -8,7 +8,7 @@
 
 ## Status
 
-🚧 **Phase 0 — Foundation.** No application code yet. We're setting up the repo, documentation, and key decisions before building.
+🚧 **Phase 1 — Walking skeleton.** Foundation and key decisions are done. Backend (FastAPI + Postgres + Alembic) and frontend (Vue 3 + Vite) skeletons are scaffolded; wiring them together with auth is next.
 
 See [docs/NEXT_STEPS.md](docs/NEXT_STEPS.md) for the roadmap and [docs/QUESTIONS.md](docs/QUESTIONS.md) for open decisions.
 
@@ -49,21 +49,22 @@ fav-fifty/
 │   ├── DECISIONS.md       # Resolved decisions & product data model
 │   ├── QUESTIONS.md       # Decision deliberation & trade-offs (record)
 │   ├── SETUP.md           # External setup: Google OAuth, AWS, Route 53/DNS
+│   ├── DESIGN.md          # Frontend look-and-feel decisions & design system
 │   └── CONSIDERATIONS.md  # Security, cost, scaling, legal notes
-├── frontend/              # (later) Vue 3 app
-├── backend/               # (later) FastAPI app
+├── frontend/              # Vue 3 + Vite + TS app (scaffold)
+├── backend/               # FastAPI app (skeleton)
 └── infra/                 # (later) Infrastructure as code
 ```
 
 ## Getting Started
 
-> Nothing to run yet. Setup instructions will be added once `frontend/` and `backend/` exist.
-
-For now:
-
 ```bash
 cp .env.example .env   # then fill in values as needed
 ```
+
+- **Frontend:** see [`frontend/README.md`](frontend/README.md) — `cd frontend && npm install && npm run dev` (http://localhost:5173).
+- **Backend:** see [`backend/README.md`](backend/README.md) — `cd backend && uv sync --extra dev && uv run uvicorn app.main:app --reload` (http://localhost:8000).
+- **Database:** `docker compose up -d db` (local Postgres) from the repo root.
 
 ## Contributing
 

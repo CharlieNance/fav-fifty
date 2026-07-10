@@ -53,4 +53,31 @@ for the vision and [docs/NEXT_STEPS.md](docs/NEXT_STEPS.md) for the plan.
 
 ## Commands
 
-> None yet — no app code. This section will list dev/test/build/deploy commands once `frontend/` and `backend/` exist.
+**Frontend** (from `frontend/`):
+
+```bash
+npm install         # install deps
+npm run dev         # dev server at http://localhost:5173 (proxies /api -> :8000)
+npm run build       # type-check (vue-tsc) + production build
+npm run test        # Vitest (once); npm run test:watch for watch mode
+npm run lint        # ESLint  (lint:fix to autofix)
+npm run format      # Prettier write  (format:check for CI)
+```
+
+**Backend** (from `backend/`, using [uv](https://docs.astral.sh/uv/)):
+
+```bash
+uv sync --extra dev                   # create venv + install deps
+uv run uvicorn app.main:app --reload  # serve at http://localhost:8000 (/docs for Swagger)
+uv run pytest                         # tests
+uv run ruff check . && uv run ruff format .   # lint + format
+uv run alembic upgrade head           # apply DB migrations
+```
+
+**Local database** (from repo root):
+
+```bash
+docker compose up -d db     # start Postgres   (down to stop, down -v to wipe)
+```
+
+> No deploy commands yet — added when `infra/` and the deploy pipeline land.

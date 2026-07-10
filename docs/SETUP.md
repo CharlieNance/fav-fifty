@@ -71,13 +71,28 @@ email must keep working**, so we copy its records over *before* switching namese
 Since there's no active traffic, this is low-risk — but the mailbox still needs its MX
 records present to receive mail.
 
-**Step A — Inventory current DNS at Squarespace.** In Squarespace's DNS settings, note
-every existing record, especially:
-   - **MX** records (Google: typically a single `smtp.google.com` priority-1 record on
-     newer setups, or the older `ASPMX.L.GOOGLE.COM` set).
-   - Any **TXT** records — SPF (`v=spf1 include:_spf.google.com ~all`), DKIM
-     (`google._domainkey...`), DMARC (`_dmarc`).
-   - Any other records (CNAMEs, verification TXT, etc.).
+**Step A — Inventory current DNS (captured 2026-06-28 via live DNS query).**
+
+Records to **PRESERVE** by recreating them in Route 53:
+
+```
+; MX — Google Workspace email (apex record, name = favfifty.com)
+favfifty.com.  MX  1   aspmx.l.google.com.
+favfifty.com.  MX  5   alt1.aspmx.l.google.com.
+favfifty.com.  MX  5   alt2.aspmx.l.google.com.
+favfifty.com.  MX  10  alt3.aspmx.l.google.com.
+favfifty.com.  MX  10  alt4.aspmx.l.google.com.
+
+; TXT — Google Workspace domain verification (apex)
+favfifty.com.  TXT  "google-site-verification=dccbeXoHRA4uA2VhVU4P36zSDnWJ3qObwmtIGgrRBsQ"
+```
+
+Records to **DROP** (Squarespace site infra you don't use — will be replaced by the
+app's CloudFront alias later): apex `A` records (Squarespace IPs) and the
+`www` CNAME → `ext-sq.squarespace.com`.
+
+Not present today (optional to add later for email hygiene): **SPF**
+(`v=spf1 include:_spf.google.com ~all`), **DKIM**, **DMARC** (`_dmarc`).
 
 **Step B — Create the Route 53 hosted zone.** Route 53 → Hosted zones → create
 `favfifty.com`. AWS gives you **4 nameservers (NS)** and an SOA record. (~$0.50/month.)
@@ -103,10 +118,11 @@ pointing at the CloudFront distribution, and request an **ACM certificate** (in
 
 ## Checklist
 
-- [ ] Google OAuth consent screen configured
-- [ ] Google OAuth **Web application** client ID + secret created → in `.env`
-- [ ] AWS account secured (MFA, IAM admin), region chosen
-- [ ] AWS **budget + billing alarm** created
+- [x] Google OAuth consent screen configured
+- [x] Google OAuth **Web application** client ID + secret created → store in `.env`
+- [x] AWS account secured: root MFA, IAM user with admin via group, MFA on the IAM user
+- [x] AWS **budget + billing alarm** created; billing access enabled for the IAM user
+- [ ] AWS access keys for CLI/Terraform created → in `~/.aws/credentials` (when starting infra)
 - [ ] Cognito user pool + Google IdP + hosted domain + app client (Phase 1)
 - [ ] Google redirect URI added to the OAuth client (Cognito `/oauth2/idpresponse`)
 - [ ] Route 53 hosted zone created; **email MX/SPF/DKIM/DMARC copied over**
