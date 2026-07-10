@@ -1,8 +1,8 @@
 # Fav Fifty — Backend (FastAPI)
 
-The Python API for Fav Fifty. **Status: skeleton** — a `/health` endpoint and its test,
-plus documented placeholder folders for the layers we'll fill in next. No database or
-auth code yet.
+The Python API for Fav Fifty. **Status: scaffold** — a `/health` endpoint and its test,
+plus configuration, SQLAlchemy models, and Alembic migrations for the initial schema.
+Auth is not implemented yet.
 
 ## Layout
 

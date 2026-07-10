@@ -25,10 +25,10 @@ Goal: a clean repo and clear decisions before any app code.
 
 Goal: prove the whole stack connects, with auth, before building features.
 
-- [ ] Scaffold `backend/` — FastAPI app, health check endpoint, config from env, pytest set up
+- [x] Scaffold `backend/` — FastAPI app, health check endpoint, config from env, pytest set up
 - [x] Scaffold `frontend/` — Vue 3 + Vite + TS app, Pinia, Vue Router, Tailwind, Vitest, ESLint/Prettier set up (2026-07-09)
-- [ ] Local dev: docker-compose with Postgres so the stack runs end-to-end on one command
-- [ ] Database schema v1 + migrations tool (Alembic): `users`, `lists`, `list_items`, `tags`, `list_tags` (see [DECISIONS.md](DECISIONS.md) §Data model)
+- [x] Local dev: docker-compose Postgres for the backend to run against (`docker compose up -d db`)
+- [x] Database schema v1 + migrations tool (Alembic): `users`, `lists`, `list_items`, `tags`, `list_tags` (see [DECISIONS.md](DECISIONS.md) §Data model)
 - [ ] Auth: social login working end-to-end (login → callback → session) for at least Google
 - [ ] Protected `GET /me` endpoint returning the current user; frontend shows logged-in state
 - [ ] CI: run backend + frontend tests on every push (GitHub Actions)
