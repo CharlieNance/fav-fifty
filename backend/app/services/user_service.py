@@ -9,10 +9,20 @@ import uuid
 from datetime import UTC, datetime
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth.claims import Claims
 from app.models.user import User
+
+
+def _apply_login(user: User, claims: Claims) -> None:
+    """Refresh a user's profile from the latest claims and stamp this login."""
+    if claims.name and user.display_name != claims.name:
+        user.display_name = claims.name
+    if user.avatar_url != claims.picture:
+        user.avatar_url = claims.picture
+    user.last_login_at = datetime.now(UTC)
 
 
 def get_or_create_user(db: Session, claims: Claims) -> User:
@@ -23,21 +33,29 @@ def get_or_create_user(db: Session, claims: Claims) -> User:
     single seam where a future ``record_event(...)`` login-analytics call lands.
     """
     user = db.scalar(select(User).where(User.cognito_sub == claims.sub))
-    if user is None:
-        user = User(
-            cognito_sub=claims.sub,
-            display_name=claims.name,
-            avatar_url=claims.picture,
-        )
-        db.add(user)
-    else:
-        if claims.name and user.display_name != claims.name:
-            user.display_name = claims.name
-        if user.avatar_url != claims.picture:
-            user.avatar_url = claims.picture
+    if user is not None:
+        _apply_login(user, claims)
+        db.commit()
+        db.refresh(user)
+        return user
 
+    # First login for this identity — insert the row.
+    user = User(cognito_sub=claims.sub, display_name=claims.name, avatar_url=claims.picture)
     user.last_login_at = datetime.now(UTC)
-    db.commit()
+    db.add(user)
+    try:
+        db.commit()
+    except IntegrityError:
+        # A concurrent first-login for the same cognito_sub won the race on the
+        # unique index. Discard our failed INSERT, reuse the row they created,
+        # and re-apply this login instead of surfacing a 500.
+        db.rollback()
+        user = db.scalar(select(User).where(User.cognito_sub == claims.sub))
+        if user is None:
+            raise
+        _apply_login(user, claims)
+        db.commit()
+
     db.refresh(user)
     return user
 
