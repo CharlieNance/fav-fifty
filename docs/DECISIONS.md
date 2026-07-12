@@ -55,7 +55,35 @@ Gotchas to remember when wiring Cognito:
 - Whether `name`/`picture` arrive depends on **Cognito attribute mapping** — a config step
   done when setting up the Google IdP.
 
-Status: **planned**, to be built as the lead-in to the first feature slice.
+Status: **implemented** (backend) on `feat/auth-seam`. What shipped:
+
+- **Identity contract** (`app/auth/claims.py`): a `Claims` model (`sub`, `email`,
+  `name`, `picture`) + an `IdentityProvider` Protocol. Nothing downstream knows
+  where claims came from.
+- **Providers** (`app/auth/providers.py`): a `DevIdentityProvider` returning fixed
+  claims that **hard-fails if `APP_ENV != development`**; `get_identity_provider()`
+  is the factory where `CognitoIdentityProvider` slots in later.
+- **Session** (`app/auth/session.py`): a signed, timed, **HttpOnly** cookie
+  (`itsdangerous`) carrying only `{uid, tv}`. Stateless — no server-side session
+  store, so we scale out, not up. `SameSite=Lax`; `Secure` outside dev.
+- **User service** (`app/services/user_service.py`): `get_or_create_user`,
+  `get_user_by_id`, and the revocation levers `deactivate_user` (instant per-user
+  disable) + `revoke_all_sessions` (bump `session_token_version` to invalidate all
+  outstanding cookies without rotating `SECRET_KEY`).
+- **Auth dependency** (`app/api/deps.py`): `get_current_user` re-loads the user
+  each request and enforces `is_active` + token-version match → revocation is
+  immediate.
+- **Routes**: dev-only `POST /auth/dev-login`, `POST /auth/logout`, protected
+  `GET /me`.
+- **Schema**: `users` gained `is_active`, `session_token_version`, `last_login_at`
+  (migration `c3fb686e27a4`). `last_login_at` is the first usage-trend signal; a
+  full `auth_events` table can follow.
+- **Tests** run against Dockerized Postgres with **per-test transactional
+  rollback** (`tests/conftest.py`), and include the required "dev stub hard-fails
+  outside development" case.
+
+Still to do: frontend logged-in state (follow-up branch) and the real Cognito
+provider + OAuth callback (cloud wiring).
 
 ## Product data model (Phase 1–2)
 
@@ -107,4 +135,4 @@ Later phases add: `comments`, `votes`, `suggestions`/`questions`, and possibly `
 - Image storage (S3) — deferred until after MVP.
 - Category system — deferred; tags first.
 - Formal production DB rollback process (snapshot-first, tested downgrades) — defined at launch.
-- Auth seam implementation + Cognito wiring — planned; built as lead-in to the first feature slice.
+- Auth seam backend — **implemented** on `feat/auth-seam` (see §Auth seam). Remaining: frontend login state, real Cognito provider + OAuth callback.
