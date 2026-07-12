@@ -29,8 +29,8 @@ Goal: prove the whole stack connects, with auth, before building features.
 - [x] Scaffold `frontend/` — Vue 3 + Vite + TS app, Pinia, Vue Router, Tailwind, Vitest, ESLint/Prettier set up (2026-07-09)
 - [x] Local dev: docker-compose Postgres for the backend to run against (`docker compose up -d db`)
 - [x] Database schema v1 + migrations tool (Alembic): `users`, `lists`, `list_items`, `tags`, `list_tags` (see [DECISIONS.md](DECISIONS.md) §Data model)
-- [ ] Auth: social login working end-to-end (login → callback → session) for at least Google
-- [ ] Protected `GET /me` endpoint returning the current user; frontend shows logged-in state
+- [~] Auth seam (backend): claims contract + dev-login stub + session cookie + get-or-create + revocation, with tests (`feat/auth-seam`). Remaining: real Google→Cognito login → callback → session.
+- [~] Protected `GET /me` endpoint returning the current user (done, backend). Remaining: frontend shows logged-in state (follow-up branch).
 - [ ] CI: run backend + frontend tests on every push (GitHub Actions)
 
 ## Phase 2 — Core feature: personal lists (MVP)
