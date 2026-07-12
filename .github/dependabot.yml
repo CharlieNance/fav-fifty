@@ -1,0 +1,25 @@
+# Keeps dependencies patched (see docs/CONSIDERATIONS.md §Security).
+# Dependabot opens PRs on a schedule; CI then gates them like any other change.
+version: 2
+updates:
+  # GitHub Actions used in .github/workflows/*.yml (e.g. checkout, setup-uv).
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  # Frontend npm packages.
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  # Backend Python deps (uv). If your Dependabot doesn't yet support the "uv"
+  # ecosystem, delete this block — it won't affect the two above.
+  - package-ecosystem: "uv"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
