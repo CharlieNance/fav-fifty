@@ -33,7 +33,7 @@ Decisions recorded in [docs/DECISIONS.md](docs/DECISIONS.md) (deliberation in [d
 - **Infrastructure:** AWS, defined as code with Terraform. DNS via Route 53 (domain registered at Squarespace).
 - **Secrets:** `.env` locally (git-ignored); AWS Secrets Manager / SSM in deployed environments.
 
-> ⚠️ The repo is **public**. Never commit real secrets — see [`.env.example`](.env.example).
+> ⚠️ The repo is **public**. Never commit real secrets — each app has its own template: [`backend/.env.example`](backend/.env.example) and [`frontend/.env.example`](frontend/.env.example).
 
 ## Repository Layout (planned)
 
@@ -43,7 +43,6 @@ fav-fifty/
 ├── CLAUDE.md              # Guidance for AI assistants working in this repo
 ├── .gitignore
 ├── .claudeignore
-├── .env.example           # Template for local secrets (copy to .env)
 ├── docs/
 │   ├── NEXT_STEPS.md      # Roadmap & phased build plan
 │   ├── DECISIONS.md       # Resolved decisions & product data model
@@ -58,8 +57,11 @@ fav-fifty/
 
 ## Getting Started
 
+Each app has its own env template — copy the one(s) you need and fill in values:
+
 ```bash
-cp .env.example .env   # then fill in values as needed
+cd backend  && cp .env.example .env         # API config: DB, SECRET_KEY, auth
+cd frontend && cp .env.example .env.local   # SPA config: only VITE_ vars (public)
 ```
 
 - **Frontend:** see [`frontend/README.md`](frontend/README.md) — `cd frontend && npm install && npm run dev` (http://localhost:5173).

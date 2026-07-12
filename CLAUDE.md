@@ -33,7 +33,7 @@ for the vision and [docs/NEXT_STEPS.md](docs/NEXT_STEPS.md) for the plan.
 ## Conventions
 
 - **Layout:** `frontend/` (Vue), `backend/` (FastAPI), `infra/` (IaC), `docs/` (planning), `tools/` (dev scripts).
-- **Secrets:** local config via `.env` (git-ignored). Update [`.env.example`](.env.example) whenever a new variable is introduced. In AWS, use Secrets Manager / SSM Parameter Store, not env files.
+- **Secrets:** local config via per-app `.env` files (git-ignored): `backend/.env` and `frontend/.env.local`. Update the matching template ([`backend/.env.example`](backend/.env.example) or [`frontend/.env.example`](frontend/.env.example)) whenever a new variable is introduced. Only `VITE_`-prefixed vars belong on the frontend, and those are public — never put a secret there. In AWS, use Secrets Manager / SSM Parameter Store, not env files.
 - **Commits:** small and focused. Imperative subject lines (e.g. "Add list creation endpoint").
 - **Tests:** new backend behavior ships with pytest coverage; new frontend logic with Vitest. Don't merge red.
 - **Types:** TypeScript on the frontend, type hints + Pydantic on the backend. Avoid `any`.

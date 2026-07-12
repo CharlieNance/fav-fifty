@@ -74,8 +74,9 @@ npm run format:check  # Prettier check (CI)
 ## Configuration
 
 Client config comes from Vite env vars. **Only `VITE_`-prefixed vars are exposed to the
-browser bundle — never put a secret in one.** Local overrides go in `frontend/.env.local`
-(git-ignored); the repo-root [`.env.example`](../.env.example) documents the keys.
+browser bundle — never put a secret in one.** Copy [`.env.example`](.env.example) to
+`frontend/.env.local` (git-ignored); it documents the keys. Vite loads env files from
+this folder, not the repo root.
 
 - `VITE_API_BASE_URL` — base path for API calls. Defaults to `/api` (proxied in dev), so
   it's normally left unset locally.
