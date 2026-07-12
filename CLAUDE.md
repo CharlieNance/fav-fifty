@@ -32,11 +32,12 @@ for the vision and [docs/NEXT_STEPS.md](docs/NEXT_STEPS.md) for the plan.
 
 ## Conventions
 
-- **Layout:** `frontend/` (Vue), `backend/` (FastAPI), `infra/` (IaC), `docs/` (planning).
+- **Layout:** `frontend/` (Vue), `backend/` (FastAPI), `infra/` (IaC), `docs/` (planning), `tools/` (dev scripts).
 - **Secrets:** local config via `.env` (git-ignored). Update [`.env.example`](.env.example) whenever a new variable is introduced. In AWS, use Secrets Manager / SSM Parameter Store, not env files.
 - **Commits:** small and focused. Imperative subject lines (e.g. "Add list creation endpoint").
 - **Tests:** new backend behavior ships with pytest coverage; new frontend logic with Vitest. Don't merge red.
 - **Types:** TypeScript on the frontend, type hints + Pydantic on the backend. Avoid `any`.
+- **Helper scripts:** Reusable, multi-step, or fiddly-to-retype commands live in `tools/` as small bash scripts (`set -euo pipefail`, a top comment saying what/why, path-independent via `REPO_ROOT`). **When you (Claude) run a command the owner may want to rerun, offer to save it to `tools/`** and add a row to [`tools/README.md`](tools/README.md). Keep each script short and readable.
 
 ## Things to never do
 
@@ -78,6 +79,15 @@ uv run alembic upgrade head           # apply DB migrations
 
 ```bash
 docker compose up -d db     # start Postgres   (down to stop, down -v to wipe)
+```
+
+**Helper scripts** (`tools/`, run from anywhere — see [`tools/README.md`](tools/README.md)):
+
+```bash
+./tools/db_up.sh            # start Postgres and wait until healthy
+./tools/verify_alembic.sh   # read-only: show DB migration + tables
+./tools/db_reset.sh         # wipe local DB and rebuild from migrations (destructive)
+./tools/check.sh            # run CI checks locally (ruff+pytest, lint+vitest)
 ```
 
 > No deploy commands yet — added when `infra/` and the deploy pipeline land.
