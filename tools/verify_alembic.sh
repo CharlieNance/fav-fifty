@@ -16,8 +16,11 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DB_CONTAINER="favfifty-db"
 
-# Fail early with a friendly message if the DB isn't up yet.
-if ! docker inspect "$DB_CONTAINER" >/dev/null 2>&1; then
+# Fail early with a friendly message if the DB isn't up yet. Note: `docker
+# inspect` succeeds for a *stopped* container too, so check it's actually
+# running rather than just present.
+running="$(docker inspect --format '{{.State.Running}}' "$DB_CONTAINER" 2>/dev/null || echo false)"
+if [ "$running" != "true" ]; then
   echo "Postgres container '$DB_CONTAINER' isn't running. Start it with: ./tools/db_up.sh" >&2
   exit 1
 fi

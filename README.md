@@ -60,8 +60,8 @@ fav-fifty/
 Each app has its own env template — copy the one(s) you need and fill in values:
 
 ```bash
-cd backend  && cp .env.example .env         # API config: DB, SECRET_KEY, auth
-cd frontend && cp .env.example .env.local   # SPA config: only VITE_ vars (public)
+ cp backend/.env.example backend/.env         # API config: DB, SECRET_KEY, auth
+ cp frontend/.env.example frontend/.env.local # SPA config: only VITE_ vars (public)
 ```
 
 - **Frontend:** see [`frontend/README.md`](frontend/README.md) — `cd frontend && npm install && npm run dev` (http://localhost:5173).
