@@ -81,8 +81,8 @@ uv run ruff format .   # format
 ## Configuration
 
 Config is read from environment variables via `app/core/config.py` (pydantic-settings).
-For local dev, create `backend/.env` (git-ignored) or export real env vars. The
-repo-root [`.env.example`](../.env.example) documents every variable. Secrets never get
+For local dev, copy [`.env.example`](.env.example) to `backend/.env` (git-ignored) or
+export real env vars — it documents every backend variable. Secrets never get
 committed; in AWS they come from Secrets Manager / SSM.
 
 ## Database & migrations

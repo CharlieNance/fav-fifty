@@ -10,7 +10,7 @@ meant to be small and shippable. Resolve the relevant items in
 
 Goal: a clean repo and clear decisions before any app code.
 
-- [x] Create `README.md`, `.gitignore`, `.claudeignore`, `CLAUDE.md`, `.env.example`
+- [x] Create `README.md`, `.gitignore`, `.claudeignore`, `CLAUDE.md`, per-app `.env.example` templates
 - [x] Create planning docs (`NEXT_STEPS.md`, `QUESTIONS.md`, `CONSIDERATIONS.md`)
 - [x] Answer the open decisions → recorded in [DECISIONS.md](DECISIONS.md)
 - [x] Choose a license and add `LICENSE` (MIT)

@@ -9,10 +9,11 @@ extensibility, scalability.**
 
 ## Security (the repo is PUBLIC and handles user accounts)
 
-- **No secrets in git, ever.** Real values live in `.env` locally (git-ignored) and in
-  AWS Secrets Manager / SSM in deployed environments. `.env.example` documents the keys
-  only. Consider a pre-commit secret scanner (e.g. `gitleaks`) and enable GitHub secret
-  scanning + push protection.
+- **No secrets in git, ever.** Real values live in the per-app `.env` files locally
+  (`backend/.env`, `frontend/.env.local` — git-ignored) and in AWS Secrets Manager / SSM
+  in deployed environments. Each app's `.env.example` documents its keys only. Consider a
+  pre-commit secret scanner (e.g. `gitleaks`) and enable GitHub secret scanning + push
+  protection.
 - **OAuth done right.** Use the provider/Cognito SDKs; validate `state` (CSRF) and `nonce`,
   verify ID token signatures and audience, and store as little PII as possible (provider
   user id + display name + avatar URL — avoid storing emails if you don't need them).

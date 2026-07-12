@@ -3,7 +3,7 @@
 One-time setup of the external accounts and services Fav Fifty depends on. None of
 this is application code — it's the Google / AWS / Squarespace groundwork that the app
 will plug into. Work through the sections roughly in order. Record any IDs/secrets in
-your local `.env` (never commit them).
+your local `backend/.env` (never commit them).
 
 ---
 
@@ -28,7 +28,7 @@ the OAuth "redirect" target; Google just needs to trust it.
      You'll fill these in once the Cognito domain exists (step 3 below). They look like:
      - `https://<your-cognito-domain>.auth.<region>.amazoncognito.com/oauth2/idpresponse`
    - For purely local experiments you may also add a localhost callback later if needed.
-4. Save the **Client ID** and **Client secret** → put them in `.env`
+4. Save the **Client ID** and **Client secret** → put them in `backend/.env`
    (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`) and, later, into Cognito's Google IdP config.
 
 > Order note: you can create the client now and come back to add the exact redirect URI
@@ -60,7 +60,7 @@ the OAuth "redirect" target; Google just needs to trust it.
 4. Create an **app client**; configure callback/sign-out URLs to our frontend
    (`http://localhost:5173` for dev, `https://favfifty.com` for prod).
 5. Capture `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `COGNITO_CLIENT_SECRET`,
-   `COGNITO_DOMAIN`, `COGNITO_REGION` into `.env`.
+   `COGNITO_DOMAIN`, `COGNITO_REGION` into `backend/.env`.
 
 ---
 
@@ -119,7 +119,7 @@ pointing at the CloudFront distribution, and request an **ACM certificate** (in
 ## Checklist
 
 - [x] Google OAuth consent screen configured
-- [x] Google OAuth **Web application** client ID + secret created → store in `.env`
+- [x] Google OAuth **Web application** client ID + secret created → store in `backend/.env`
 - [x] AWS account secured: root MFA, IAM user with admin via group, MFA on the IAM user
 - [x] AWS **budget + billing alarm** created; billing access enabled for the IAM user
 - [ ] AWS access keys for CLI/Terraform created → in `~/.aws/credentials` (when starting infra)

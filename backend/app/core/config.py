@@ -4,9 +4,9 @@ Settings are read from environment variables (and, for local development, a
 ``.env`` file) via pydantic-settings. Never hard-code secrets: in AWS they come
 from Secrets Manager / SSM Parameter Store; locally from ``.env`` (git-ignored).
 
-The repo-root ``.env.example`` documents every variable used across the project.
-For the backend you can create ``backend/.env`` or export real environment
-variables — real env vars always win over the file.
+``backend/.env.example`` documents every backend variable. For local dev you can
+copy it to ``backend/.env`` or export real environment variables — real env vars
+always win over the file.
 """
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
