@@ -19,7 +19,7 @@ Goal: a clean repo and clear decisions before any app code.
   - [x] Create Google OAuth Web Application client ID + secret
   - [x] Set up AWS account (root MFA, IAM user/group, MFA) + billing budget/alarm
   - [ ] Create Route 53 hosted zone; copy Google email MX/SPF records; point Squarespace nameservers at it
-  - [ ] Cognito user pool + Google IdP (Phase 1)
+  - [ ] Cognito user pool + Google IdP + hosted domain + app client — the code is ready and waiting; follow [SETUP.md](SETUP.md) §3
 
 ## Phase 1 — Walking skeleton (thin end-to-end slice)
 
@@ -29,8 +29,9 @@ Goal: prove the whole stack connects, with auth, before building features.
 - [x] Scaffold `frontend/` — Vue 3 + Vite + TS app, Pinia, Vue Router, Tailwind, Vitest, ESLint/Prettier set up (2026-07-09)
 - [x] Local dev: docker-compose Postgres for the backend to run against (`docker compose up -d db`)
 - [x] Database schema v1 + migrations tool (Alembic): `users`, `lists`, `list_items`, `tags`, `list_tags` (see [DECISIONS.md](DECISIONS.md) §Data model)
-- [~] Auth seam (backend): claims contract + dev-login stub + session cookie + get-or-create + revocation, with tests (`feat/auth-seam`). Remaining: real Google→Cognito login → callback → session.
-- [~] Protected `GET /me` endpoint returning the current user (done, backend). Remaining: frontend shows logged-in state (follow-up branch).
+- [x] Auth seam (backend): claims contract + dev-login stub + session cookie + get-or-create + revocation, with tests (`feat/auth-seam`).
+- [x] Real Google→Cognito login (backend, `feat/auth-page`): `CognitoIdentityProvider` (JWT/JWKS verification) + `/auth/login` & `/auth/callback` (authorization-code + PKCE + state + nonce), with tests. **Inert until the `COGNITO_*` env vars are set — do the console setup in [SETUP.md](SETUP.md) §3 to activate it.**
+- [x] Protected `GET /me` endpoint + frontend logged-in state: login page (real Google button + dev-login stub), header logout, session-aware store/guard (`feat/auth-page`).
 - [ ] CI: run backend + frontend tests on every push (GitHub Actions)
 
 ## Phase 2 — Core feature: personal lists (MVP)

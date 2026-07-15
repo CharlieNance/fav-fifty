@@ -28,8 +28,11 @@ class Claims(BaseModel):
 class IdentityProvider(Protocol):
     """Turns an external credential into :class:`Claims`.
 
-    ``credential`` is ignored by the dev stub (fixed claims); the future Cognito
-    provider will use it (the verified id token) to derive the same claim shape.
+    ``credential`` is ignored by the dev stub (fixed claims); the Cognito provider
+    uses it (the verified id token) to derive the same claim shape. ``nonce``, when
+    given, is the value the caller bound to the login request and must match the
+    token's ``nonce`` claim — replay protection, ignored by providers that don't
+    issue nonces (the dev stub).
     """
 
-    def get_claims(self, credential: str | None = None) -> Claims: ...
+    def get_claims(self, credential: str | None = None, *, nonce: str | None = None) -> Claims: ...

@@ -49,18 +49,66 @@ the OAuth "redirect" target; Google just needs to trust it.
 
 ---
 
-## 3. AWS Cognito (auth broker) — outline
+## 3. AWS Cognito (auth broker)
 
-> Full config happens when we build auth in Phase 1; this is the shape of it.
+The backend code for the real flow is **done** (branch `feat/auth-page`): `/auth/login`
+redirects to Cognito's hosted UI, and `/auth/callback` verifies the returned id token
+and mints our session. It stays dormant (routes 404) until the five `COGNITO_*` values
+are set. This section fills them in. Values below must match the code **exactly** — the
+code's expectations are called out inline.
 
-1. Create a **Cognito User Pool**.
-2. Add **Google** as a social identity provider, using the Client ID/secret from step 1.
-3. Set up a **Cognito hosted domain** (e.g. `favfifty.auth.us-east-1.amazoncognito.com`)
-   — this domain's `/oauth2/idpresponse` URL is the redirect URI Google needs (step 1.3).
-4. Create an **app client**; configure callback/sign-out URLs to our frontend
-   (`http://localhost:5173` for dev, `https://favfifty.com` for prod).
-5. Capture `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `COGNITO_CLIENT_SECRET`,
-   `COGNITO_DOMAIN`, `COGNITO_REGION` into `backend/.env`.
+Do everything in one region (`us-east-1` recommended) and keep the browser tab with
+`backend/.env` open to paste values as you go.
+
+**Step A — Create the user pool.**
+1. Cognito → **Create user pool**.
+2. Sign-in options: you can leave the Cognito-native options unchecked — we only use a
+   federated provider. (Cognito requires at least a pool; we won't use its own accounts.)
+3. Name the pool e.g. `favfifty`. Create it.
+4. Copy the **User pool ID** (looks like `us-east-1_ABC123`) → `COGNITO_USER_POOL_ID`.
+   `COGNITO_REGION` is the region prefix (`us-east-1`).
+
+**Step B — Add Google as an identity provider.**
+1. User pool → **Sign-in experience → Federated identity provider sign-in → Add**.
+2. Choose **Google**. Paste the **Client ID / Client secret** from §1 (`GOOGLE_CLIENT_ID`
+   / `GOOGLE_CLIENT_SECRET`).
+3. **Authorized scopes:** `openid email profile`.
+4. **Attribute mapping** — the id token only carries what you map here, and the app reads
+   `email`, `name`, `picture`:
+   - Google `email` → Cognito `email`
+   - Google `name` → Cognito `name`
+   - Google `picture` → Cognito `picture`
+5. Save. The provider name will be **`Google`** — the code sends `identity_provider=Google`
+   to skip the account chooser, so keep this exact name.
+
+**Step C — Hosted UI domain.**
+1. User pool → **App integration → Domain → Create Cognito domain**.
+2. Pick a prefix, e.g. `favfifty` → full host `favfifty.auth.us-east-1.amazoncognito.com`.
+3. Put that **host only** (no `https://`) into `COGNITO_DOMAIN`.
+4. Back in **Google Cloud Console** (§1.3), add this to the OAuth client's **Authorized
+   redirect URIs**: `https://<domain>/oauth2/idpresponse`.
+
+**Step D — Create the app client.**
+1. User pool → **App integration → App clients → Create app client**.
+2. Type: **Confidential client** (our backend holds the secret) → this generates a
+   **client secret**.
+3. **Allowed callback URLs** — must equal `COGNITO_REDIRECT_URI` exactly:
+   - dev: `http://localhost:8000/auth/callback`
+   - prod: `https://api.favfifty.com/auth/callback` (your API origin)
+4. **Allowed sign-out URLs:** your frontend, e.g. `http://localhost:5173` /
+   `https://favfifty.com` (not used yet, but set it for later hosted-UI logout).
+5. **Identity providers:** enable **Google** (not Cognito user pool).
+6. **OAuth grant types:** **Authorization code grant** only. **Scopes:** `openid`,
+   `email`, `profile`. (The code uses auth-code **+ PKCE (S256)**, which Cognito allows
+   alongside a confidential client — nothing extra to toggle.)
+7. Copy **Client ID** → `COGNITO_CLIENT_ID` and **Client secret** → `COGNITO_CLIENT_SECRET`.
+
+**Step E — Fill in `backend/.env` and set `FRONTEND_URL` / `COGNITO_REDIRECT_URI`.** With
+all five `COGNITO_*` values plus `GOOGLE_CLIENT_ID/SECRET` set, restart the backend and
+visit the app: "Continue with Google" now runs the real flow. (Locally, cookies work
+across `:8000`/`:5173` because they share the `localhost` host; in production put the API
+and site on the same registrable domain — e.g. `api.favfifty.com` + `favfifty.com` — and
+set the session cookie's `Domain` to `.favfifty.com`, a deploy-time follow-up.)
 
 ---
 

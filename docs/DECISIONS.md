@@ -82,8 +82,23 @@ Status: **implemented** (backend) on `feat/auth-seam`. What shipped:
   rollback** (`tests/conftest.py`), and include the required "dev stub hard-fails
   outside development" case.
 
-Still to do: frontend logged-in state (follow-up branch) and the real Cognito
-provider + OAuth callback (cloud wiring).
+Update (`feat/auth-page`): the two remaining code pieces are done —
+
+- **Frontend logged-in state**: login page with a real "Continue with Google" button
+  (hands off to the backend) and a dev-only stub-login button; header logout wired to
+  `POST /auth/logout`; the Pinia store gained `devLogin`/`loginWithGoogle`/`logout`.
+- **Real Cognito provider + OAuth flow**: `CognitoIdentityProvider` verifies the id
+  token (signature via JWKS, plus issuer/audience/expiry/`token_use`/nonce);
+  `GET /auth/login` → Cognito hosted UI and `GET /auth/callback` → verify → session,
+  using **authorization-code + PKCE (S256)** with a signed, short-lived state cookie
+  carrying the CSRF token, nonce, PKCE verifier, and a validated (open-redirect-safe)
+  post-login path. The callback lives on the backend (confidential client; only it can
+  set the HttpOnly cookie). All of this is gated on `settings.cognito_configured`, so it
+  stays dormant in local dev (stub) and activates once the `COGNITO_*` env vars are set.
+
+Still to do: the **AWS/Google console setup** that supplies those env vars (see
+[SETUP.md](SETUP.md) §3) and, at deploy time, a shared cookie domain across the API and
+site origins.
 
 ## Product data model (Phase 1–2)
 

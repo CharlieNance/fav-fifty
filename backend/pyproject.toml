@@ -11,13 +11,16 @@ dependencies = [
     "alembic>=1.13",
     "psycopg[binary]>=3.2",
     "itsdangerous>=2.2",
+    # Real auth: HTTP client for the Cognito token exchange (httpx2 = Pydantic's
+    # maintained continuation of httpx) and JWT verification for the id token.
+    "httpx2>=2.5",
+    "pyjwt[crypto]>=2.9",
 ]
 
 # Install dev tooling with:  uv sync --extra dev   (or)   pip install -e ".[dev]"
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
-    "httpx2>=2.5",
     "ruff>=0.6",
 ]
 
