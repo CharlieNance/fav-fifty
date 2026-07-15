@@ -1,8 +1,17 @@
 <script setup lang="ts">
-// Root shell. For now it only hosts the router outlet; a global layout
-// (nav bar, footer) will live here once there's more than one page.
+// Root shell: the global layout that wraps every page. The session is resolved
+// once by the router's beforeEach guard, so the header renders the correct
+// logged-in / logged-out state on first paint.
+import AppFooter from '@/components/AppFooter.vue'
+import AppHeader from '@/components/AppHeader.vue'
 </script>
 
 <template>
-  <RouterView />
+  <div class="flex min-h-screen flex-col">
+    <AppHeader />
+    <main class="flex-1">
+      <RouterView />
+    </main>
+    <AppFooter />
+  </div>
 </template>

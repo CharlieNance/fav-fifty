@@ -20,25 +20,37 @@ export class ApiError extends Error {
 }
 
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const headers = new Headers(options.headers)
-  if (!headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json')
+  try {
+    const headers = new Headers(options.headers)
+    if (!headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json')
+    }
+
+    const response = await fetch(`${BASE_URL}${path}`, {
+      ...options,
+      credentials: 'include',
+      headers,
+    })
+
+    if (!response.ok) {
+      throw new ApiError(response.status, `Request to ${path} failed with ${response.status}`)
+    }
+
+    // 204 No Content has no body to parse.
+    if (response.status === 204) {
+      return undefined as T
+    }
+
+    return (await response.json()) as T
+  } catch (error) {
+    if (error instanceof ApiError) {
+      if (error.status !== 401) {
+        console.error(`API error: ${error.message}`)
+      }
+
+      throw error
+    }
+
+    throw new Error(`Network error while fetching ${path}: ${error}`)
   }
-
-  const response = await fetch(`${BASE_URL}${path}`, {
-    ...options,
-    credentials: 'include',
-    headers,
-  })
-
-  if (!response.ok) {
-    throw new ApiError(response.status, `Request to ${path} failed with ${response.status}`)
-  }
-
-  // 204 No Content has no body to parse.
-  if (response.status === 204) {
-    return undefined as T
-  }
-
-  return (await response.json()) as T
 }
