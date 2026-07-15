@@ -17,7 +17,9 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api'
  * absolute base makes the second `URL` argument a no-op.
  */
 export function apiUrl(path: string): URL {
-  return new URL(`${BASE_URL}${path}`, window.location.origin)
+  const base = BASE_URL.endsWith('/') ? BASE_URL.slice(0, -1) : BASE_URL
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+  return new URL(`${base}${normalizedPath}`, window.location.origin)
 }
 
 export class ApiError extends Error {

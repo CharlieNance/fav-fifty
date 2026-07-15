@@ -155,7 +155,9 @@ def logout(response: Response) -> dict[str, str]:
 
 def _login_failed() -> RedirectResponse:
     """Redirect to the frontend login page with a generic error flag."""
-    return RedirectResponse(
+    response = RedirectResponse(
         urljoin(settings.frontend_url, "/login?error=auth_failed"),
         status_code=status.HTTP_302_FOUND,
     )
+    clear_oauth_state_cookie(response)
+    return response

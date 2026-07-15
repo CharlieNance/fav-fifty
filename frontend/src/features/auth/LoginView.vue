@@ -12,7 +12,8 @@ const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 
-const redirect = route.query.redirect as string | undefined
+const rawRedirect = route.query.redirect
+const redirect = typeof rawRedirect === 'string' ? rawRedirect : undefined
 // Only the dev stub is offered locally; the real button is always available.
 const isDev = import.meta.env.DEV
 

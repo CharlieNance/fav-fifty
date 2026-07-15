@@ -52,8 +52,9 @@ class CognitoIdentityProvider:
     Verification is the whole point of this class: an id token is only trustworthy
     if its signature checks out against the pool's published keys **and** its
     issuer, audience, expiry, purpose, and nonce all match what we expect. Anything
-    off raises :class:`jwt.InvalidTokenError`, which the callback route turns into a
-    401 — a malformed or forged token never becomes a session.
+    off raises :class:`jwt.InvalidTokenError`, which the OAuth callback treats as a
+    login failure and redirects back to the frontend — a malformed
+    or forged token never becomes a session.
     """
 
     def __init__(self) -> None:

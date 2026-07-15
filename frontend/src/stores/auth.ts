@@ -70,8 +70,7 @@ export const useAuthStore = defineStore('auth', () => {
       await apiFetch('/auth/logout', { method: 'POST' })
     } catch {
       // Best-effort: a failed logout call shouldn't surface as an error to the
-      // user who just clicked "Log out". The failure is already logged by the
-      // API client; we clear local state regardless below.
+      // user who just clicked "Log out". We clear local state regardless below.
     } finally {
       // Never leave the UI looking signed in once the user asked to log out.
       user.value = null
