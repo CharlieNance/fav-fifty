@@ -41,9 +41,10 @@ describe('BaseButton', () => {
     expect(secondary.classes()).toContain('border')
   })
 
-  it('emits click through to the underlying button', async () => {
-    const wrapper = mount(BaseButton)
+  it('calls the provided click listener when the underlying button is clicked', async () => {
+    const onClick = vi.fn()
+    const wrapper = mount(BaseButton, { attrs: { onClick } })
     await wrapper.trigger('click')
-    expect(wrapper.emitted('click')).toHaveLength(1)
+    expect(onClick).toHaveBeenCalledTimes(1)
   })
 })

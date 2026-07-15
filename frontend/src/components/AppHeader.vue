@@ -45,7 +45,7 @@ const initial = () => user.value?.displayName?.trim().charAt(0).toUpperCase() ||
           <img
             v-if="user?.avatarUrl"
             :src="user.avatarUrl"
-            alt=""
+            :alt="user.displayName"
             class="h-8 w-8 rounded-full object-cover"
           />
           <span

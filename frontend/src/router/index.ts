@@ -1,4 +1,9 @@
-import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+import {
+  createRouter,
+  createWebHistory,
+  type RouteLocationNormalizedGeneric,
+  type RouteRecordRaw,
+} from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
 
@@ -39,13 +44,28 @@ router.beforeEach(async (to) => {
     try {
       await auth.fetchMe()
     } catch {
-      // Backend unreachable — treat as logged out rather than blocking the app.
+      // Backend unreachable, but don't block the app. The user will be treated as logged out.
+      console.warn('Failed to fetch session; treating as logged out.')
     }
   }
 
-  if (to.meta.requiresAuth && !auth.isAuthenticated) {
+  // If the route requires auth and the user isn't logged in, redirect to login.
+  if (isRouteRequiresAuth(to, auth)) {
     return { name: 'login', query: { redirect: to.fullPath } }
   }
 
   return true
 })
+
+function isRouteRequiresAuth(
+  to: RouteLocationNormalizedGeneric,
+  auth: ReturnType<typeof useAuthStore>,
+): boolean {
+  const requiresAuth = to.meta.requiresAuth === true
+
+  if (requiresAuth && !auth.isAuthenticated) {
+    return true
+  }
+
+  return false
+}

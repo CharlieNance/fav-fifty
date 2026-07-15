@@ -8,8 +8,12 @@
   >
     <p>fav·fifty — make the list, defend the list.</p>
     <nav class="flex gap-5">
-      <a href="#" class="transition-colors hover:text-ink">About</a>
-      <a href="#" class="transition-colors hover:text-ink">Terms</a>
+      <a href="#" aria-disabled="true" @click.prevent class="transition-colors hover:text-ink"
+        >About</a
+      >
+      <a href="#" aria-disabled="true" @click.prevent class="transition-colors hover:text-ink"
+        >Terms</a
+      >
     </nav>
   </footer>
 </template>
