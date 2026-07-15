@@ -16,11 +16,18 @@ export default defineConfig({
   server: {
     // Proxy API calls to the FastAPI backend during local dev. Requests to
     // `/api/*` are forwarded to localhost:8000, so the browser sees a single
-    // origin — no CORS in dev, and future HttpOnly session cookies "just work".
+    // origin — no CORS in dev, and the HttpOnly session cookie "just works".
+    // The backend mounts its routers at the root (`/me`, `/auth/*`), so we strip
+    // the `/api` prefix here. In prod the SPA calls the API's real origin via
+    // VITE_API_BASE_URL, so this rewrite is a dev-only concern.
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        // Use 127.0.0.1, not localhost: Node 17+ resolves `localhost` to IPv6
+        // (::1) first, but uvicorn listens on IPv4 only by default, so a
+        // `localhost` target gets ECONNREFUSED. Pinning IPv4 avoids that.
+        target: 'http://127.0.0.1:8000',
         changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },
   },

@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
-import { ApiError, apiFetch } from '@/api/client'
+import { ApiError, apiFetch, apiUrl } from '@/api/client'
 
 /**
  * The current user as the frontend sees it. Mirrors the standard OIDC claims
@@ -41,10 +41,41 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  function logout(): void {
-    user.value = null
-    // TODO: call the backend to clear the session cookie once it exists.
+  /**
+   * Development-only login: mint a session for the fixed dev identity via the
+   * backend's `POST /auth/dev-login` stub (which 404s outside development). The
+   * real flow is {@link loginWithGoogle}; this exists so the whole app can be
+   * exercised locally before Cognito is wired.
+   */
+  async function devLogin(): Promise<void> {
+    user.value = await apiFetch<User>('/auth/dev-login', { method: 'POST' })
+    isReady.value = true
   }
 
-  return { user, isReady, isAuthenticated, fetchMe, logout }
+  /**
+   * Real login: hand the browser off to the backend, which builds the Cognito
+   * (Google) authorize URL and redirects there. This is a full-page navigation,
+   * not a fetch — the OAuth dance ends by redirecting back to `redirect`.
+   */
+  function loginWithGoogle(redirect?: string): void {
+    const url = apiUrl('/auth/login')
+    if (redirect) {
+      url.searchParams.set('redirect', redirect)
+    }
+    window.location.assign(url.toString())
+  }
+
+  async function logout(): Promise<void> {
+    try {
+      await apiFetch('/auth/logout', { method: 'POST' })
+    } catch {
+      // Best-effort: a failed logout call shouldn't surface as an error to the
+      // user who just clicked "Log out". We clear local state regardless below.
+    } finally {
+      // Never leave the UI looking signed in once the user asked to log out.
+      user.value = null
+    }
+  }
+
+  return { user, isReady, isAuthenticated, fetchMe, devLogin, loginWithGoogle, logout }
 })

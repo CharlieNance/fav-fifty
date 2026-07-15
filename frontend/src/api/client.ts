@@ -9,6 +9,19 @@
  */
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api'
 
+/**
+ * Absolute URL for a backend `path`, honoring the same base as {@link apiFetch}.
+ * Use for full-page navigations (e.g. the OAuth redirect) where `fetch` isn't
+ * involved. Works whether `BASE_URL` is relative (`/api`, dev) or an absolute
+ * origin (prod): a relative base resolves against the current origin, and an
+ * absolute base makes the second `URL` argument a no-op.
+ */
+export function apiUrl(path: string): URL {
+  const base = BASE_URL.endsWith('/') ? BASE_URL.slice(0, -1) : BASE_URL
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`
+  return new URL(`${base}${normalizedPath}`, window.location.origin)
+}
+
 export class ApiError extends Error {
   readonly status: number
 
