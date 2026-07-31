@@ -24,8 +24,11 @@ the OAuth "redirect" target; Google just needs to trust it.
      accounts listed here can complete the OAuth flow (everyone else gets blocked at
      Google's consent screen), so this is the one console step you need before you can
      personally test sign-in end to end.
-   - A **privacy policy URL** is required to publish (note for later — see
-     [CONSIDERATIONS.md](CONSIDERATIONS.md) §Legal).
+   - A **privacy policy URL** is required to move to Production (not needed while in
+     Testing). Draft is ready at [docs/legal/PRIVACY_POLICY.md](legal/PRIVACY_POLICY.md) —
+     it just needs a real contact email and a hosted URL before publishing. See
+     [CONSIDERATIONS.md](CONSIDERATIONS.md) §Legal and [DECISIONS.md](DECISIONS.md)
+     §Auth detail.
 3. **APIs & Services → Credentials → Create Credentials → OAuth client ID:**
    - Application type: **Web application**.
    - Name: `fav-fifty-web`.

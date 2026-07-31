@@ -28,6 +28,22 @@ _Last updated: 2026-07-09_
 - Facebook and Apple are nice-to-haves for later (both are native Cognito IdPs).
 - Twitter/X is explicitly **not** supported.
 
+### Google OAuth consent screen: Testing now, Production later (decided 2026-07-31)
+
+- **Today (local dev, personal testing):** the consent screen stays in **Testing** mode.
+  Add your own Google account (and any other early testers) under **Audience → Test
+  users** — up to 100 accounts, no verification needed, and the App domain / Privacy
+  Policy / ToS links aren't checked while in Testing.
+- **Plan:** move to **Production** once ready for open sign-up (not gated behind manual
+  test-user allowlisting). Since Fav Fifty only requests non-sensitive scopes (`openid`,
+  `email`, `profile`), this shouldn't require Google's full verification review — just a
+  live Privacy Policy URL and authorized-domain ownership verification.
+- **Legal docs:** drafted in [docs/legal/PRIVACY_POLICY.md](legal/PRIVACY_POLICY.md) and
+  [docs/legal/TERMS_OF_SERVICE.md](legal/TERMS_OF_SERVICE.md). They describe what the app
+  actually stores today — notably, **no email address**, just the Cognito `sub`, display
+  name, and avatar URL (see the `users` schema below). Still TODO before Production:
+  fill in a real contact email and host both docs at public URLs.
+
 ### Auth seam — build against a claims contract, stub locally (decided 2026-07-09)
 
 We build the backend against a **standard OIDC claims contract**, not against Cognito
