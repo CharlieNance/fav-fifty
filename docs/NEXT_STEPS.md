@@ -33,6 +33,9 @@ Goal: prove the whole stack connects, with auth, before building features.
 - [x] Real Google→Cognito login (backend, `feat/auth-page`): `CognitoIdentityProvider` (JWT/JWKS verification) + `/auth/login` & `/auth/callback` (authorization-code + PKCE + state + nonce), with tests. **Inert until the `COGNITO_*` env vars are set — do the console setup in [SETUP.md](SETUP.md) §3 to activate it.**
 - [x] Protected `GET /me` endpoint + frontend logged-in state: login page (real Google button + dev-login stub), header logout, session-aware store/guard (`feat/auth-page`).
 - [ ] CI: run backend + frontend tests on every push (GitHub Actions)
+- [ ] Add `email` column to `users` (Alembic migration) — safety net for relinking
+      accounts if the Cognito user pool is ever recreated; see [DECISIONS.md](DECISIONS.md)
+      §Product data model. Update `get_or_create_user` and the privacy policy when this ships.
 
 ## Phase 2 — Core feature: personal lists (MVP)
 
