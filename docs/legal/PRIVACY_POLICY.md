@@ -8,10 +8,13 @@ advice, but it's an accurate description of how the app actually works.
 
 ## What we collect
 
-- **An account identifier.** When you sign in with Google, our authentication provider
-  (AWS Cognito) gives us a stable ID for your account. We do **not** store your email
-  address — only this identifier, plus the display name and profile picture your Google
-  account shares at sign-in.
+- **An account identifier, name, and profile picture.** When you sign in with Google,
+  our authentication provider (AWS Cognito) gives us a stable ID for your account, your
+  display name, and your profile picture.
+- **Your email address.** Google also shares your email address at sign-in, and our
+  authentication provider (AWS Cognito) retains it as part of your account there. **Our
+  own application database does not separately store your email** — only the stable
+  account identifier, display name, and profile picture above.
 - **The content you create.** Lists, list items, notes, images (currently as links you
   provide, not uploads), and tags you add.
 - **Basic technical data.** Standard server logs (e.g. request timestamps, error info)
@@ -21,11 +24,11 @@ advice, but it's an accurate description of how the app actually works.
 
 ## What we don't collect (today)
 
-We do not collect or store your email address, phone number, precise location, payment
-information, or advertising/tracking data.
+Beyond what's listed above, we don't collect your phone number, precise location,
+payment information, or advertising/tracking data.
 
-**This may change as the app grows** — for example, we might later offer an optional way
-to add an email or phone number (e.g. for notifications). Any such change would be
+**This may change as the app grows** — for example, we might later use your email (or
+add a phone number) for optional features like notifications. Any such change would be
 opt-in and this policy would be updated first.
 
 ## How we use it
@@ -36,8 +39,10 @@ sell or share your data with third parties, and we don't use it for advertising.
 
 ## Where it's stored
 
-In a database we operate on AWS, in the United States. Authentication itself is handled
-by Google and AWS Cognito — we never see or store your Google password.
+Your lists, items, tags, account identifier, display name, and avatar are stored in a
+database we operate on AWS, in the United States. Your email address lives only in AWS
+Cognito (our authentication provider), not in that database. Authentication itself is
+handled by Google and AWS Cognito — we never see or store your Google password.
 
 ## Your choices
 

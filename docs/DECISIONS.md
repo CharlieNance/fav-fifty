@@ -40,9 +40,11 @@ _Last updated: 2026-07-09_
   live Privacy Policy URL and authorized-domain ownership verification.
 - **Legal docs:** drafted in [docs/legal/PRIVACY_POLICY.md](legal/PRIVACY_POLICY.md) and
   [docs/legal/TERMS_OF_SERVICE.md](legal/TERMS_OF_SERVICE.md). They describe what the app
-  actually stores today — notably, **no email address**, just the Cognito `sub`, display
-  name, and avatar URL (see the `users` schema below). Still TODO before Production:
-  fill in a real contact email and host both docs at public URLs.
+  actually stores today: the Cognito `sub`, display name, and avatar URL land in our own
+  Postgres `users` table (see schema below); **email does not** — it's retained by AWS
+  Cognito as part of the Google attribute mapping (§Step B in [SETUP.md](SETUP.md)), but
+  our application database never persists it. Still TODO before Production: fill in a
+  real contact email and host both docs at public URLs.
 
 ### Auth seam — build against a claims contract, stub locally (decided 2026-07-09)
 
