@@ -28,6 +28,24 @@ _Last updated: 2026-07-09_
 - Facebook and Apple are nice-to-haves for later (both are native Cognito IdPs).
 - Twitter/X is explicitly **not** supported.
 
+### Google OAuth consent screen: Testing now, Production later (decided 2026-07-31)
+
+- **Today (local dev, personal testing):** the consent screen stays in **Testing** mode.
+  Add your own Google account (and any other early testers) under **Audience → Test
+  users** — up to 100 accounts, no verification needed, and the App domain / Privacy
+  Policy / ToS links aren't checked while in Testing.
+- **Plan:** move to **Production** once ready for open sign-up (not gated behind manual
+  test-user allowlisting). Since Fav Fifty only requests non-sensitive scopes (`openid`,
+  `email`, `profile`), this shouldn't require Google's full verification review — just a
+  live Privacy Policy URL and authorized-domain ownership verification.
+- **Legal docs:** drafted in [docs/legal/PRIVACY_POLICY.md](legal/PRIVACY_POLICY.md) and
+  [docs/legal/TERMS_OF_SERVICE.md](legal/TERMS_OF_SERVICE.md). They describe what the app
+  actually stores today: the Cognito `sub`, display name, and avatar URL land in our own
+  Postgres `users` table (see schema below); **email does not** — it's retained by AWS
+  Cognito as part of the Google attribute mapping (§Step B in [SETUP.md](SETUP.md)), but
+  our application database never persists it. Still TODO before Production: fill in a
+  real contact email and host both docs at public URLs.
+
 ### Auth seam — build against a claims contract, stub locally (decided 2026-07-09)
 
 We build the backend against a **standard OIDC claims contract**, not against Cognito
@@ -123,6 +141,16 @@ Decisions from QUESTIONS.md §10, to guide the schema:
 > Alembic migration `ab1a1d72af10_initial_schema`. Applied and verified against local Postgres.
 
 - `users` — id, cognito_sub, display_name, avatar_url, created_at
+  - **Planned addition: `email`** (decided 2026-07-31, not yet migrated). Rationale:
+    Cognito's `sub` is per-pool — if the user pool is ever recreated (e.g. schema
+    change that requires a new pool), every user gets a new `sub` even though it's
+    the same Google account, breaking the `cognito_sub` foreign key. Storing email
+    directly turns a pool migration into "match by email, relink `cognito_sub`"
+    instead of losing the linkage. Cheap now, saves a much worse migration later.
+    **TODO when this ships:** add the Alembic migration, populate `email` in
+    `get_or_create_user` from `Claims.email`, and update
+    [docs/legal/PRIVACY_POLICY.md](legal/PRIVACY_POLICY.md) — it currently says our
+    own database doesn't store email, which will no longer be true.
 - `lists` — id, user_id (FK), title, description, status (`draft` | `published`), created_at, updated_at
 - `list_items` — id, list_id (FK), position (rank), text, note (nullable), image_url (nullable)
 - `tags` — id, name (unique, normalized)

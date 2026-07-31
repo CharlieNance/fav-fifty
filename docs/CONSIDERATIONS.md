@@ -81,12 +81,19 @@ extensibility, scalability.**
 
 ## Legal / operational
 
-- **Privacy policy & terms** become relevant once you store user data and use social login
-  (Google/Facebook/X require a privacy policy URL to approve OAuth apps). Plan a simple one.
+- **Privacy policy & terms:** drafted in [docs/legal/PRIVACY_POLICY.md](legal/PRIVACY_POLICY.md)
+  and [docs/legal/TERMS_OF_SERVICE.md](legal/TERMS_OF_SERVICE.md) (2026-07-31). Not attorney-
+  reviewed, but accurate to what the app actually collects (see the auth decision below).
+  Still need to: fill in the real contact email, and host them at real URLs (e.g.
+  `favfifty.com/privacy`, `/terms`) before moving the Google OAuth consent screen to
+  Production — see [SETUP.md §1](SETUP.md).
 - **GDPR-ish basics:** be able to delete a user's account and their data on request.
 - **Backups:** enable automated DB backups/snapshots even at small scale.
-- **OAuth app review:** Facebook and X in particular may require app review / business
-  verification before non-test users can log in — budget time for this, it can be slow.
+- **OAuth app review:** since Fav Fifty only requests Google's non-sensitive scopes
+  (`openid`, `email`, `profile`), moving to Production should **not** trigger Google's
+  full verification review — just needs a live privacy policy URL and (per Google's
+  process) verifying ownership of the authorized domain. Facebook and X, if ever added,
+  are more likely to require a real app review — budget time for that separately.
 
 ## Observability (lightweight to start)
 
