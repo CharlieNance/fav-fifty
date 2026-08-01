@@ -63,6 +63,10 @@ the OAuth "redirect" target; Google just needs to trust it.
 
 ## 3. AWS Cognito (auth broker)
 
+**✅ Done (2026-07-31) — "Continue with Google" works end to end.** This section is kept
+as the reference for what was configured and why, in case the pool ever needs to be
+recreated.
+
 **You need this section done before "Continue with Google" will work anywhere, including
 localhost.** Cognito, not the browser, is the party that talks to Google — until the
 Cognito user pool, IdP, domain, and app client all exist, there's no redirect URI to give
@@ -185,12 +189,12 @@ pointing at the CloudFront distribution, and request an **ACM certificate** (in
 ## Checklist
 
 - [x] Google OAuth consent screen configured
-- [ ] Your Google account added as a **test user** (consent screen still in Testing mode)
+- [x] Your Google account added as a **test user** (consent screen still in Testing mode)
 - [x] Google OAuth **Web application** client ID + secret created → store in `backend/.env`
 - [x] AWS account secured: root MFA, IAM user with admin via group, MFA on the IAM user
 - [x] AWS **budget + billing alarm** created; billing access enabled for the IAM user
 - [ ] AWS access keys for CLI/Terraform created → in `~/.aws/credentials` (when starting infra)
-- [ ] Cognito user pool + Google IdP + hosted domain + app client (Phase 1)
-- [ ] Google redirect URI added to the OAuth client (Cognito `/oauth2/idpresponse`)
+- [x] Cognito user pool + Google IdP + hosted domain + app client (Phase 1) (2026-07-31)
+- [x] Google redirect URI added to the OAuth client (Cognito `/oauth2/idpresponse`)
 - [ ] Route 53 hosted zone created; **email MX/SPF/DKIM/DMARC copied over**
 - [ ] Squarespace nameservers pointed at Route 53; DNS + email verified

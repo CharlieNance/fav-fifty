@@ -3,7 +3,7 @@
 The resolved choices that shape the build. This is the quick-reference summary; the
 full deliberation and trade-offs live in [QUESTIONS.md](QUESTIONS.md).
 
-_Last updated: 2026-07-09_
+_Last updated: 2026-07-31_
 
 ## Stack & infrastructure
 
@@ -114,9 +114,10 @@ Update (`feat/auth-page`): the two remaining code pieces are done —
   set the HttpOnly cookie). All of this is gated on `settings.cognito_configured`, so it
   stays dormant in local dev (stub) and activates once the `COGNITO_*` env vars are set.
 
-Still to do: the **AWS/Google console setup** that supplies those env vars (see
-[SETUP.md](SETUP.md) §3) and, at deploy time, a shared cookie domain across the API and
-site origins.
+**Update (2026-07-31):** the AWS/Google console setup (see [SETUP.md](SETUP.md) §3) is
+done — Cognito user pool, Google IdP, hosted domain, and app client are all live, and
+"Continue with Google" has been verified working end-to-end. Still to do at deploy time:
+a shared cookie domain across the API and site origins.
 
 ## Product data model (Phase 1–2)
 
@@ -178,4 +179,4 @@ Later phases add: `comments`, `votes`, `suggestions`/`questions`, and possibly `
 - Image storage (S3) — deferred until after MVP.
 - Category system — deferred; tags first.
 - Formal production DB rollback process (snapshot-first, tested downgrades) — defined at launch.
-- Auth seam backend — **implemented** on `feat/auth-seam` (see §Auth seam). Remaining: frontend login state, real Cognito provider + OAuth callback.
+- Auth — **fully implemented and live** (see §Auth detail): dev stub, real Cognito provider, frontend login state, OAuth callback, all verified working end-to-end (2026-07-31).

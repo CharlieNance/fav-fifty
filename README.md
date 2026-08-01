@@ -8,7 +8,7 @@
 
 ## Status
 
-🚧 **Phase 1 — Walking skeleton.** Foundation and key decisions are done. Backend (FastAPI + Postgres + Alembic) and frontend (Vue 3 + Vite) skeletons are scaffolded; wiring them together with auth is next.
+🚧 **Phase 1 — Walking skeleton.** Foundation and key decisions are done. Backend (FastAPI + Postgres + Alembic) and frontend (Vue 3 + Vite) are scaffolded, CI runs on every push, and **real Google sign-in via AWS Cognito is live end-to-end** (2026-07-31). A couple of small follow-ups remain before Phase 2.
 
 See [docs/NEXT_STEPS.md](docs/NEXT_STEPS.md) for the roadmap and [docs/QUESTIONS.md](docs/QUESTIONS.md) for open decisions.
 
