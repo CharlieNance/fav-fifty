@@ -13,6 +13,7 @@ Run them from the repo root like `./tools/<name>.sh` (Git Bash on Windows).
 | `verify_alembic.sh` | Read-only: show the migration the DB is on + the tables that exist. | Yes |
 | `db_reset.sh` | **Destructive.** Wipe the local DB volume, restart it, re-apply all migrations. | Yes (but erases local data) |
 | `check.sh` | Run the CI checks locally: backend ruff+pytest, frontend lint+test. | Yes |
+| `coverage.sh` | Print test coverage for both apps (pytest-cov + vitest). | Yes |
 
 ## Conventions for scripts here
 
