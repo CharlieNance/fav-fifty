@@ -19,16 +19,26 @@ design problem than a graphical one. Whitespace, type, and one good accent color
   (`bg-canvas`, `text-accent`, …). Re-theming = edit that one block.
 - **One accent color.** Keep restraint — a single brand accent until there's a reason
   for more.
+- **Palette (2026-07-14).** **Warm, cozy dark** — from the homepage mock
+  (`docs/Fav Fifty Homepage.html`). Low-chroma warm-brown surfaces (`oklch` hue ~50)
+  with a single **coral accent** (hue ~40). Semantic ramp, all in `main.css`:
+  `canvas` (app bg) → `surface` (cards) → `elevated` (hover) → `border`; text is
+  `ink` / `muted`; brand is `accent` / `accent-hover` / `accent-ink` (dark text on the
+  accent). Reads as nerdy-but-chill, doesn't take itself too seriously.
+- **Type pairing (2026-07-14).** **Baloo 2** (rounded display — wordmark, headings, big
+  rank numerals) + **Figtree** (clean body). **Self-hosted via Fontsource, latin subset,
+  only the weights we use** — no Google Fonts CDN call (privacy, no layout shift).
+- **Mobile-first, always.** The mock is desktop-first; we port it as mobile-first
+  responsive (design the narrow layout, scale up at `sm:`/`md:`). Audience arrives via
+  Discord links, mostly on phones.
+- **Logged-out "Start a list" (2026-07-14).** Button stays visible; clicking it when
+  logged out routes to login and **preserves intent** (continue to create-a-list after).
+  Gate the action, not the button — more inviting, better funnel.
 
 ## Open — to decide (no rush; these don't block feature work)
 
-- **Palette.** Exact dark surface ramp + the accent hue. Current values are stand-ins.
-  ("Chill/inviting" usually = slightly warm or soft-cool darks, generous whitespace,
-  rounded corners, restrained color.)
-- **Type pairing.** Pick at most two web fonts: one characterful **display** face (the
-  wordmark, headings, big rank numerals) + one clean **body** face. This single choice
-  carries most of the vibe. (System stack is the placeholder — no web font yet.)
-- **Wordmark / logo + favicon.** Even a simple type-based mark.
+- **Wordmark / logo + favicon.** Even a simple type-based mark. (Current: the `fav·fifty`
+  text wordmark from the mock; favicon still the scaffold default.)
 - **Light theme:** when (if) to add it.
 - **Motion:** how much. A little easing on hover/reorder sells "chill"; too much annoys.
 

@@ -17,22 +17,34 @@ the OAuth "redirect" target; Google just needs to trust it.
    - User type: **External**.
    - App name `Fav Fifty`, support email, developer contact.
    - Scopes: the basics — `openid`, `email`, `profile`.
-   - While testing you can leave it in **Testing** mode and add your Google account as a
-     test user; **publish** the consent screen before real users sign in.
-   - A **privacy policy URL** is required to publish (note for later — see
-     [CONSIDERATIONS.md](CONSIDERATIONS.md) §Legal).
+   - While testing you can leave it in **Testing** mode; **publish** the consent screen
+     before real users sign in.
+   - **Add yourself as a test user** — **Audience** (or **Test users**) tab → **Add
+     users** → enter your Gmail address. While the app is in Testing mode, *only*
+     accounts listed here can complete the OAuth flow (everyone else gets blocked at
+     Google's consent screen), so this is the one console step you need before you can
+     personally test sign-in end to end.
+   - A **privacy policy URL** is required to move to Production (not needed while in
+     Testing). Draft is ready at [docs/legal/PRIVACY_POLICY.md](legal/PRIVACY_POLICY.md) —
+     it just needs a real contact email and a hosted URL before publishing. See
+     [CONSIDERATIONS.md](CONSIDERATIONS.md) §Legal and [DECISIONS.md](DECISIONS.md)
+     §Auth detail.
 3. **APIs & Services → Credentials → Create Credentials → OAuth client ID:**
    - Application type: **Web application**.
    - Name: `fav-fifty-web`.
-   - **Authorized redirect URIs:** these point at **Cognito**, not directly at our app.
-     You'll fill these in once the Cognito domain exists (step 3 below). They look like:
-     - `https://<your-cognito-domain>.auth.<region>.amazoncognito.com/oauth2/idpresponse`
-   - For purely local experiments you may also add a localhost callback later if needed.
+   - **Authorized redirect URIs:** the **only** entry this needs is Cognito's callback —
+     `https://<your-cognito-domain>.auth.<region>.amazoncognito.com/oauth2/idpresponse`.
+     You'll fill this in once the Cognito domain exists (§3 Step C below).
+   - **Don't add a `localhost` redirect URI here.** In this architecture the browser
+     never hits Google directly — Cognito is the OAuth client that talks to Google, and
+     our backend only ever talks to Cognito. That's true even for local dev (see §3
+     Step D), so Google only ever needs to know about Cognito's redirect URI.
 4. Save the **Client ID** and **Client secret** → put them in `backend/.env`
    (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`) and, later, into Cognito's Google IdP config.
 
-> Order note: you can create the client now and come back to add the exact redirect URI
-> after Cognito is set up — or do Cognito first. Either works; the redirect URI is the link.
+> Order note: you can create the client and add your test user now, then come back to
+> add the exact redirect URI after Cognito is set up (§3) — Cognito must exist first
+> since the redirect URI is *its* domain.
 
 ---
 
@@ -49,18 +61,72 @@ the OAuth "redirect" target; Google just needs to trust it.
 
 ---
 
-## 3. AWS Cognito (auth broker) — outline
+## 3. AWS Cognito (auth broker)
 
-> Full config happens when we build auth in Phase 1; this is the shape of it.
+**You need this section done before "Continue with Google" will work anywhere, including
+localhost.** Cognito, not the browser, is the party that talks to Google — until the
+Cognito user pool, IdP, domain, and app client all exist, there's no redirect URI to give
+Google and no token to hand your backend. Nothing here is application code; it's console
+configuration that unblocks code that's already written and waiting.
 
-1. Create a **Cognito User Pool**.
-2. Add **Google** as a social identity provider, using the Client ID/secret from step 1.
-3. Set up a **Cognito hosted domain** (e.g. `favfifty.auth.us-east-1.amazoncognito.com`)
-   — this domain's `/oauth2/idpresponse` URL is the redirect URI Google needs (step 1.3).
-4. Create an **app client**; configure callback/sign-out URLs to our frontend
-   (`http://localhost:5173` for dev, `https://favfifty.com` for prod).
-5. Capture `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `COGNITO_CLIENT_SECRET`,
-   `COGNITO_DOMAIN`, `COGNITO_REGION` into `backend/.env`.
+The backend code for the real flow is **done** (branch `feat/auth-page`): `/auth/login`
+redirects to Cognito's hosted UI, and `/auth/callback` verifies the returned id token
+and mints our session. It stays dormant (routes 404) until the five `COGNITO_*` values
+are set. This section fills them in. Values below must match the code **exactly** — the
+code's expectations are called out inline.
+
+Do everything in one region (`us-east-1` recommended) and keep the browser tab with
+`backend/.env` open to paste values as you go.
+
+**Step A — Create the user pool.**
+1. Cognito → **Create user pool**.
+2. Sign-in options: you can leave the Cognito-native options unchecked — we only use a
+   federated provider. (Cognito requires at least a pool; we won't use its own accounts.)
+3. Name the pool e.g. `favfifty`. Create it.
+4. Copy the **User pool ID** (looks like `us-east-1_ABC123`) → `COGNITO_USER_POOL_ID`.
+   `COGNITO_REGION` is the region prefix (`us-east-1`).
+
+**Step B — Add Google as an identity provider.**
+1. User pool → **Sign-in experience → Federated identity provider sign-in → Add**.
+2. Choose **Google**. Paste the **Client ID / Client secret** from §1 (`GOOGLE_CLIENT_ID`
+   / `GOOGLE_CLIENT_SECRET`).
+3. **Authorized scopes:** `openid email profile`.
+4. **Attribute mapping** — the id token only carries what you map here, and the app reads
+   `email`, `name`, `picture`:
+   - Google `email` → Cognito `email`
+   - Google `name` → Cognito `name`
+   - Google `picture` → Cognito `picture`
+5. Save. The provider name will be **`Google`** — the code sends `identity_provider=Google`
+   to skip the account chooser, so keep this exact name.
+
+**Step C — Hosted UI domain.**
+1. User pool → **App integration → Domain → Create Cognito domain**.
+2. Pick a prefix, e.g. `favfifty` → full host `favfifty.auth.us-east-1.amazoncognito.com`.
+3. Put that **host only** (no `https://`) into `COGNITO_DOMAIN`.
+4. Back in **Google Cloud Console** (§1.3), add this to the OAuth client's **Authorized
+   redirect URIs**: `https://<domain>/oauth2/idpresponse`.
+
+**Step D — Create the app client.**
+1. User pool → **App integration → App clients → Create app client**.
+2. Type: **Confidential client** (our backend holds the secret) → this generates a
+   **client secret**.
+3. **Allowed callback URLs** — must equal `COGNITO_REDIRECT_URI` exactly:
+   - dev: `http://localhost:8000/auth/callback`
+   - prod: `https://api.favfifty.com/auth/callback` (your API origin)
+4. **Allowed sign-out URLs:** your frontend, e.g. `http://localhost:5173` /
+   `https://favfifty.com` (not used yet, but set it for later hosted-UI logout).
+5. **Identity providers:** enable **Google** (not Cognito user pool).
+6. **OAuth grant types:** **Authorization code grant** only. **Scopes:** `openid`,
+   `email`, `profile`. (The code uses auth-code **+ PKCE (S256)**, which Cognito allows
+   alongside a confidential client — nothing extra to toggle.)
+7. Copy **Client ID** → `COGNITO_CLIENT_ID` and **Client secret** → `COGNITO_CLIENT_SECRET`.
+
+**Step E — Fill in `backend/.env` and set `FRONTEND_URL` / `COGNITO_REDIRECT_URI`.** With
+all five `COGNITO_*` values plus `GOOGLE_CLIENT_ID/SECRET` set, restart the backend and
+visit the app: "Continue with Google" now runs the real flow. (Locally, cookies work
+across `:8000`/`:5173` because they share the `localhost` host; in production put the API
+and site on the same registrable domain — e.g. `api.favfifty.com` + `favfifty.com` — and
+set the session cookie's `Domain` to `.favfifty.com`, a deploy-time follow-up.)
 
 ---
 
@@ -119,6 +185,7 @@ pointing at the CloudFront distribution, and request an **ACM certificate** (in
 ## Checklist
 
 - [x] Google OAuth consent screen configured
+- [ ] Your Google account added as a **test user** (consent screen still in Testing mode)
 - [x] Google OAuth **Web application** client ID + secret created → store in `backend/.env`
 - [x] AWS account secured: root MFA, IAM user with admin via group, MFA on the IAM user
 - [x] AWS **budget + billing alarm** created; billing access enabled for the IAM user

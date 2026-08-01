@@ -4,20 +4,24 @@ version = "0.1.0"
 description = "Fav Fifty backend API (FastAPI)."
 requires-python = ">=3.12"
 dependencies = [
-    "fastapi>=0.115",
+    "fastapi>=0.139.2",
     "uvicorn[standard]>=0.30",
     "pydantic-settings>=2.4",
     "sqlalchemy>=2.0",
     "alembic>=1.13",
-    "psycopg[binary]>=3.2",
+    "psycopg[binary]>=3.3.4",
+    "itsdangerous>=2.2",
+    # Real auth: HTTP client for the Cognito token exchange (httpx2 = Pydantic's
+    # maintained continuation of httpx) and JWT verification for the id token.
+    "httpx2>=2.9.1",
+    "pyjwt[crypto]>=2.9",
 ]
 
 # Install dev tooling with:  uv sync --extra dev   (or)   pip install -e ".[dev]"
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
-    "httpx2>=2.5",
-    "ruff>=0.6",
+    "ruff>=0.15.22",
 ]
 
 [build-system]
@@ -34,6 +38,10 @@ target-version = "py312"
 [tool.ruff.lint]
 # E/F = pyflakes+pycodestyle, I = import sorting, UP = pyupgrade, B = bugbear
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's DI markers are meant to be called in argument defaults — not a B008 bug.
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.Path", "fastapi.Body"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

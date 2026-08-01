@@ -1,40 +1,54 @@
 @import 'tailwindcss';
 
+/* Self-hosted fonts (Fontsource, latin subset only — no external request, no
+   layout shift). Display = Baloo 2 (rounded, characterful); body = Figtree.
+   Import only the weights we actually use to keep the payload small. */
+@import '@fontsource/baloo-2/latin-500.css';
+@import '@fontsource/baloo-2/latin-600.css';
+@import '@fontsource/baloo-2/latin-700.css';
+@import '@fontsource/baloo-2/latin-800.css';
+@import '@fontsource/figtree/latin-400.css';
+@import '@fontsource/figtree/latin-500.css';
+@import '@fontsource/figtree/latin-600.css';
+@import '@fontsource/figtree/latin-700.css';
+
 /*
   Fav Fifty — design tokens (DARK-FIRST).
 
-  These values are deliberate PLACEHOLDERS to prove the Tailwind pipeline works;
-  the real palette, type, and spacing decisions live in docs/DESIGN.md.
+  The palette is the warm, cozy dark from the homepage mock (docs/DESIGN.md):
+  low-chroma warm-brown surfaces (oklch hue ~50) with a single coral accent
+  (hue ~40). The vibe: nerdy-but-chill, doesn't take itself too seriously.
 
-  The important part is the *structure*: everything downstream references the
-  semantic token names below (bg-canvas, text-ink, text-accent, ...) and never a
-  raw hex value. That means:
+  Everything downstream references the SEMANTIC token names below (bg-canvas,
+  text-ink, text-accent, ...) and never a raw color. That means:
     - re-theming the whole app = editing this one block, and
     - adding a light theme later = an additive `@variant`/media flip, not a rewrite.
 
   In Tailwind v4, each `--color-*` here generates matching utilities
-  (e.g. `--color-canvas` -> bg-canvas / text-canvas / border-canvas).
+  (e.g. `--color-canvas` -> bg-canvas / text-canvas / border-canvas), and each
+  `--font-*` generates a `font-*` utility (font-display / font-body).
 */
 @theme {
-  /* Surfaces (dark, low-eye-strain — refine in DESIGN.md) */
-  --color-canvas: #0e0f1a; /* app background            */
-  --color-surface: #171826; /* cards, panels             */
-  --color-elevated: #1f2130; /* raised / hover surfaces   */
-  --color-border: #2a2c3d; /* hairlines, dividers       */
+  /* Surfaces (warm dark, low chroma) */
+  --color-canvas: oklch(17% 0.014 50); /* app background          */
+  --color-surface: oklch(21% 0.016 50); /* cards, panels           */
+  --color-elevated: oklch(25% 0.018 50); /* raised / hover surfaces */
+  --color-border: oklch(29% 0.018 50); /* hairlines, dividers     */
 
   /* Text */
-  --color-ink: #e8e8f0; /* primary text              */
-  --color-muted: #9a9ab2; /* secondary / captions      */
+  --color-ink: oklch(92% 0.012 50); /* primary text            */
+  --color-muted: oklch(68% 0.02 50); /* secondary / captions    */
 
-  /* Brand — keep to a SINGLE accent until DESIGN.md says otherwise */
-  --color-accent: #8b7cff; /* links, primary actions    */
-  --color-accent-ink: #0e0f1a; /* text/icon on an accent bg */
+  /* Brand — a SINGLE warm coral accent until DESIGN.md says otherwise */
+  --color-accent: oklch(70% 0.16 40); /* links, primary actions  */
+  --color-accent-hover: oklch(76% 0.16 40); /* accent on hover         */
+  --color-accent-ink: oklch(18% 0.02 40); /* text/icon on an accent bg */
 
-  /* Type — system stack for now (no web-font download tonight).
-     Pick a display + body pairing later and drop them in here. */
+  /* Type — self-hosted (see @import above) */
+  --font-display: 'Baloo 2', ui-sans-serif, system-ui, sans-serif;
   --font-body:
-    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --font-display: var(--font-body);
+    'Figtree', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
+    sans-serif;
 }
 
 /* Base document styling driven entirely by the tokens above. */

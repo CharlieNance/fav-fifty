@@ -19,7 +19,7 @@ Goal: a clean repo and clear decisions before any app code.
   - [x] Create Google OAuth Web Application client ID + secret
   - [x] Set up AWS account (root MFA, IAM user/group, MFA) + billing budget/alarm
   - [ ] Create Route 53 hosted zone; copy Google email MX/SPF records; point Squarespace nameservers at it
-  - [ ] Cognito user pool + Google IdP (Phase 1)
+  - [ ] Cognito user pool + Google IdP + hosted domain + app client — the code is ready and waiting; follow [SETUP.md](SETUP.md) §3
 
 ## Phase 1 — Walking skeleton (thin end-to-end slice)
 
@@ -29,9 +29,13 @@ Goal: prove the whole stack connects, with auth, before building features.
 - [x] Scaffold `frontend/` — Vue 3 + Vite + TS app, Pinia, Vue Router, Tailwind, Vitest, ESLint/Prettier set up (2026-07-09)
 - [x] Local dev: docker-compose Postgres for the backend to run against (`docker compose up -d db`)
 - [x] Database schema v1 + migrations tool (Alembic): `users`, `lists`, `list_items`, `tags`, `list_tags` (see [DECISIONS.md](DECISIONS.md) §Data model)
-- [ ] Auth: social login working end-to-end (login → callback → session) for at least Google
-- [ ] Protected `GET /me` endpoint returning the current user; frontend shows logged-in state
+- [x] Auth seam (backend): claims contract + dev-login stub + session cookie + get-or-create + revocation, with tests (`feat/auth-seam`).
+- [x] Real Google→Cognito login (backend, `feat/auth-page`): `CognitoIdentityProvider` (JWT/JWKS verification) + `/auth/login` & `/auth/callback` (authorization-code + PKCE + state + nonce), with tests. **Inert until the `COGNITO_*` env vars are set — do the console setup in [SETUP.md](SETUP.md) §3 to activate it.**
+- [x] Protected `GET /me` endpoint + frontend logged-in state: login page (real Google button + dev-login stub), header logout, session-aware store/guard (`feat/auth-page`).
 - [ ] CI: run backend + frontend tests on every push (GitHub Actions)
+- [ ] Add `email` column to `users` (Alembic migration) — safety net for relinking
+      accounts if the Cognito user pool is ever recreated; see [DECISIONS.md](DECISIONS.md)
+      §Product data model. Update `get_or_create_user` and the privacy policy when this ships.
 
 ## Phase 2 — Core feature: personal lists (MVP)
 
@@ -74,7 +78,16 @@ Goal: the actual product — a logged-in user manages their own lists.
 
 ## Immediate next actions (do these first)
 
-1. **Owner:** read and answer [QUESTIONS.md](QUESTIONS.md).
-2. Pick a license; add `LICENSE`.
-3. Make the first commit and push to GitHub — confirm `.env` is **not** tracked.
-4. Once the DB/hosting/auth decisions are made, start Phase 1 with the backend skeleton.
+Auth code is done and just waiting on console config. In order:
+
+1. **Google Cloud Console:** add your Google account as a **test user** on the OAuth
+   consent screen (Testing mode) — see [SETUP.md](SETUP.md) §1.
+2. **AWS Cognito:** create the user pool, add Google as the federated IdP, create the
+   hosted UI domain, create the app client — see [SETUP.md](SETUP.md) §3 Steps A–D.
+3. Paste the Cognito domain's `/oauth2/idpresponse` URL into the Google OAuth client's
+   **Authorized redirect URIs** (back in Console, §1 step 3).
+4. Fill the five `COGNITO_*` values + `GOOGLE_CLIENT_ID/SECRET` into `backend/.env`
+   ([SETUP.md](SETUP.md) §3 Step E), restart the backend, and test "Continue with
+   Google" locally end to end.
+5. Once that works, finish the deferred Route 53 migration ([SETUP.md](SETUP.md) §4) and
+   move on to Phase 1's remaining item (CI).
