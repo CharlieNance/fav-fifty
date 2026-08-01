@@ -18,8 +18,26 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.db.session import engine, get_db
 from app.main import create_app
+
+
+@pytest.fixture(autouse=True)
+def _cognito_not_configured_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Force ``settings.cognito_configured`` to False, regardless of local ``.env``.
+
+    A dev machine with real Cognito credentials in ``backend/.env`` (needed to test
+    the live Google login) would otherwise make every test see Cognito as
+    configured, silently switching tests that expect the dev-login stub over to
+    the real provider. Tests that need the real flow opt back in via the
+    ``cognito_env`` fixture (test_cognito_auth.py), which runs after this one and
+    overrides these values.
+    """
+    monkeypatch.setattr(settings, "cognito_user_pool_id", "")
+    monkeypatch.setattr(settings, "cognito_client_id", "")
+    monkeypatch.setattr(settings, "cognito_client_secret", "")
+    monkeypatch.setattr(settings, "cognito_domain", "")
 
 
 @pytest.fixture

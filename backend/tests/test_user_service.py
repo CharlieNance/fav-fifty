@@ -17,6 +17,7 @@ def test_get_or_create_creates_then_reuses(db_session: Session) -> None:
     created = user_service.get_or_create_user(db_session, _claims())
     assert created.cognito_sub == "sub-123"
     assert created.display_name == "Alice"
+    assert created.email == "a@example.com"
     assert created.is_active is True
     assert created.session_token_version == 0
     assert created.last_login_at is not None
@@ -35,6 +36,15 @@ def test_get_or_create_refreshes_profile_fields(db_session: Session) -> None:
     assert updated.id == user_id
     assert updated.display_name == "Alice Cooper"
     assert updated.avatar_url == "https://cdn/x.png"
+
+
+def test_get_or_create_refreshes_email(db_session: Session) -> None:
+    user = user_service.get_or_create_user(db_session, _claims(email="old@example.com"))
+    user_id = user.id
+
+    updated = user_service.get_or_create_user(db_session, _claims(email="new@example.com"))
+    assert updated.id == user_id
+    assert updated.email == "new@example.com"
 
 
 def test_deactivate_user(db_session: Session) -> None:

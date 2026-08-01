@@ -22,6 +22,8 @@ def _apply_login(user: User, claims: Claims) -> None:
         user.display_name = claims.name
     if user.avatar_url != claims.picture:
         user.avatar_url = claims.picture
+    if user.email != claims.email:
+        user.email = claims.email
     user.last_login_at = datetime.now(UTC)
 
 
@@ -40,7 +42,12 @@ def get_or_create_user(db: Session, claims: Claims) -> User:
         return user
 
     # First login for this identity — insert the row.
-    user = User(cognito_sub=claims.sub, display_name=claims.name, avatar_url=claims.picture)
+    user = User(
+        cognito_sub=claims.sub,
+        display_name=claims.name,
+        avatar_url=claims.picture,
+        email=claims.email,
+    )
     user.last_login_at = datetime.now(UTC)
     db.add(user)
     try:

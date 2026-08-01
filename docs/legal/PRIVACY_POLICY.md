@@ -1,6 +1,6 @@
 # Privacy Policy
 
-_Last updated: 2026-07-31_
+_Last updated: 2026-08-01_
 
 Fav Fifty ("the app", "we") is a small personal project, not a company. This policy
 explains what we collect and why, in plain language. It is not a substitute for legal
@@ -11,10 +11,11 @@ advice, but it's an accurate description of how the app actually works.
 - **An account identifier, name, and profile picture.** When you sign in with Google,
   our authentication provider (AWS Cognito) gives us a stable ID for your account, your
   display name, and your profile picture.
-- **Your email address.** Google also shares your email address at sign-in, and our
-  authentication provider (AWS Cognito) retains it as part of your account there. **Our
-  own application database does not separately store your email** — only the stable
-  account identifier, display name, and profile picture above.
+- **Your email address.** Google also shares your email address at sign-in. Our
+  authentication provider (AWS Cognito) retains it as part of your account there, and
+  our own application database stores it too — as a safety net so we can still find
+  and reconnect your account if we ever have to recreate our Cognito user pool. We
+  don't use it to contact you and it isn't shown to other users.
 - **The content you create.** Lists, list items, notes, images (currently as links you
   provide, not uploads), and tags you add.
 - **Basic technical data.** Standard server logs (e.g. request timestamps, error info)
@@ -39,10 +40,10 @@ sell or share your data with third parties, and we don't use it for advertising.
 
 ## Where it's stored
 
-Your lists, items, tags, account identifier, display name, and avatar are stored in a
-database we operate on AWS, in the United States. Your email address lives only in AWS
-Cognito (our authentication provider), not in that database. Authentication itself is
-handled by Google and AWS Cognito — we never see or store your Google password.
+Your lists, items, tags, account identifier, display name, avatar, and email address are
+stored in a database we operate on AWS, in the United States. Your email address also
+lives in AWS Cognito (our authentication provider). Authentication itself is handled by
+Google and AWS Cognito — we never see or store your Google password.
 
 ## Your choices
 

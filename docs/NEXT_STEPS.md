@@ -33,9 +33,9 @@ Goal: prove the whole stack connects, with auth, before building features.
 - [x] Real Google→Cognito login (backend, `feat/auth-page`): `CognitoIdentityProvider` (JWT/JWKS verification) + `/auth/login` & `/auth/callback` (authorization-code + PKCE + state + nonce), with tests. **Live** — Cognito console setup done and "Continue with Google" verified working end-to-end (2026-07-31).
 - [x] Protected `GET /me` endpoint + frontend logged-in state: login page (real Google button + dev-login stub), header logout, session-aware store/guard (`feat/auth-page`).
 - [x] CI: backend (ruff + pytest against a real Postgres) and frontend (eslint + prettier + vue-tsc/build + vitest) on every PR and push to main (`.github/workflows/ci.yml`)
-- [ ] Add `email` column to `users` (Alembic migration) — safety net for relinking
+- [x] Add `email` column to `users` (Alembic migration) — safety net for relinking
       accounts if the Cognito user pool is ever recreated; see [DECISIONS.md](DECISIONS.md)
-      §Product data model. Update `get_or_create_user` and the privacy policy when this ships.
+      §Product data model. `get_or_create_user` and the privacy policy updated (2026-08-01).
 
 ## Phase 2 — Core feature: personal lists (MVP)
 
@@ -81,8 +81,8 @@ Goal: the actual product — a logged-in user manages their own lists.
 **Auth is done — real Google login via Cognito works end to end (2026-07-31).** CI is
 already in place (`.github/workflows/ci.yml`). Remaining Phase 1 items, in order:
 
-1. **`email` column on `users`** (Alembic migration): decided in
-   [DECISIONS.md](DECISIONS.md) §Product data model, not yet built. Small, isolated change.
+1. ~~**`email` column on `users`**~~ — done (2026-08-01), see [DECISIONS.md](DECISIONS.md)
+   §Product data model.
 2. **Route 53 migration** ([SETUP.md](SETUP.md) §4): deferred, no urgency since it doesn't
    block app work — do it whenever there's a lull.
 3. Then start **Phase 2** (CRUD lists) — see below.

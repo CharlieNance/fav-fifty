@@ -22,6 +22,11 @@ class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     display_name: Mapped[str] = mapped_column(String(100))
     avatar_url: Mapped[str | None] = mapped_column(String(1024), default=None)
 
+    # Safety net for relinking accounts if the Cognito user pool is ever recreated
+    # (which mints a new `cognito_sub` for the same Google account). Nullable because
+    # rows created before this column existed won't have it until their next login.
+    email: Mapped[str | None] = mapped_column(String(255), index=True, default=None)
+
     # Access revocation, checked on every authenticated request:
     #   is_active=False           → instant per-user disable.
     #   session_token_version     → embedded in each session cookie; bump to
