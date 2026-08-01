@@ -141,17 +141,17 @@ Decisions from QUESTIONS.md §10, to guide the schema:
 > **Implemented** as of 2026-07-09 — SQLAlchemy models in `backend/app/models/` and the
 > Alembic migration `ab1a1d72af10_initial_schema`. Applied and verified against local Postgres.
 
-- `users` — id, cognito_sub, display_name, avatar_url, created_at
-  - **Planned addition: `email`** (decided 2026-07-31, not yet migrated). Rationale:
-    Cognito's `sub` is per-pool — if the user pool is ever recreated (e.g. schema
-    change that requires a new pool), every user gets a new `sub` even though it's
-    the same Google account, breaking the `cognito_sub` foreign key. Storing email
-    directly turns a pool migration into "match by email, relink `cognito_sub`"
-    instead of losing the linkage. Cheap now, saves a much worse migration later.
-    **TODO when this ships:** add the Alembic migration, populate `email` in
-    `get_or_create_user` from `Claims.email`, and update
-    [docs/legal/PRIVACY_POLICY.md](legal/PRIVACY_POLICY.md) — it currently says our
-    own database doesn't store email, which will no longer be true.
+- `users` — id, cognito_sub, display_name, avatar_url, email, created_at
+  - **`email`** (decided 2026-07-31, migrated 2026-08-01,
+    `daf6d081e80f_add_email_to_users`). Rationale: Cognito's `sub` is per-pool — if
+    the user pool is ever recreated (e.g. schema change that requires a new pool),
+    every user gets a new `sub` even though it's the same Google account, breaking
+    the `cognito_sub` foreign key. Storing email directly turns a pool migration
+    into "match by email, relink `cognito_sub`" instead of losing the linkage.
+    Cheap now, saves a much worse migration later. Nullable + indexed, not unique:
+    existing rows get it filled in on their next login (`get_or_create_user`
+    populates it on create and refreshes it on every login from `Claims.email`);
+    not exposed via `UserRead`/`GET /me` to keep the public API surface minimal.
 - `lists` — id, user_id (FK), title, description, status (`draft` | `published`), created_at, updated_at
 - `list_items` — id, list_id (FK), position (rank), text, note (nullable), image_url (nullable)
 - `tags` — id, name (unique, normalized)
