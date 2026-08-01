@@ -74,4 +74,4 @@ Personal project for now. See [CLAUDE.md](CLAUDE.md) for conventions.
 
 ## License
 
-TBD — see [docs/QUESTIONS.md](docs/QUESTIONS.md).
+MIT — see [LICENSE](LICENSE).
