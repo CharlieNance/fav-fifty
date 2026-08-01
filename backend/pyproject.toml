@@ -13,7 +13,7 @@ dependencies = [
     "itsdangerous>=2.2",
     # Real auth: HTTP client for the Cognito token exchange (httpx2 = Pydantic's
     # maintained continuation of httpx) and JWT verification for the id token.
-    "httpx2>=2.5",
+    "httpx2>=2.9.1",
     "pyjwt[crypto]>=2.9",
 ]
 
