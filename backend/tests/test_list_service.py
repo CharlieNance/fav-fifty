@@ -102,3 +102,21 @@ def test_rename_list_updates_the_title(db_session: Session) -> None:
 
     assert renamed.id == row.id
     assert renamed.title == "New Title"
+
+
+def test_soft_delete_list_stamps_deleted_at(db_session: Session) -> None:
+    owner = _user(db_session, "owner")
+    row = _list(db_session, owner, "Gone")
+
+    list_service.soft_delete_list(db_session, row)
+
+    assert row.deleted_at is not None
+
+
+def test_soft_delete_list_hides_the_row_from_get_owned_list(db_session: Session) -> None:
+    owner = _user(db_session, "owner")
+    row = _list(db_session, owner, "Gone")
+
+    list_service.soft_delete_list(db_session, row)
+
+    assert list_service.get_owned_list(db_session, row.id, owner.id) is None

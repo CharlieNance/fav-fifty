@@ -14,6 +14,9 @@ export const useListModalsStore = defineStore('listModals', () => {
   // the details page's own fetch), keyed off this id, rather than living
   // globally like CreateListModal (which needs no existing list to open).
   const editingListId = ref<string | null>(null)
+  // Same shape as editingListId, for the delete confirmation (Interaction 4):
+  // whichever page has the list in hand mounts ConfirmDialog, keyed off this id.
+  const deletingListId = ref<string | null>(null)
 
   function openCreate(): void {
     isCreateOpen.value = true
@@ -31,5 +34,23 @@ export const useListModalsStore = defineStore('listModals', () => {
     editingListId.value = null
   }
 
-  return { isCreateOpen, openCreate, closeCreate, editingListId, openEdit, closeEdit }
+  function openDelete(listId: string): void {
+    deletingListId.value = listId
+  }
+
+  function closeDelete(): void {
+    deletingListId.value = null
+  }
+
+  return {
+    isCreateOpen,
+    openCreate,
+    closeCreate,
+    editingListId,
+    openEdit,
+    closeEdit,
+    deletingListId,
+    openDelete,
+    closeDelete,
+  }
 })

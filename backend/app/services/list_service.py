@@ -5,6 +5,7 @@ HTTP app. Routes delegate here; the DB row is queried/mutated here and nowhere e
 """
 
 import uuid
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -54,3 +55,14 @@ def rename_list(db: Session, row: List, title: str) -> List:
     db.commit()
     db.refresh(row)
     return row
+
+
+def soft_delete_list(db: Session, row: List) -> None:
+    """Soft-delete an already-resolved, owned list by stamping ``deleted_at``.
+
+    Never issues a real ``DELETE`` — see "Cross-cutting: soft delete" in
+    docs/LISTS_CRUD_PLAN.md. Callers resolve ``row`` via ``get_owned_list`` first,
+    so ownership/soft-delete filtering has already happened once here.
+    """
+    row.deleted_at = datetime.now(UTC)
+    db.commit()

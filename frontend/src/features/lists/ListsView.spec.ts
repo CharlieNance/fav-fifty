@@ -187,4 +187,81 @@ describe('ListsView', () => {
     expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
     expect(wrapper.text()).toContain('Best sandwiches')
   })
+
+  it('the delete icon opens ConfirmDialog for that row without calling the API or navigating', async () => {
+    apiFetchMock.mockResolvedValueOnce(LISTS)
+    const router = testRouter()
+
+    const wrapper = await mountAtLists(router)
+    await flushPromises()
+
+    const deleteButton = wrapper.find('button[aria-label="Delete Best sandwiches"]')
+    await deleteButton.trigger('click')
+
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain("Delete 'Best sandwiches'?")
+    expect(apiFetchMock).toHaveBeenCalledTimes(1) // only the initial load — not DELETE yet
+    expect(router.currentRoute.value.name).toBe('lists')
+  })
+
+  it('confirming delete calls DELETE and removes the row from the index', async () => {
+    apiFetchMock.mockResolvedValueOnce(LISTS.map((list) => ({ ...list })))
+    const router = testRouter()
+
+    const wrapper = await mountAtLists(router)
+    await flushPromises()
+
+    const deleteButton = wrapper.find('button[aria-label="Delete Best sandwiches"]')
+    await deleteButton.trigger('click')
+
+    apiFetchMock.mockResolvedValueOnce(undefined)
+    const confirmButton = wrapper.findAll('button').find((b) => b.text() === 'Delete')
+    await confirmButton!.trigger('click')
+    await flushPromises()
+
+    expect(apiFetchMock).toHaveBeenCalledWith('/lists/list-1', { method: 'DELETE' })
+    expect(wrapper.text()).not.toContain('Best sandwiches')
+    expect(wrapper.text()).toContain('Favorite albums')
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+    expect(router.currentRoute.value.name).toBe('lists')
+  })
+
+  it('cancelling delete closes the dialog without calling the API, row stays', async () => {
+    apiFetchMock.mockResolvedValueOnce(LISTS)
+    const router = testRouter()
+
+    const wrapper = await mountAtLists(router)
+    await flushPromises()
+
+    const deleteButton = wrapper.find('button[aria-label="Delete Best sandwiches"]')
+    await deleteButton.trigger('click')
+
+    const cancelButton = wrapper.findAll('button').find((b) => b.text() === 'Cancel')
+    await cancelButton!.trigger('click')
+    await flushPromises()
+
+    expect(apiFetchMock).toHaveBeenCalledTimes(1) // only the initial load
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('Best sandwiches')
+  })
+
+  it('a failed delete surfaces an inline error and keeps the row', async () => {
+    apiFetchMock.mockResolvedValueOnce(LISTS)
+    const router = testRouter()
+
+    const wrapper = await mountAtLists(router)
+    await flushPromises()
+
+    const deleteButton = wrapper.find('button[aria-label="Delete Best sandwiches"]')
+    await deleteButton.trigger('click')
+
+    apiFetchMock.mockRejectedValueOnce(new ApiError(404, 'Not found'))
+    const confirmButton = wrapper.findAll('button').find((b) => b.text() === 'Delete')
+    await confirmButton!.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
+    expect(wrapper.find('[role="alert"]').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Best sandwiches')
+  })
 })

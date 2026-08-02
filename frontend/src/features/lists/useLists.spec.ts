@@ -73,4 +73,24 @@ describe('useLists', () => {
 
     expect(lists.value).toEqual([LIST])
   })
+
+  it('removeList drops a matching list', async () => {
+    apiFetchMock.mockResolvedValueOnce([LIST])
+    const { lists, load, removeList } = useLists()
+    await load()
+
+    removeList(LIST.id)
+
+    expect(lists.value).toEqual([])
+  })
+
+  it('removeList is a no-op when the list is not already loaded', async () => {
+    apiFetchMock.mockResolvedValueOnce([LIST])
+    const { lists, load, removeList } = useLists()
+    await load()
+
+    removeList('someone-elses-list')
+
+    expect(lists.value).toEqual([LIST])
+  })
 })

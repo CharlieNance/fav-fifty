@@ -63,3 +63,16 @@ def update_list(
 ) -> List:
     """Rename one of the current user's lists (404 if missing, not theirs, or deleted)."""
     return list_service.rename_list(db, list_row, payload.title)
+
+
+@router.delete("/{list_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_list(
+    list_row: List = Depends(get_owned_list),
+    db: Session = Depends(get_db),
+) -> None:
+    """Soft-delete one of the current user's lists (404 if missing, not theirs, or deleted).
+
+    A second delete of the same id is still 404 — the row is invisible to
+    `get_owned_list` once `deleted_at` is set, same as any other soft-deleted row.
+    """
+    list_service.soft_delete_list(db, list_row)

@@ -32,5 +32,10 @@ export function useLists() {
     }
   }
 
-  return { status, lists, load, updateList }
+  /** Drop one already-loaded list (e.g. after a confirmed delete). */
+  function removeList(id: string): void {
+    lists.value = lists.value.filter((list) => list.id !== id)
+  }
+
+  return { status, lists, load, updateList, removeList }
 }

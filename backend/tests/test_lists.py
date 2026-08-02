@@ -179,3 +179,67 @@ def test_update_list_rejects_invalid_title(
 ) -> None:
     row = _list(db_session, _dev_user(db_session), "Old Title")
     assert auth_client.patch(f"/lists/{row.id}", json={"title": title}).status_code == 422
+
+
+def test_delete_list_requires_authentication(client: TestClient, db_session: Session) -> None:
+    row = _list(db_session, _dev_user(db_session), "Mine")
+    assert client.delete(f"/lists/{row.id}").status_code == 401
+
+
+def test_delete_list_soft_deletes_the_owners_list(
+    auth_client: TestClient, db_session: Session
+) -> None:
+    row = _list(db_session, _dev_user(db_session), "Mine")
+
+    response = auth_client.delete(f"/lists/{row.id}")
+
+    assert response.status_code == 204
+    assert response.content == b""
+    db_session.refresh(row)
+    assert row.deleted_at is not None
+
+
+def test_delete_list_removes_it_from_the_index(
+    auth_client: TestClient, db_session: Session
+) -> None:
+    row = _list(db_session, _dev_user(db_session), "Mine")
+
+    auth_client.delete(f"/lists/{row.id}")
+
+    assert auth_client.get("/lists").json() == []
+
+
+def test_delete_list_makes_the_single_get_404(auth_client: TestClient, db_session: Session) -> None:
+    row = _list(db_session, _dev_user(db_session), "Mine")
+
+    auth_client.delete(f"/lists/{row.id}")
+
+    assert auth_client.get(f"/lists/{row.id}").status_code == 404
+
+
+def test_delete_list_twice_404s_the_second_time(
+    auth_client: TestClient, db_session: Session
+) -> None:
+    row = _list(db_session, _dev_user(db_session), "Mine")
+
+    first = auth_client.delete(f"/lists/{row.id}")
+    second = auth_client.delete(f"/lists/{row.id}")
+
+    assert first.status_code == 204
+    assert second.status_code == 404
+
+
+def test_delete_list_404s_for_a_different_users_list(
+    auth_client: TestClient, db_session: Session
+) -> None:
+    theirs = _list(db_session, _second_user(db_session), "Someone else's")
+
+    response = auth_client.delete(f"/lists/{theirs.id}")
+
+    assert response.status_code == 404
+    db_session.refresh(theirs)
+    assert theirs.deleted_at is None
+
+
+def test_delete_list_404s_for_a_nonexistent_id(auth_client: TestClient) -> None:
+    assert auth_client.delete(f"/lists/{uuid.uuid4()}").status_code == 404

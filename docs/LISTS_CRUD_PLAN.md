@@ -306,6 +306,9 @@ confirm step, even though the row survives server-side for now as a soft-delete.
     index, or redirect away from a now-gone details page); cancelling/dismissing closes
     the dialog and never calls `apiFetch`; the dialog is reachable from both entry
     points.
+** Completed and Verified 2026-08-01 9:58 PM ** (index-row entry point only — the
+details page's Delete button lands with Interaction 5, since `ListDetailView.vue` is
+still a stub until then)
 
 ## Interaction 5 — List details page (stub)
 
