@@ -41,6 +41,12 @@ const initial = () => user.value?.displayName?.trim().charAt(0).toUpperCase() ||
     <!-- Auth-aware controls -->
     <nav class="flex items-center gap-3 sm:gap-4">
       <template v-if="isAuthenticated">
+        <RouterLink
+          to="/lists"
+          class="text-sm font-medium text-muted transition-colors hover:text-ink"
+        >
+          My lists
+        </RouterLink>
         <div class="flex items-center gap-2">
           <img
             v-if="user?.avatarUrl"

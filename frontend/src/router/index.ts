@@ -21,9 +21,15 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/features/auth/LoginView.vue'),
   },
   {
-    path: '/lists/new',
-    name: 'create-list',
-    component: () => import('@/features/lists/CreateListView.vue'),
+    path: '/lists',
+    name: 'lists',
+    component: () => import('@/features/lists/ListsView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/lists/:id',
+    name: 'list-detail',
+    component: () => import('@/features/lists/ListDetailView.vue'),
     meta: { requiresAuth: true },
   },
 ]

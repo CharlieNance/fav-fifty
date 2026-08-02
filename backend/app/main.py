@@ -10,7 +10,7 @@ Then open http://localhost:8000/health and http://localhost:8000/docs
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import auth, health, me
+from app.api.routes import auth, health, lists, me
 from app.core.config import settings
 
 
@@ -35,6 +35,7 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(auth.router)
     app.include_router(me.router)
+    app.include_router(lists.router)
 
     return app
 

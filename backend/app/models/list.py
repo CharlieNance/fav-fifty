@@ -7,9 +7,10 @@ limit is easy to reason about and change.
 from __future__ import annotations
 
 import uuid
+from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CheckConstraint, ForeignKey, String, Text
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -32,6 +33,11 @@ class List(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     description: Mapped[str | None] = mapped_column(Text, default=None)
     # 'draft' until the user publishes the list; then 'published'.
     status: Mapped[str] = mapped_column(String(20), server_default="draft")
+    # Soft delete: NULL means active. A dedicated column (not a bool) can't drift
+    # out of sync with itself, and keeps "deleted" distinct from `updated_at`.
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None, index=True
+    )
 
     owner: Mapped[User] = relationship(back_populates="lists")
     items: Mapped[list[ListItem]] = relationship(
