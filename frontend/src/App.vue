@@ -4,6 +4,7 @@
 // logged-in / logged-out state on first paint.
 import AppFooter from '@/components/AppFooter.vue'
 import AppHeader from '@/components/AppHeader.vue'
+import CreateListModal from '@/features/lists/CreateListModal.vue'
 </script>
 
 <template>
@@ -13,5 +14,6 @@ import AppHeader from '@/components/AppHeader.vue'
       <RouterView />
     </main>
     <AppFooter />
+    <CreateListModal />
   </div>
 </template>

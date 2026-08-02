@@ -1,9 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 
 import { ApiError } from '@/api/client'
 import type { ListSummary } from './types'
+import { useListModalsStore } from './useListModals'
 
 vi.mock('@/api/client', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/client')>()
@@ -22,7 +24,6 @@ function testRouter(): Router {
     history: createMemoryHistory(),
     routes: [
       { path: '/lists', name: 'lists', component: ListsView },
-      { path: '/lists/new', name: 'create-list', component: stub },
       { path: '/lists/:id', name: 'list-detail', component: stub },
     ],
   })
@@ -45,14 +46,15 @@ const LISTS: ListSummary[] = [
   },
 ]
 
-async function mountAtLists(router: Router) {
-  router.push('/lists')
+async function mountAtLists(router: Router, path = '/lists') {
+  router.push(path)
   await router.isReady()
   return mount({ template: '<router-view />' }, { global: { plugins: [router] } })
 }
 
 describe('ListsView', () => {
   beforeEach(() => {
+    setActivePinia(createPinia())
     apiFetchMock.mockReset()
   })
 
@@ -92,7 +94,6 @@ describe('ListsView', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain("You haven't started a list yet")
-    expect(wrapper.find('a[href="/lists/new"]').exists()).toBe(true)
   })
 
   it('renders an error state when the request fails', async () => {
@@ -102,5 +103,30 @@ describe('ListsView', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Something went wrong loading your lists')
+  })
+
+  it('"New list" opens the create modal without navigating', async () => {
+    apiFetchMock.mockResolvedValueOnce([])
+    const router = testRouter()
+
+    const wrapper = await mountAtLists(router)
+    await flushPromises()
+
+    const newListButton = wrapper.findAll('button').find((b) => b.text() === 'New list')
+    await newListButton!.trigger('click')
+
+    expect(useListModalsStore().isCreateOpen).toBe(true)
+    expect(router.currentRoute.value.name).toBe('lists')
+  })
+
+  it('opens the create modal on mount when redirected here with ?openCreate=1', async () => {
+    apiFetchMock.mockResolvedValueOnce([])
+    const router = testRouter()
+
+    await mountAtLists(router, '/lists?openCreate=1')
+    await flushPromises()
+
+    expect(useListModalsStore().isCreateOpen).toBe(true)
+    expect(router.currentRoute.value.query.openCreate).toBeUndefined()
   })
 })

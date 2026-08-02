@@ -5,6 +5,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 
 import AppHeader from './AppHeader.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useListModalsStore } from '@/features/lists/useListModals'
 
 const stub = { template: '<div />' }
 
@@ -14,7 +15,6 @@ function testRouter(): Router {
     routes: [
       { path: '/', name: 'home', component: stub },
       { path: '/login', name: 'login', component: stub },
-      { path: '/lists/new', name: 'create-list', component: stub },
       { path: '/lists', name: 'lists', component: stub },
     ],
   })
@@ -70,6 +70,21 @@ describe('AppHeader', () => {
     await flushPromises()
 
     expect(router.currentRoute.value.name).toBe('login')
-    expect(router.currentRoute.value.query.redirect).toBe('/lists/new')
+    expect(router.currentRoute.value.query.redirect).toBe('/lists?openCreate=1')
+  })
+
+  it('"Start a list" opens the create modal for a logged-in user, without navigating', async () => {
+    const auth = useAuthStore()
+    auth.user = { id: 'u1', displayName: 'Shaggy', avatarUrl: null }
+    const router = testRouter()
+    const wrapper = mountHeader(router)
+    await router.isReady()
+
+    const startButton = wrapper.findAll('button').find((b) => b.text().includes('Start a list'))
+    await startButton!.trigger('click')
+    await flushPromises()
+
+    expect(useListModalsStore().isCreateOpen).toBe(true)
+    expect(router.currentRoute.value.name).not.toBe('login')
   })
 })

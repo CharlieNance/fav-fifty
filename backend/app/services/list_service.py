@@ -21,3 +21,12 @@ def list_for_user(db: Session, user_id: uuid.UUID) -> list[List]:
             .order_by(List.updated_at.desc())
         )
     )
+
+
+def create_list(db: Session, user_id: uuid.UUID, title: str) -> List:
+    """Create a new list owned by ``user_id``. ``title`` is already validated/trimmed."""
+    row = List(user_id=user_id, title=title)
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row

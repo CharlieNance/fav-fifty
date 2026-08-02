@@ -1,7 +1,9 @@
-"""Tests for GET /lists — a signed-in user's own list index."""
+"""Tests for /lists — a signed-in user's own lists (index + create)."""
 
+import uuid
 from datetime import UTC, datetime
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -75,3 +77,28 @@ def test_list_lists_isolates_a_different_authenticated_user(
 
     assert response.status_code == 200
     assert [row["id"] for row in response.json()] == [str(theirs.id)]
+
+
+def test_create_list_requires_authentication(client: TestClient) -> None:
+    assert client.post("/lists", json={"title": "New list"}).status_code == 401
+
+
+def test_create_list_creates_a_row_owned_by_the_caller(
+    auth_client: TestClient, db_session: Session
+) -> None:
+    response = auth_client.post("/lists", json={"title": "  My New List  "})
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["title"] == "My New List"
+    assert "deleted_at" not in body
+
+    row = db_session.get(List, uuid.UUID(body["id"]))
+    assert row is not None
+    assert row.user_id == _dev_user(db_session).id
+    assert row.deleted_at is None
+
+
+@pytest.mark.parametrize("title", ["", "   ", "x" * 201])
+def test_create_list_rejects_invalid_title(auth_client: TestClient, title: str) -> None:
+    assert auth_client.post("/lists", json={"title": title}).status_code == 422

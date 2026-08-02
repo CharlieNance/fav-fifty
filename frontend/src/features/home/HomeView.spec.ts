@@ -13,7 +13,6 @@ function testRouter(): Router {
     routes: [
       { path: '/', name: 'home', component: HomeView },
       { path: '/login', name: 'login', component: stub },
-      { path: '/lists/new', name: 'create-list', component: stub },
     ],
   })
 }
@@ -37,6 +36,6 @@ describe('HomeView', () => {
     await flushPromises()
 
     expect(router.currentRoute.value.name).toBe('login')
-    expect(router.currentRoute.value.query.redirect).toBe('/lists/new')
+    expect(router.currentRoute.value.query.redirect).toBe('/lists?openCreate=1')
   })
 })

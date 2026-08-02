@@ -49,3 +49,14 @@ def test_list_for_user_orders_by_updated_at_descending(db_session: Session) -> N
     result = list_service.list_for_user(db_session, user.id)
 
     assert [row.id for row in result] == [newer.id, older.id]
+
+
+def test_create_list_returns_a_new_row_owned_by_the_user(db_session: Session) -> None:
+    user = _user(db_session, "owner")
+
+    row = list_service.create_list(db_session, user.id, "My New List")
+
+    assert row.id is not None
+    assert row.user_id == user.id
+    assert row.title == "My New List"
+    assert row.deleted_at is None

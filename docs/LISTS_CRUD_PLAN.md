@@ -236,6 +236,7 @@ posts, closes the modal, and navigates to the new list's details page (`/lists/:
     `/lists/:id`; Save with an empty title is blocked client-side; Cancel closes the
     modal without calling `apiFetch` and without navigating; a `422`/`ApiError` from the
     backend surfaces as an inline error inside the still-open modal, not a crash.
+** Completed and Verified 2026-08-01 7:32 PM **
 
 ## Interaction 3 — Rename a list (modal)
 
