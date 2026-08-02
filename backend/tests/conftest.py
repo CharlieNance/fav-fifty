@@ -82,7 +82,7 @@ def auth_client(client: TestClient) -> TestClient:
 
 
 @pytest.fixture
-def second_user_client(client: TestClient, db_session: Session) -> TestClient:
+def second_user_client(client: TestClient, db_session: Session) -> Iterator[TestClient]:
     """A second, distinct logged-in identity — for cross-user isolation tests.
 
     ``auth_client`` always logs in as the fixed ``DEV_CLAIMS`` user via the dev-login
@@ -95,6 +95,6 @@ def second_user_client(client: TestClient, db_session: Session) -> TestClient:
         db_session,
         Claims(sub="second-user", email="second@example.com", name="Second User"),
     )
-    other_client = TestClient(client.app)
-    other_client.cookies.set(settings.session_cookie_name, issue_session(user))
-    return other_client
+    with TestClient(client.app) as other_client:
+        other_client.cookies.set(settings.session_cookie_name, issue_session(user))
+        yield other_client

@@ -6,7 +6,7 @@
 // identically to their index-row counterparts. Item management is out of scope
 // for this feature — the body is just the title plus an empty-state message.
 import { onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 
 import BaseButton from '@/components/BaseButton.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
@@ -30,6 +30,10 @@ const modals = useListModalsStore()
 
 onMounted(() => {
   void load(route.params.id as string)
+})
+
+onBeforeRouteUpdate((to) => {
+  void load(to.params.id as string)
 })
 
 function handleRenamed(updated: ListSummary): void {

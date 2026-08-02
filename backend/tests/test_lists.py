@@ -5,7 +5,6 @@ from datetime import UTC, datetime
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.auth.claims import Claims
@@ -16,9 +15,14 @@ from app.services import user_service
 
 
 def _dev_user(db_session: Session) -> User:
-    user = db_session.scalar(select(User).where(User.cognito_sub == DEV_CLAIMS.sub))
-    assert user is not None
-    return user
+    """The DEV_CLAIMS user, created on demand.
+
+    Tests using ``auth_client`` already have this row (dev-login created it), but
+    the ``*_requires_authentication`` tests build a list to point an unauthenticated
+    request at without ever logging in, so it may not exist yet. ``get_or_create_user``
+    is idempotent, so this is safe either way.
+    """
+    return user_service.get_or_create_user(db_session, DEV_CLAIMS)
 
 
 def _second_user(db_session: Session) -> User:

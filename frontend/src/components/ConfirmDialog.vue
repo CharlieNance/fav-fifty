@@ -46,7 +46,7 @@ function confirm(): void {
 
 <template>
   <div
-    class="fixed inset-0 z-50 grid place-items-center bg-black/50 px-4"
+    class="fixed inset-0 z-50 grid place-items-center bg-canvas/50 px-4"
     @click.self="cancel"
     @keydown.escape="cancel"
   >
