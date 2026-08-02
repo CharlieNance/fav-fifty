@@ -24,5 +24,13 @@ export function useLists() {
     }
   }
 
-  return { status, lists, load }
+  /** Replace one already-loaded list with a fresher copy (e.g. after a rename). */
+  function updateList(updated: ListSummary): void {
+    const index = lists.value.findIndex((list) => list.id === updated.id)
+    if (index !== -1) {
+      lists.value[index] = updated
+    }
+  }
+
+  return { status, lists, load, updateList }
 }

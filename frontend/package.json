@@ -19,6 +19,7 @@
   "dependencies": {
     "@fontsource/baloo-2": "^5.2.7",
     "@fontsource/figtree": "^5.2.10",
+    "@heroicons/vue": "^2.2.0",
     "pinia": "^3.0.4",
     "vue": "^3.5.39",
     "vue-router": "^5.1.0"

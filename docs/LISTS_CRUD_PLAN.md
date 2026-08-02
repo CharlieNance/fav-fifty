@@ -185,6 +185,14 @@ every endpoint and page below, not just once:
 - No other fields are settable through this feature's endpoints yet (`description`,
   `status` stay at their DB defaults — untouched until the description/publish work
   lands).
+- **Known gap, deferred on purpose:** nothing currently stops a user from creating or
+  renaming a list to the same title as one of their other lists — `ListCreate`/
+  `ListUpdate` only check length/emptiness, not uniqueness. Not fixing now, but noted so
+  it doesn't get lost: before/around Phase 2's item CRUD work, add a per-user uniqueness
+  check on list titles (case-insensitive compare feels right — "Bands" and "bands"
+  shouldn't coexist), and the same rule for **item names within a single list** once
+  items exist. Whichever lands first should decide the shared shape (a validator helper,
+  a partial unique index, or both) so the other doesn't reinvent it.
 
 ## Interaction 1 — View my lists (index)
 
@@ -261,6 +269,7 @@ no navigation. **Cancel** closes the modal, discarding the edit.
     edited title, closes the modal, and the page reflects the new title without a route
     change; Cancel closes without calling `apiFetch` and without changing the displayed
     title; a `404`/`422` surfaces as an inline error inside the still-open modal.
+** Completed and Verified 2026-08-01 8:46 PM **
 
 ## Interaction 4 — Delete a list (soft delete)
 

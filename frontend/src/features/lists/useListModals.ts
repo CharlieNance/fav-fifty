@@ -9,6 +9,11 @@ import { defineStore } from 'pinia'
 
 export const useListModalsStore = defineStore('listModals', () => {
   const isCreateOpen = ref(false)
+  // Which list is being renamed, if any. Just an id — EditListModal.vue is
+  // rendered by whichever page has the list's data in hand (index row, or
+  // the details page's own fetch), keyed off this id, rather than living
+  // globally like CreateListModal (which needs no existing list to open).
+  const editingListId = ref<string | null>(null)
 
   function openCreate(): void {
     isCreateOpen.value = true
@@ -18,5 +23,13 @@ export const useListModalsStore = defineStore('listModals', () => {
     isCreateOpen.value = false
   }
 
-  return { isCreateOpen, openCreate, closeCreate }
+  function openEdit(listId: string): void {
+    editingListId.value = listId
+  }
+
+  function closeEdit(): void {
+    editingListId.value = null
+  }
+
+  return { isCreateOpen, openCreate, closeCreate, editingListId, openEdit, closeEdit }
 })

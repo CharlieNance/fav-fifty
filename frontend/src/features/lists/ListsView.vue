@@ -1,16 +1,21 @@
 <script setup lang="ts">
-// Interaction 1 + 2 (docs/LISTS_CRUD_PLAN.md): the index of the signed-in user's
-// own lists, plus the entry point for creating a new one. Create is a modal
-// (CreateListModal, hosted globally in App.vue) opened via the shared
-// useListModalsStore — this page only triggers it, it never navigates for it.
+// Interaction 1 + 2 + 3 (docs/LISTS_CRUD_PLAN.md): the index of the signed-in
+// user's own lists, plus the entry points for creating and renaming one. Create
+// is a modal (CreateListModal, hosted globally in App.vue) opened via the shared
+// useListModalsStore; rename (EditListModal) is mounted right here per-row,
+// keyed off the same store's `editingListId` — neither ever navigates away.
 import { onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { PencilSquareIcon } from '@heroicons/vue/24/outline'
 
 import BaseButton from '@/components/BaseButton.vue'
+import IconButton from '@/components/IconButton.vue'
+import EditListModal from './EditListModal.vue'
+import type { ListSummary } from './types'
 import { useLists } from './useLists'
 import { useListModalsStore } from './useListModals'
 
-const { status, lists, load } = useLists()
+const { status, lists, load, updateList } = useLists()
 const modals = useListModalsStore()
 const route = useRoute()
 const router = useRouter()
@@ -25,6 +30,11 @@ onMounted(() => {
     void router.replace({ path: route.path, query: { ...route.query, openCreate: undefined } })
   }
 })
+
+function handleRenamed(updated: ListSummary): void {
+  updateList(updated)
+  modals.closeEdit()
+}
 </script>
 
 <template>
@@ -45,10 +55,22 @@ onMounted(() => {
     </p>
 
     <ul v-else class="mt-6 divide-y divide-border">
-      <li v-for="list in lists" :key="list.id" class="py-3">
+      <li v-for="list in lists" :key="list.id" class="flex items-center justify-between gap-4 py-3">
         <RouterLink :to="{ name: 'list-detail', params: { id: list.id } }" class="text-ink">
           {{ list.title }}
         </RouterLink>
+        <IconButton
+          :icon="PencilSquareIcon"
+          :label="`Rename ${list.title}`"
+          @click="modals.openEdit(list.id)"
+        />
+
+        <EditListModal
+          v-if="modals.editingListId === list.id"
+          :list="list"
+          @saved="handleRenamed"
+          @cancel="modals.closeEdit()"
+        />
       </li>
     </ul>
   </section>

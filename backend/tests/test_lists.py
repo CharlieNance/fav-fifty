@@ -102,3 +102,80 @@ def test_create_list_creates_a_row_owned_by_the_caller(
 @pytest.mark.parametrize("title", ["", "   ", "x" * 201])
 def test_create_list_rejects_invalid_title(auth_client: TestClient, title: str) -> None:
     assert auth_client.post("/lists", json={"title": title}).status_code == 422
+
+
+def test_get_list_requires_authentication(client: TestClient, db_session: Session) -> None:
+    row = _list(db_session, _dev_user(db_session), "Mine")
+    assert client.get(f"/lists/{row.id}").status_code == 401
+
+
+def test_get_list_returns_the_owners_list(auth_client: TestClient, db_session: Session) -> None:
+    row = _list(db_session, _dev_user(db_session), "Mine")
+
+    response = auth_client.get(f"/lists/{row.id}")
+
+    assert response.status_code == 200
+    assert response.json()["title"] == "Mine"
+
+
+def test_get_list_404s_for_a_different_users_list(
+    auth_client: TestClient, db_session: Session
+) -> None:
+    theirs = _list(db_session, _second_user(db_session), "Someone else's")
+    assert auth_client.get(f"/lists/{theirs.id}").status_code == 404
+
+
+def test_get_list_404s_for_a_soft_deleted_list(
+    auth_client: TestClient, db_session: Session
+) -> None:
+    deleted = _list(db_session, _dev_user(db_session), "Gone", deleted_at=datetime.now(UTC))
+    assert auth_client.get(f"/lists/{deleted.id}").status_code == 404
+
+
+def test_get_list_404s_for_a_nonexistent_id(auth_client: TestClient) -> None:
+    assert auth_client.get(f"/lists/{uuid.uuid4()}").status_code == 404
+
+
+def test_update_list_requires_authentication(client: TestClient, db_session: Session) -> None:
+    row = _list(db_session, _dev_user(db_session), "Mine")
+    assert client.patch(f"/lists/{row.id}", json={"title": "New Title"}).status_code == 401
+
+
+def test_update_list_renames_the_owners_list(auth_client: TestClient, db_session: Session) -> None:
+    row = _list(db_session, _dev_user(db_session), "Old Title")
+
+    response = auth_client.patch(f"/lists/{row.id}", json={"title": "  New Title  "})
+
+    assert response.status_code == 200
+    assert response.json()["title"] == "New Title"
+    db_session.refresh(row)
+    assert row.title == "New Title"
+
+
+def test_update_list_404s_for_a_different_users_list(
+    auth_client: TestClient, db_session: Session
+) -> None:
+    theirs = _list(db_session, _second_user(db_session), "Someone else's")
+    response = auth_client.patch(f"/lists/{theirs.id}", json={"title": "Hijacked"})
+    assert response.status_code == 404
+
+
+def test_update_list_404s_for_a_soft_deleted_list(
+    auth_client: TestClient, db_session: Session
+) -> None:
+    deleted = _list(db_session, _dev_user(db_session), "Gone", deleted_at=datetime.now(UTC))
+    response = auth_client.patch(f"/lists/{deleted.id}", json={"title": "New Title"})
+    assert response.status_code == 404
+
+
+def test_update_list_404s_for_a_nonexistent_id(auth_client: TestClient) -> None:
+    response = auth_client.patch(f"/lists/{uuid.uuid4()}", json={"title": "New Title"})
+    assert response.status_code == 404
+
+
+@pytest.mark.parametrize("title", ["", "   ", "x" * 201])
+def test_update_list_rejects_invalid_title(
+    auth_client: TestClient, db_session: Session, title: str
+) -> None:
+    row = _list(db_session, _dev_user(db_session), "Old Title")
+    assert auth_client.patch(f"/lists/{row.id}", json={"title": title}).status_code == 422

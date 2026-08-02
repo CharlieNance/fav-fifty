@@ -129,4 +129,62 @@ describe('ListsView', () => {
     expect(useListModalsStore().isCreateOpen).toBe(true)
     expect(router.currentRoute.value.query.openCreate).toBeUndefined()
   })
+
+  it('the edit icon opens EditListModal for that row without navigating', async () => {
+    apiFetchMock.mockResolvedValueOnce(LISTS)
+    const router = testRouter()
+
+    const wrapper = await mountAtLists(router)
+    await flushPromises()
+
+    const editButton = wrapper.find('button[aria-label="Rename Best sandwiches"]')
+    await editButton.trigger('click')
+
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
+    expect(router.currentRoute.value.name).toBe('lists')
+  })
+
+  it('Save in EditListModal updates the row title in place, no navigation', async () => {
+    // Clone LISTS — useLists() assigns apiFetch's resolved array by reference, and
+    // updateList() below mutates that array in place; sharing LISTS itself here
+    // would leak "Favorite sandwiches" into every other test in this file.
+    apiFetchMock.mockResolvedValueOnce(LISTS.map((list) => ({ ...list })))
+    const router = testRouter()
+
+    const wrapper = await mountAtLists(router)
+    await flushPromises()
+
+    const editButton = wrapper.find('button[aria-label="Rename Best sandwiches"]')
+    await editButton.trigger('click')
+
+    const updated = { ...LISTS[0]!, title: 'Favorite sandwiches' }
+    apiFetchMock.mockResolvedValueOnce(updated)
+    await wrapper.find('#edit-list-title').setValue('Favorite sandwiches')
+    await wrapper.find('form').trigger('submit')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Favorite sandwiches')
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+    expect(router.currentRoute.value.name).toBe('lists')
+  })
+
+  it('Cancel in EditListModal closes it and leaves the title unchanged', async () => {
+    apiFetchMock.mockResolvedValueOnce(LISTS)
+    const router = testRouter()
+
+    const wrapper = await mountAtLists(router)
+    await flushPromises()
+
+    const editButton = wrapper.find('button[aria-label="Rename Best sandwiches"]')
+    await editButton.trigger('click')
+    await wrapper.find('#edit-list-title').setValue('Something else')
+
+    const cancelButton = wrapper.findAll('button').find((b) => b.text() === 'Cancel')
+    await cancelButton!.trigger('click')
+    await flushPromises()
+
+    expect(apiFetchMock).toHaveBeenCalledTimes(1) // only the initial load
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('Best sandwiches')
+  })
 })

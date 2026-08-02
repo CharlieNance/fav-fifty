@@ -18,6 +18,20 @@ class ListRead(BaseModel):
     updated_at: datetime
 
 
+def _validated_title(value: str) -> str:
+    """Trim and enforce the same length limit as the ``lists.title`` column.
+
+    Shared by ``ListCreate`` and ``ListUpdate`` so create and rename can never
+    silently drift apart on what counts as a valid title.
+    """
+    trimmed = value.strip()
+    if not trimmed:
+        raise ValueError("Title is required.")
+    if len(trimmed) > 200:
+        raise ValueError("Title must be 200 characters or fewer.")
+    return trimmed
+
+
 class ListCreate(BaseModel):
     """Body for ``POST /api/lists`` — the only user-settable field is the title.
 
@@ -30,9 +44,15 @@ class ListCreate(BaseModel):
     @field_validator("title")
     @classmethod
     def _title_trimmed_and_non_empty(cls, value: str) -> str:
-        trimmed = value.strip()
-        if not trimmed:
-            raise ValueError("Title is required.")
-        if len(trimmed) > 200:
-            raise ValueError("Title must be 200 characters or fewer.")
-        return trimmed
+        return _validated_title(value)
+
+
+class ListUpdate(BaseModel):
+    """Body for ``PATCH /api/lists/{list_id}`` — rename only, same rules as create."""
+
+    title: str
+
+    @field_validator("title")
+    @classmethod
+    def _title_trimmed_and_non_empty(cls, value: str) -> str:
+        return _validated_title(value)

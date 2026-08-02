@@ -1,5 +1,6 @@
 """Tests for the list service — the index query's ownership and soft-delete filtering."""
 
+import uuid
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.orm import Session
@@ -60,3 +61,44 @@ def test_create_list_returns_a_new_row_owned_by_the_user(db_session: Session) ->
     assert row.user_id == user.id
     assert row.title == "My New List"
     assert row.deleted_at is None
+
+
+def test_get_owned_list_returns_the_row_for_its_owner(db_session: Session) -> None:
+    owner = _user(db_session, "owner")
+    mine = _list(db_session, owner, "Mine")
+
+    result = list_service.get_owned_list(db_session, mine.id, owner.id)
+
+    assert result is not None
+    assert result.id == mine.id
+
+
+def test_get_owned_list_is_none_for_a_different_user(db_session: Session) -> None:
+    owner = _user(db_session, "owner")
+    other = _user(db_session, "other")
+    theirs = _list(db_session, owner, "Theirs")
+
+    assert list_service.get_owned_list(db_session, theirs.id, other.id) is None
+
+
+def test_get_owned_list_is_none_for_a_soft_deleted_list(db_session: Session) -> None:
+    owner = _user(db_session, "owner")
+    deleted = _list(db_session, owner, "Gone", deleted_at=datetime.now(UTC))
+
+    assert list_service.get_owned_list(db_session, deleted.id, owner.id) is None
+
+
+def test_get_owned_list_is_none_for_a_nonexistent_id(db_session: Session) -> None:
+    owner = _user(db_session, "owner")
+
+    assert list_service.get_owned_list(db_session, uuid.uuid4(), owner.id) is None
+
+
+def test_rename_list_updates_the_title(db_session: Session) -> None:
+    owner = _user(db_session, "owner")
+    row = _list(db_session, owner, "Old Title")
+
+    renamed = list_service.rename_list(db_session, row, "New Title")
+
+    assert renamed.id == row.id
+    assert renamed.title == "New Title"

@@ -45,7 +45,9 @@ Goal: the actual product — a logged-in user manages their own lists.
 - [ ] CRUD/reorder API for the items within a list (up to 50, ranked/ordered; each item has text + optional note + optional image URL)
 - [ ] Free-form tags on lists (multiple per list); publish/unpublish (draft vs public)
 - [ ] Frontend: create a list, add/edit/remove/reorder items, manage tags, delete a list
-- [ ] Validation & limits (title length, item count cap of 50, tag handling)
+- [ ] Validation & limits (title length, item count cap of 50, tag handling, no
+      duplicate list titles per user or duplicate item names within a list — see
+      [LISTS_CRUD_PLAN.md](LISTS_CRUD_PLAN.md) §Validation)
 - [ ] Tests for all of the above
 - [ ] First deploy to AWS (frontend static hosting + backend + DB), behind `favfifty.com`
 

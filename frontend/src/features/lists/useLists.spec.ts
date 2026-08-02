@@ -52,4 +52,25 @@ describe('useLists', () => {
     expect(status.value).toBe('error')
     expect(lists.value).toEqual([])
   })
+
+  it('updateList replaces a matching list in place', async () => {
+    apiFetchMock.mockResolvedValueOnce([LIST])
+    const { lists, load, updateList } = useLists()
+    await load()
+
+    const renamed = { ...LIST, title: 'Favorite sandwiches' }
+    updateList(renamed)
+
+    expect(lists.value).toEqual([renamed])
+  })
+
+  it('updateList is a no-op when the list is not already loaded', async () => {
+    apiFetchMock.mockResolvedValueOnce([LIST])
+    const { lists, load, updateList } = useLists()
+    await load()
+
+    updateList({ ...LIST, id: 'someone-elses-list' })
+
+    expect(lists.value).toEqual([LIST])
+  })
 })
