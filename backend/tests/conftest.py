@@ -18,9 +18,12 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.auth.claims import Claims
+from app.auth.session import issue_session
 from app.core.config import settings
 from app.db.session import engine, get_db
 from app.main import create_app
+from app.services import user_service
 
 
 @pytest.fixture(autouse=True)
@@ -76,3 +79,22 @@ def auth_client(client: TestClient) -> TestClient:
     response = client.post("/auth/dev-login")
     assert response.status_code == 200
     return client
+
+
+@pytest.fixture
+def second_user_client(client: TestClient, db_session: Session) -> TestClient:
+    """A second, distinct logged-in identity — for cross-user isolation tests.
+
+    ``auth_client`` always logs in as the fixed ``DEV_CLAIMS`` user via the dev-login
+    endpoint, so it can't represent a *different* user. This creates a second ``User``
+    row directly and mints its session cookie the same way ``issue_session`` does for a
+    real login, on a fresh ``TestClient`` that shares ``client``'s app (and thus its
+    rolled-back ``db_session``) so both identities see the same transactional database.
+    """
+    user = user_service.get_or_create_user(
+        db_session,
+        Claims(sub="second-user", email="second@example.com", name="Second User"),
+    )
+    other_client = TestClient(client.app)
+    other_client.cookies.set(settings.session_cookie_name, issue_session(user))
+    return other_client

@@ -15,6 +15,7 @@ function testRouter(): Router {
       { path: '/', name: 'home', component: stub },
       { path: '/login', name: 'login', component: stub },
       { path: '/lists/new', name: 'create-list', component: stub },
+      { path: '/lists', name: 'lists', component: stub },
     ],
   })
 }
@@ -43,6 +44,19 @@ describe('AppHeader', () => {
     expect(wrapper.text()).toContain('Shaggy')
     expect(wrapper.text()).toContain('Log out')
     expect(wrapper.text()).not.toContain('Log in')
+  })
+
+  it('shows a "My lists" link only when logged in', () => {
+    const loggedOut = mountHeader(testRouter())
+    expect(loggedOut.text()).not.toContain('My lists')
+
+    const auth = useAuthStore()
+    auth.user = { id: 'u1', displayName: 'Shaggy', avatarUrl: null }
+    const loggedIn = mountHeader(testRouter())
+    const link = loggedIn
+      .findAllComponents({ name: 'RouterLink' })
+      .find((c) => c.text() === 'My lists')
+    expect(link?.props('to')).toBe('/lists')
   })
 
   it('"Start a list" routes an anonymous user to login, preserving intent', async () => {

@@ -214,6 +214,7 @@ soft-deleted), with a call to action to create one.
     to `/lists/:id`; the edit icon opens `EditListModal` without navigating; the delete
     icon opens `ConfirmDialog` without navigating; "New list" opens the create modal
     without navigating.
+** Completed and Verified 2026-08-01 7:20 PM **
 
 ## Interaction 2 — Create a list (modal)
 
