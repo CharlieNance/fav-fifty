@@ -104,3 +104,20 @@ def test_dev_login_endpoint_hidden_outside_development(
 ) -> None:
     monkeypatch.setattr(settings, "app_env", "production")
     assert client.post("/auth/dev-login").status_code == 404
+
+
+def test_dev_login_works_even_if_cognito_is_also_configured(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Regression test: a dev machine with real Cognito credentials in backend/.env
+    # (needed to test the live Google login) must not break the dev-login stub.
+    # get_identity_provider() would route to Cognito here; dev_login() must not use it.
+    monkeypatch.setattr(settings, "cognito_user_pool_id", "us-east-1_fake")
+    monkeypatch.setattr(settings, "cognito_client_id", "fake-client-id")
+    monkeypatch.setattr(settings, "cognito_client_secret", "fake-secret")
+    monkeypatch.setattr(settings, "cognito_domain", "fake.auth.us-east-1.amazoncognito.com")
+    assert settings.cognito_configured  # sanity-check the fixture actually did its job
+
+    response = client.post("/auth/dev-login")
+    assert response.status_code == 200
+    assert response.json()["display_name"] == DEV_CLAIMS.name

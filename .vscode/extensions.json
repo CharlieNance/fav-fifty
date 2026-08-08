@@ -1,0 +1,20 @@
+{
+  // Recommended extensions for Fav Fifty (Vue 3 + TS frontend, FastAPI + Ruff backend).
+  // VS Code prompts to install these when someone opens the workspace.
+  "recommendations": [
+    // Vue 3 language support (Volar) — replaces the old Vetur.
+    "vue.volar",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "bradlc.vscode-tailwindcss",
+    // In-editor Vitest runner.
+    "vitest.explorer",
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    // Ruff (lint + format) — matches `uv run ruff check/format` in tools/check.sh.
+    "charliermarsh.ruff",
+    "ms-azuretools.vscode-docker",
+    // Playwright Test runner (see frontend/e2e).
+    "ms-playwright.playwright"
+  ]
+}

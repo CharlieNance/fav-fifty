@@ -33,7 +33,7 @@ from app.auth.oauth import (
     serialize_state,
     set_oauth_state_cookie,
 )
-from app.auth.providers import get_identity_provider
+from app.auth.providers import DevIdentityProvider, get_identity_provider
 from app.auth.session import clear_session_cookie, issue_session, set_session_cookie
 from app.core.config import settings
 from app.db.session import get_db
@@ -53,7 +53,12 @@ def dev_login(response: Response, db: Session = Depends(get_db)) -> User:
         # Unreachable outside dev: return 404 so the endpoint simply doesn't exist.
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
-    provider = get_identity_provider()  # DevIdentityProvider also hard-fails outside dev
+    # Deliberately DevIdentityProvider(), not the get_identity_provider() factory: the
+    # factory prefers Cognito whenever it's configured (so the real flow can be
+    # exercised outside prod), but this stub must work regardless of whether Cognito
+    # is *also* configured locally — that's the whole point of a dev-only shortcut.
+    # DevIdentityProvider() still hard-fails outside development.
+    provider = DevIdentityProvider()
     claims = provider.get_claims()
     user = user_service.get_or_create_user(db, claims)
     set_session_cookie(response, issue_session(user))
