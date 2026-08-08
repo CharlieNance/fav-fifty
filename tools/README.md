@@ -14,6 +14,8 @@ Run them from the repo root like `./tools/<name>.sh` (Git Bash on Windows).
 | `db_reset.sh` | **Destructive.** Wipe the local DB volume, restart it, re-apply all migrations. | Yes (but erases local data) |
 | `check.sh` | Run the CI checks locally: backend ruff+pytest, frontend lint+test. | Yes |
 | `coverage.sh` | Print test coverage for both apps (pytest-cov + vitest). | Yes |
+| `run_dev.sh` | Start db + backend + frontend together in the background (logs in `logs/`), for manual poking or browser-driven testing. | Yes |
+| `stop_dev.sh` | Stop the backend/frontend processes started by `run_dev.sh`. | Yes |
 
 ## Conventions for scripts here
 

@@ -1,6 +1,6 @@
 import { fileURLToPath, URL } from 'node:url'
 
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
 
@@ -35,5 +35,8 @@ export default defineConfig({
     // Vitest: run component tests in a browser-like DOM.
     environment: 'jsdom',
     globals: true,
+    // e2e/ holds Playwright specs, which use a different `test`/`expect` and
+    // must not be picked up by Vitest's own discovery.
+    exclude: [...configDefaults.exclude, 'e2e/**'],
   },
 })

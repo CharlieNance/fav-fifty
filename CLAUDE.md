@@ -10,7 +10,7 @@ add sharing, comments, suggestions/questions, and voting. See [README.md](README
 for the vision and [docs/NEXT_STEPS.md](docs/NEXT_STEPS.md) for the plan.
 
 **Owner:** solo developer. **Audience:** small (≤10 concurrent users, mostly a Discord community).
-**Priorities, in order:** rock-solid foundation → security → testability → low cost → extensibility → scalability.
+**Priorities, in order:** rock-solid foundation → low cost → extensibility → testability → security → scalability.
 
 ## Working principles
 
@@ -61,6 +61,7 @@ npm install         # install deps
 npm run dev         # dev server at http://localhost:5173 (proxies /api -> :8000)
 npm run build       # type-check (vue-tsc) + production build
 npm run test        # Vitest (once); npm run test:watch for watch mode
+npm run test:e2e    # Playwright, drives a real browser (see frontend/e2e/) — starts db+backend+frontend itself
 npm run lint        # ESLint  (lint:fix to autofix)
 npm run format      # Prettier write  (format:check for CI)
 ```
@@ -88,6 +89,13 @@ docker compose up -d db     # start Postgres   (down to stop, down -v to wipe)
 ./tools/verify_alembic.sh   # read-only: show DB migration + tables
 ./tools/db_reset.sh         # wipe local DB and rebuild from migrations (destructive)
 ./tools/check.sh            # run CI checks locally (ruff+pytest, lint+vitest)
+./tools/run_dev.sh          # start db+backend+frontend together in the background, for manual/browser testing
+./tools/stop_dev.sh         # stop the backend+frontend started by run_dev.sh
 ```
+
+**Running/driving the app** (e.g. to check a change in a real browser): see the
+project's `run` skill ([`.claude/skills/run/SKILL.md`](.claude/skills/run/SKILL.md))
+— it covers booting all three services and signing in via the dev-login stub without
+real Google/Cognito credentials.
 
 > No deploy commands yet — added when `infra/` and the deploy pipeline land.
