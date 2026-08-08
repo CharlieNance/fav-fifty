@@ -41,8 +41,8 @@ Goal: prove the whole stack connects, with auth, before building features.
 
 Goal: the actual product — a logged-in user manages their own lists.
 
-- [ ] CRUD API for lists (create, read, update, delete) — scoped to the owner
-- [ ] CRUD/reorder API for the items within a list (up to 50, ranked/ordered; each item has text + optional note + optional image URL)
+- [x] CRUD API for lists (create, read, update, delete) — scoped to the owner (2026-08-08)
+- [x] CRUD/reorder API for the items within a list (up to 50, ranked/ordered; each item has text + optional note + optional image URL) (2026-08-08)
 - [ ] Free-form tags on lists (multiple per list); publish/unpublish (draft vs public)
 - [ ] Frontend: create a list, add/edit/remove/reorder items, manage tags, delete a list
 - [ ] Validation & limits (title length, item count cap of 50, tag handling, no
@@ -87,4 +87,8 @@ already in place (`.github/workflows/ci.yml`). Remaining Phase 1 items, in order
    §Product data model.
 2. **Route 53 migration** ([SETUP.md](SETUP.md) §4): deferred, no urgency since it doesn't
    block app work — do it whenever there's a lull.
-3. Then start **Phase 2** (CRUD lists) — see below.
+3. ~~**CRUD API for lists**~~ — done (2026-08-08).
+4. ~~**CRUD/reorder API for list items**~~ — done (2026-08-08), backend only, see
+   [ITEMS_CRUD_PLAN.md](ITEMS_CRUD_PLAN.md).
+5. Now: **frontend for item management** — add/edit/remove/reorder items on the list
+   details page, per `ITEMS_CRUD_PLAN.md` §Suggested build order (steps 2–5).

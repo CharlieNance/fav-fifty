@@ -6,7 +6,7 @@ Auth is not implemented yet.
 
 ## Layout
 
-```
+``` text
 backend/
 ├── pyproject.toml          # project metadata, dependencies, tool config (ruff, pytest)
 ├── .python-version         # pins Python 3.12
@@ -30,7 +30,7 @@ backend/
 
 ## How a request flows (the layering)
 
-```
+``` text
 HTTP request
    → api/routes/*       (validate input via schemas, call a service)
       → services/*      (business rules, authorization, orchestration)
@@ -67,8 +67,9 @@ uvicorn app.main:app --reload
 ```
 
 Then visit:
-- http://localhost:8000/health → `{"status": "ok"}`
-- http://localhost:8000/docs → auto-generated Swagger UI
+
+- [Health Check](http://localhost:8000/health) → `{"status": "ok"}`
+- [Docs](http://localhost:8000/docs) → auto-generated Swagger UI
 
 ## Tests & linting
 
