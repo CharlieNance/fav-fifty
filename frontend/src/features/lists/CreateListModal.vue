@@ -81,7 +81,7 @@ watch(
       role="dialog"
       aria-modal="true"
       aria-labelledby="create-list-heading"
-      class="w-full max-w-sm rounded-2xl border border-border bg-elevated p-6 shadow-xl"
+      class="w-full max-w-sm rounded-2xl border border-border bg-elevated p-6 shadow-xl motion-safe:animate-rise-in"
     >
       <h2 id="create-list-heading" class="font-display text-xl font-bold text-ink">New list</h2>
 

@@ -65,7 +65,7 @@ onMounted(async () => {
       role="dialog"
       aria-modal="true"
       aria-labelledby="edit-list-heading"
-      class="w-full max-w-sm rounded-2xl border border-border bg-elevated p-6 shadow-xl"
+      class="w-full max-w-sm rounded-2xl border border-border bg-elevated p-6 shadow-xl motion-safe:animate-rise-in"
     >
       <h2 id="edit-list-heading" class="font-display text-xl font-bold text-ink">Rename list</h2>
 

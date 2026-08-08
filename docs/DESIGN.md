@@ -34,25 +34,57 @@ design problem than a graphical one. Whitespace, type, and one good accent color
 - **Logged-out "Start a list" (2026-07-14).** Button stays visible; clicking it when
   logged out routes to login and **preserves intent** (continue to create-a-list after).
   Gate the action, not the button — more inviting, better funnel.
+- **Motion (2026-08-08).** Small, quick, and a little springy — interactive elements
+  should *feel* pressed and lifted, not just recolor. (Owner call: hover/click was too
+  flat; the site should give feedback and feel alive.) Concretely:
+  - **Tokens, like color**: easings (`--ease-out-soft`, `--ease-pop`) and entrance
+    animations (`--animate-rise-in`) live in the `@theme` block in `main.css`.
+  - **Buttons** (`BaseButton`): lift ~2px + shadow on hover, squash (`scale-95`) on
+    press. **Icon buttons**: squash on press. **Rows** (list index, item rows): hover
+    surface highlight; row actions sit dimmed and brighten on row hover/focus.
+  - **Dialogs**: rise-in entrance (0.2s).
+  - **Drag**: SortableJS `forceFallback` so the picked-up row is our own styled clone
+    (`.drag-ghost` / `.drag-chosen` / `.drag-dragging` in `main.css`) — lifted,
+    slightly tilted, identical in every browser — with a 200ms reorder animation.
+  - **Reduced motion is respected**: every transform/animation sits behind Tailwind's
+    `motion-safe:` variant; `prefers-reduced-motion` users get color-only feedback.
+  - Restraint rule: motion never longer than ~200ms, never blocks input, and no new
+    colors were added for it.
+- **Light/dark toggle: required before launch (2026-08-08).** Upgraded from "when
+  (if)" — owner wants a toggle live at go-live. Dark stays the design-first theme;
+  the token architecture (one `@theme` block) is what makes the flip additive. Until
+  then: keep the palette restrained, don't scatter new colors that would each need a
+  light-mode counterpart.
+- **Dependency policy (2026-08-08).** Any frontend/backend library we add must be
+  free and under a permissive license (MIT/BSD/Apache-2.0) — this is an open-source,
+  no-revenue project; nothing paid, nothing copyleft-restrictive for our use.
+- **Drag-and-drop library (2026-08-08): `vue-draggable-plus`** (MIT, typed,
+  maintained; SortableJS underneath). Chosen over hand-rolled DnD (don't want to
+  maintain drag code) and over `vuedraggable`, which is unmaintained and crashes with
+  Vue 3.5 — full story in
+  [ITEMS_CRUD_PLAN.md](ITEMS_CRUD_PLAN.md) §Frontend implementation notes.
 
 ## Open — to decide (no rush; these don't block feature work)
 
 - **Wordmark / logo + favicon.** Even a simple type-based mark. (Current: the `fav·fifty`
   text wordmark from the mock; favicon still the scaffold default.)
-- **Light theme:** when (if) to add it.
-- **Motion:** how much. A little easing on hover/reorder sells "chill"; too much annoys.
+- **Light theme:** *whether* is decided (yes, pre-launch — see Decided above); still
+  open is *when* to build it and what the light palette's exact values are.
 
 ## Core interactions to design deliberately
 
 These are the screens/flows that *make or break* the product — design them on purpose,
 not by default:
 
-- **The ranked list view (1–50).** How do the ranks read — big numerals? Cards vs. rows?
-  How does an item with a note + image differ from a bare one?
-- **Building/editing a list.** Add, edit, remove, and **drag-to-reorder** items. This is
-  the app's heartbeat and should feel good. (Reorder library TBD — see NEXT_STEPS.)
+- **The ranked list view (1–50).** ✅ First pass shipped (2026-08-08): rows (not
+  cards) with a big accent rank numeral in the display face, optional 48px image
+  thumbnail, note as a muted second line. Revisit as real lists exercise it.
+- **Building/editing a list.** ✅ First pass shipped (2026-08-08): add/edit in one
+  modal, delete behind a confirm, reorder by drag (handle icon) or up/down buttons.
+  Reorder library decided — see Decided above.
 - **Empty states.** New user with zero lists; new list with zero items. First thing
-  everyone sees; easiest to neglect.
+  everyone sees; easiest to neglect. (The zero-items one now invites: "Every
+  all-timer list starts with a #1 — what's yours?")
 - **Loading & error states.** Skeletons/spinners and graceful failure, not just the happy
   path.
 
@@ -72,8 +104,8 @@ Not installed yet; reach for these at the moment of first real need, not before:
 
 - **Headless/accessible primitives** — Reka UI (Vue port of Radix) or Headless UI — for
   modals, menus, dialogs done accessibly.
-- **Icons** — lucide-vue-next or Heroicons.
-- **Drag-and-drop** — native HTML5 DnD, `vuedraggable`, or `@vueuse/integrations`
-  `useSortable`, for ranking items.
-- **VueUse** — handy composables (`useDark`, `useLocalStorage`, …).
-- **Web fonts** — self-hosted (e.g. via Fontsource) once the pairing is chosen.
+- ~~**Icons**~~ — added: Heroicons (`@heroicons/vue`).
+- ~~**Drag-and-drop**~~ — added: `vue-draggable-plus` (see Decided above).
+- **VueUse** — handy composables (`useDark`, `useLocalStorage`, …) — likely wanted for
+  the light/dark toggle.
+- ~~**Web fonts**~~ — added: Fontsource-hosted Baloo 2 + Figtree.

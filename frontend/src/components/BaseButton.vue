@@ -36,14 +36,21 @@ const tag = computed(() => {
 })
 
 const variantClasses = {
-  primary: 'bg-accent text-accent-ink hover:bg-accent-hover',
-  secondary: 'border border-border text-ink hover:bg-elevated',
+  primary: 'bg-accent text-accent-ink hover:bg-accent-hover hover:shadow-lg hover:shadow-accent/25',
+  secondary: 'border border-border text-ink hover:border-muted/60 hover:bg-elevated',
 } as const
 
 const sizeClasses = {
   sm: 'px-4 py-2 text-sm',
   md: 'px-6 py-3 text-base',
 } as const
+
+// Press/lift feedback (docs/DESIGN.md §Motion): buttons rise a hair on hover
+// and squash on press, so clicking FEELS like clicking. Transform-based, so it
+// sits behind `motion-safe:`; kept off disabled buttons (links can't be
+// disabled, so gating on the prop is enough).
+const motionClasses =
+  'motion-safe:hover:-translate-y-0.5 motion-safe:active:translate-y-0 motion-safe:active:scale-95 active:shadow-none'
 </script>
 
 <template>
@@ -53,8 +60,8 @@ const sizeClasses = {
     :href="href"
     :type="tag === 'button' ? type : undefined"
     :disabled="tag === 'button' ? disabled : undefined"
-    class="inline-flex cursor-pointer items-center justify-center rounded-full text-center font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60"
-    :class="[variantClasses[variant], sizeClasses[size]]"
+    class="inline-flex cursor-pointer items-center justify-center rounded-full text-center font-semibold transition-all duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none"
+    :class="[variantClasses[variant], sizeClasses[size], !disabled && motionClasses]"
   >
     <slot />
   </component>

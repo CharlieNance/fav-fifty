@@ -43,21 +43,26 @@ def test_list_lists_requires_authentication(client: TestClient) -> None:
     assert client.get("/lists").status_code == 401
 
 
-def test_list_lists_empty_for_user_with_no_lists(auth_client: TestClient) -> None:
-    response = auth_client.get("/lists")
+# The three index-content tests below use `fresh_user`/`fresh_user_client`, NOT
+# `auth_client`: the dev-login user may own real rows in the shared local DB
+# (manual browser testing, e2e leftovers), and "exactly these lists" assertions
+# must start from a user guaranteed to have none — see conftest.py.
+
+
+def test_list_lists_empty_for_user_with_no_lists(fresh_user_client: TestClient) -> None:
+    response = fresh_user_client.get("/lists")
     assert response.status_code == 200
     assert response.json() == []
 
 
 def test_list_lists_returns_only_own_non_deleted_lists(
-    auth_client: TestClient, db_session: Session
+    fresh_user_client: TestClient, fresh_user: User, db_session: Session
 ) -> None:
-    owner = _dev_user(db_session)
-    mine = _list(db_session, owner, "Mine")
-    _list(db_session, owner, "Deleted", deleted_at=datetime.now(UTC))
+    mine = _list(db_session, fresh_user, "Mine")
+    _list(db_session, fresh_user, "Deleted", deleted_at=datetime.now(UTC))
     _list(db_session, _second_user(db_session), "Someone else's")
 
-    response = auth_client.get("/lists")
+    response = fresh_user_client.get("/lists")
 
     assert response.status_code == 200
     body = response.json()
@@ -204,13 +209,13 @@ def test_delete_list_soft_deletes_the_owners_list(
 
 
 def test_delete_list_removes_it_from_the_index(
-    auth_client: TestClient, db_session: Session
+    fresh_user_client: TestClient, fresh_user: User, db_session: Session
 ) -> None:
-    row = _list(db_session, _dev_user(db_session), "Mine")
+    row = _list(db_session, fresh_user, "Mine")
 
-    auth_client.delete(f"/lists/{row.id}")
+    fresh_user_client.delete(f"/lists/{row.id}")
 
-    assert auth_client.get("/lists").json() == []
+    assert fresh_user_client.get("/lists").json() == []
 
 
 def test_delete_list_makes_the_single_get_404(auth_client: TestClient, db_session: Session) -> None:

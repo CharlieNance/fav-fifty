@@ -16,6 +16,7 @@ Run them from the repo root like `./tools/<name>.sh` (Git Bash on Windows).
 | `coverage.sh` | Print test coverage for both apps (pytest-cov + vitest). | Yes |
 | `run_dev.sh` | Start db + backend + frontend together in the background (logs in `logs/`), for manual poking or browser-driven testing. | Yes |
 | `stop_dev.sh` | Stop the backend/frontend processes started by `run_dev.sh`. | Yes |
+| `mock_probe.sh` | Read-only: comb the Claude Design homepage mock (`docs/Fav Fifty Homepage.html`, ~400 KB) without opening it — `colors`, `motion`, `states`, `layout` summaries, or `find <regex>`. | Yes |
 
 ## Conventions for scripts here
 

@@ -54,7 +54,7 @@ function confirm(): void {
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-dialog-heading"
-      class="w-full max-w-sm rounded-2xl border border-border bg-elevated p-6 shadow-xl"
+      class="w-full max-w-sm rounded-2xl border border-border bg-elevated p-6 shadow-xl motion-safe:animate-rise-in"
     >
       <h2 id="confirm-dialog-heading" class="font-display text-xl font-bold text-ink">
         {{ title }}

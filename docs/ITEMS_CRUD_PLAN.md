@@ -1,0 +1,301 @@
+# Items CRUD + Reorder — Implementation Plan
+
+Planning doc for the second slice of Phase 2 ([NEXT_STEPS.md](NEXT_STEPS.md)): CRUD and
+reorder for the ranked items *within* a list, up to 50 per list. Mirrors the structure
+of [LISTS_CRUD_PLAN.md](LISTS_CRUD_PLAN.md), which built list CRUD itself and
+explicitly deferred item management to this doc.
+
+## Scope
+
+### In scope
+
+- Add / edit / delete an item on a list you own (text, optional note, optional image
+  URL)
+- Reorder items by moving one item to a new rank
+- Backend: fully built (API + tests)
+- Frontend: **built (2026-08-08)** — see §Frontend implementation notes for where the
+  build deviated from the design sketched here, and why
+
+### Out of scope (future features)
+
+- Tags, description editing, publish/unpublish — unrelated to items, tracked
+  separately in `NEXT_STEPS.md`
+- Image *uploads* — URLs only for now, per [DECISIONS.md](DECISIONS.md) §Product data
+  model
+- Soft-delete for items (see §Why items don't get soft-delete below)
+
+## Foundation already in place
+
+- **`list_items` table and `ListItem` model already exist**, unchanged by this
+  feature — initial schema migration `ab1a1d72af10`,
+  `backend/app/models/list_item.py`: UUID primary key, `list_id` FK
+  (`ondelete="CASCADE"`), `position` (int), `text` (`String(500)`, required), `note`
+  (nullable `Text`), `image_url` (nullable `String(2048)`), plus
+  `UniqueConstraint(list_id, position)`. **No new Alembic migration was needed for
+  this feature.**
+- **Lists CRUD** (`backend/app/services/list_service.py`,
+  `backend/app/api/routes/lists.py`): `list_service.get_owned_list` is reused as-is
+  to resolve the parent list (ownership + soft-delete filtering) before any item
+  operation runs.
+- **Auth dependency**: `get_current_user` (`backend/app/api/deps.py`), same as every
+  other feature.
+- **Two-identity test fixture**: `second_user_client` (`backend/tests/conftest.py`),
+  already built for Lists CRUD's ownership-isolation tests, reused here unchanged.
+
+## API surface
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `GET` | `/api/lists/{list_id}/items` | Items for a list, in rank order |
+| `POST` | `/api/lists/{list_id}/items` | Append an item (`{ text, note?, image_url? }`) |
+| `PATCH` | `/api/lists/{list_id}/items/{item_id}` | Edit text/note/image (full replace) |
+| `DELETE` | `/api/lists/{list_id}/items/{item_id}` | Remove an item (hard delete) |
+| `PATCH` | `/api/lists/{list_id}/items/{item_id}/position` | Move to a new rank (`{ position }`) |
+
+Kept as a separate sub-resource endpoint (`GET .../items`) rather than nesting items
+inside `ListRead` — the lists index (`GET /api/lists`) shouldn't eagerly load every
+list's items, and this keeps `list_service.py`/`ListRead` untouched by this feature.
+
+New router `backend/app/api/routes/list_items.py`, registered in `main.py` alongside
+`lists`. New `backend/app/services/list_item_service.py` (mirrors the shape of
+`list_service.py`: plain functions taking a `Session`, unit-testable without HTTP).
+New `backend/app/schemas/list_item.py`: `ItemRead`, `ItemCreate`, `ItemUpdate`,
+`ItemReorder` (Pydantic v2, `from_attributes=True` like `ListRead`).
+
+## Design decision: a "move one item" reorder endpoint
+
+Considered two shapes for reordering: replace-the-whole-array (`PUT` a full ordered
+list of item ids) vs. move-one-item (`PATCH` a single item's new rank, server shifts
+the rest). **Chose move-one-item** — it matches a single drag-and-drop drop event
+directly (the frontend doesn't have to reconstruct and send the whole array on every
+drop), and it's easier to test in isolation (each test asserts one move's effect, not
+a full-array diff). The response is still the **full** re-ordered item list, so the
+frontend redraws everything in one shot without a second `GET`.
+
+## Design decision: dedup and the 50-item cap live in the service, not the schema
+
+Pydantic field validators (`schemas/list_item.py`, mirroring `_validated_title` in
+`schemas/list.py`) only ever see one field's own value — they can enforce `text`
+length/emptiness, `note` length, and `image_url` shape, but not "is this text already
+used elsewhere in the list" or "does the list already have 50 items," both of which
+need a DB query scoped to the list. Those two checks live in
+`list_item_service.create_item`/`update_item`, raising `DuplicateItemTextError` /
+`ListFullError` (both `409 Conflict` — a state conflict, not a malformed payload).
+This closes the gap `LISTS_CRUD_PLAN.md` §Validation explicitly deferred: "the same
+[uniqueness] rule for item names within a single list once items exist" — items get
+the same case-insensitive, per-scope uniqueness list titles still lack.
+
+## Validation
+
+- `text`: required, trimmed, 1–500 chars (matches the column) — same shape as
+  `title`'s validation.
+- `note`: optional; trimmed; blank-after-trim becomes `None`; capped at 2000 chars — a
+  sane application-level limit (the column itself is unbounded `Text`).
+- `image_url`: optional; trimmed; blank-after-trim becomes `None`; must start with
+  `http://` or `https://`, capped at 2048 chars (matches the column). Restricting the
+  scheme is a cheap guard against a `javascript:`/`data:` URL ever reaching an
+  `<img src>` on the frontend.
+- `position` (reorder only): must be a valid 1-based rank for the list's *current*
+  item count — this is stateful (needs the count), so it's checked in
+  `list_item_service.reorder_item`, not the schema; out of range → `422`.
+- **`ItemUpdate` is a full-replace PATCH**, not a partial/merge patch — like
+  `ListUpdate`, all three fields (`text`, `note`, `image_url`) are sent together from
+  one edit form every time, not just the ones that changed.
+
+## Cross-cutting: ownership & security
+
+Same posture as Lists CRUD (see [LISTS_CRUD_PLAN.md](LISTS_CRUD_PLAN.md)
+§Ownership & security for the full rationale) — not repeated here, just the one new
+wrinkle:
+
+- Every item endpoint requires auth (`401` otherwise) and resolves through
+  `list_item_service.get_owned_item`, which checks **both** that the caller owns the
+  parent list (via `list_service.get_owned_list` — `404` for wrong owner or
+  soft-deleted list) **and** that the requested item actually belongs to *that*
+  `list_id`. An item id that's real but lives in a different list — even one the same
+  user owns — is `404`, not treated as a lookup-by-id-alone. This matters because
+  `item_id` and `list_id` are independent path params; without the second check, a
+  user could edit/delete/reorder any item they own regardless of which list URL they
+  used, which isn't a security hole (still their own data) but would make the
+  ownership model inconsistent with how every other endpoint scopes things.
+
+## Why items don't get soft-delete
+
+Lists get `deleted_at` (see `LISTS_CRUD_PLAN.md` §Soft delete) because losing a whole
+list — and everything in it — is the kind of accidental, hard-to-notice loss worth a
+retention safety net. A single item is different: deleting one is a small, deliberate,
+easily-reversible action (re-add it, same text/note/image, thirty seconds of typing),
+and the list's own soft-delete plus the existing `cascade="all, delete-orphan"` /
+`ondelete="CASCADE"` already protect items when the *list* is deleted or restored.
+Adding a second soft-delete mechanism one level down would be complexity without a
+matching problem — deferred, not forgotten (this was flagged as an open question in
+`LISTS_CRUD_PLAN.md` §Soft delete; the answer for items is "no, not needed").
+
+## Implementation note: reordering vs. the unique constraint
+
+`(list_id, position)` is a normal (non-deferrable) unique constraint. Postgres checks
+uniqueness per-row as each row is written, and row-processing order within a single
+multi-row `UPDATE` is unspecified — so naively shifting a whole range of positions in
+one bulk statement can spuriously violate the constraint if two rows momentarily
+collide, depending on internal processing order (the classic "swap two unique values"
+Postgres gotcha). `list_item_service.py` avoids this by never issuing a bulk
+multi-row position `UPDATE`: every shift is a sequence of individually-ordered,
+single-row `UPDATE` statements, each landing in a slot the previous one just vacated:
+
+- **Delete + repack**: the row is hard-deleted first (freeing its slot for real), then
+  items ranked below it shift up by one, processed in ascending order (closest to the
+  freed slot first).
+- **Move (`reorder_item`)**: the moved item is parked at a sentinel position outside
+  `1..50` first (freeing its old slot), the affected range shifts by one — descending
+  order if moving earlier, ascending if moving later — and finally the moved item
+  lands on the target position.
+
+Both keep `1..N` contiguous at all times and need no schema change (no deferrable
+constraint). See the code comments in `list_item_service.py` for the full walkthrough
+— worth reading before "simplifying" this to a bulk `UPDATE`, which is exactly the
+kind of change that looks safe and isn't.
+
+## Interaction 1 — Add an item
+
+**Backend:** `POST /api/lists/{list_id}/items` → `list_item_service.create_item` →
+`409` if the list already has 50 items or the text collides (case-insensitive) with
+an existing item; otherwise inserts at `position = current_count + 1` → `201`.
+**Tests:** appends at the correct position; 50th item succeeds, 51st `409`s;
+duplicate text `409`s; invalid `text`/`note`/`image_url` → `422`; wrong-owner/
+soft-deleted-list/nonexistent-list → `404`; unauthenticated → `401`.
+**Backend: done. Frontend: done** — `ItemFormModal.vue` in add mode (see §Frontend
+implementation notes), opened from the page's "Add item" button (or the empty state's
+"Add your first favorite"). Client-side checks mirror the backend's but the backend
+stays the source of truth; a `409` (duplicate/full) surfaces the backend's own
+`detail` copy inline without closing the modal. The Add button disables at 50.
+
+## Interaction 2 — Edit an item
+
+**Backend:** `PATCH /api/lists/{list_id}/items/{item_id}` →
+`list_item_service.update_item` → `409` on a text collision with a *different* item
+(keeping your own current text is never a collision) → `200`.
+**Tests:** edits all three fields; self-collision allowed, cross-item collision
+`409`s; wrong-list/wrong-owner/nonexistent item → `404`; invalid fields → `422`.
+**Backend: done. Frontend: done** — `ItemFormModal.vue` in edit mode, prefilled from
+the item already in hand from the page's item list (no extra `GET` needed, matching
+how `EditListModal` avoids one for lists).
+
+## Interaction 3 — Delete an item
+
+**Backend:** `DELETE /api/lists/{list_id}/items/{item_id}` →
+`list_item_service.delete_item` (hard delete + repack, see §Why items don't get
+soft-delete and §Implementation note above) → `204`.
+**Tests:** item removed; remaining items repack to a contiguous `1..N` in their
+original relative order; deleting twice → `404` the second time; wrong-list/
+wrong-owner → `404`; unauthenticated → `401`.
+**Backend: done. Frontend: done** — reuses `ConfirmDialog.vue` exactly as-is (it's
+already list-agnostic — see `LISTS_CRUD_PLAN.md` §Interaction 4) from a delete icon on
+each item row; on success the local array repacks positions the same way the backend
+did (`useListItems.removeItem`), since the `204` carries no fresh list.
+
+## Interaction 4 — Reorder items
+
+**Backend:** `PATCH /api/lists/{list_id}/items/{item_id}/position` →
+`list_item_service.reorder_item` → `422` if the position is out of range for the
+list's current item count; a no-op (same position) returns the unchanged order;
+otherwise shifts the range and returns the **full** re-ordered `list[ItemRead]`.
+**Tests:** move earlier and move later, asserting the full resulting order for both
+directions; no-op on same position; out-of-range position (`0`, negative, `>
+count`) → `422`; wrong-list item → `404`.
+**Backend: done. Frontend: done**, as designed except for the library (see §Frontend
+implementation notes):
+
+- Drag-to-reorder via [`vue-draggable-plus`](https://github.com/Alfred-Skyblue/vue-draggable-plus)
+  (MIT, typed, maintained Vue 3 wrapper over SortableJS) — **not** the `vuedraggable`
+  this doc originally named, which turned out to crash with Vue 3.5. On drop, the
+  `PATCH .../position` endpoint is called with the item's new 1-based index and the
+  local item list is replaced with the response; on failure the rows re-sort by their
+  server-assigned `position` fields (`useListItems.restoreServerOrder`), so the UI
+  never silently disagrees with the server.
+- Up/down move buttons on each row as a keyboard-accessible affordance, calling the
+  exact same endpoint — not dependent on the drag library working, so reordering
+  isn't drag-only.
+- Composables, one concern each (matching the Lists feature's shape — see
+  `LISTS_CRUD_PLAN.md` §Testing strategy notes): `useListItems` (fetch + the local
+  array mutators every flow reports back into), `useCreateItem`, `useUpdateItem`,
+  `useDeleteItem` (pairs with the existing `ConfirmDialog.vue`), `useReorderItem`.
+
+## Frontend implementation notes (2026-08-08)
+
+Where the build deviated from the sketch above, and decisions made along the way:
+
+- **One `ItemFormModal.vue`, not `AddItemModal` + `EditItemModal`.** The plan mirrored
+  the Lists feature's Create/Edit pair, but unlike those two (different hosting,
+  navigation, and store wiring), the item versions would have been byte-for-byte
+  duplicates — same three fields, same validation, same 409 handling. One component,
+  mode driven by whether an `item` prop is present.
+- **Item modal state is component-local**, not in `useListModalsStore` — the item
+  modals are only reachable from the details page, so plain refs there suffice; the
+  store keeps earning its place only for the list modals, which open from several
+  pages.
+- **`ApiError` now carries the backend's `detail` string** (`api/client.ts`), so the
+  modal shows "This list already has 50 items." / "An item with this text already
+  exists in this list." verbatim on a 409 instead of a generic failure line.
+- **Library pivot: `vuedraggable` → `vue-draggable-plus`.** `vuedraggable@4` (named in
+  this doc's original design) is unmaintained (last release 2022) and **crashes with
+  Vue 3.5+**: mid-drag it throws `Cannot read properties of null (reading 'element')`
+  and the drop never lands. Found by driving a real browser — jsdom unit tests can't
+  catch it because they can't perform a real drag. `vue-draggable-plus` is the
+  maintained equivalent: same SortableJS underneath, MIT, ships TypeScript types.
+- **Sortable runs in `forceFallback` + `fallbackOnBody` mode.** Two reasons: (1) the
+  picked-up row is a styled clone (`.drag-dragging` in `main.css`) identical in every
+  browser instead of the OS's washed-out native drag image, and (2) fallback mode is
+  what SortableJS uses on touch devices *anyway* — and without `fallbackOnBody` the
+  clone lands inside the `<ul>`, which the Vue wrapper can't map to an item and
+  crashes on. Desktop drags now exercise the exact code path phones will use, and
+  Playwright can drive them (native HTML5 drags can't be started synthetically).
+- **`vite.config.ts` excludes `vue-draggable-plus` from `optimizeDeps`** — prebundled,
+  the dev server hands it a second copy of Vue and its internal template ref dies with
+  "Missing ref owner context" / "Root element not found". Dev-server-only quirk; prod
+  builds dedupe fine.
+- **E2E coverage** (`frontend/e2e/list-items.spec.ts`): one Playwright journey against
+  the real backend — add ×3, duplicate-409 copy shown, edit, button-reorder, a real
+  drag-reorder, reload-persistence of the order, delete + renumber. The drag gesture
+  needs a press → small move → stepped glide → release sequence; Playwright's one-shot
+  `dragTo()` is too abrupt for Sortable's fallback-mode hit-testing.
+- **The local DB is shared — e2e, backend pytest, and manual browser testing all use
+  the same dev-login user.** Failed e2e runs initially left "E2E favorites …" lists
+  behind, which broke the three `test_lists.py` tests that asserted exact `/lists`
+  index contents (pytest's per-test rollback isolates writes, not pre-existing rows).
+  Fixed on both sides: the spec now sweeps its lists in an `afterEach` (pass or
+  fail), and those index tests use the new `fresh_user`/`fresh_user_client` fixtures
+  (`conftest.py`) — a unique user per test that can't own leftovers. Rule of thumb:
+  any test asserting "exactly these rows for this user" must not run as the dev user.
+
+## Testing strategy notes
+
+- **Backend**: same fixtures as Lists CRUD (`client`/`auth_client`/
+  `second_user_client`/`db_session`, `backend/tests/conftest.py`), no new fixtures
+  needed. Route-level tests in `backend/tests/test_list_items.py`
+  (`test_lists.py`'s sibling); service-level tests in
+  `backend/tests/test_list_item_service.py` for the dedup/cap rules and — especially
+  — the reorder/repack algorithm, since a bug there surfaces as a DB
+  `IntegrityError`, not just a wrong-looking HTTP response, and is worth catching
+  without the HTTP layer in the way.
+- **Frontend** (done): follows the existing colocated-`.spec.ts` pattern (Vue Test
+  Utils + Vitest), mocking `apiFetch` per `LISTS_CRUD_PLAN.md`'s conventions; shared
+  item fixtures live in `itemTestUtils.ts`. The reorder tests cover: a drag/button
+  move triggers the `PATCH` with the right position, the item list re-renders in the
+  response's order, and a failed reorder resnaps the rows to the server's order with
+  a visible alert. Real-browser behavior (including an actual drag) is covered by
+  `e2e/list-items.spec.ts` — see §Frontend implementation notes.
+
+## Suggested build order
+
+1. ~~Backend: `schemas/list_item.py` + `services/list_item_service.py` +
+   `routes/list_items.py` for all five endpoints, with `test_list_items.py` +
+   `test_list_item_service.py`.~~ **Done.**
+2. ~~Frontend: `useListItems` + rendering the item list on `ListDetailView.vue`
+   (replacing the "🚧 Items are coming soon" placeholder), with tests.~~ **Done.**
+3. ~~Frontend: add-item modal + `useCreateItem`, with tests.~~ **Done** (as
+   `ItemFormModal.vue`, shared with edit — see §Frontend implementation notes).
+4. ~~Frontend: edit-item modal + `useUpdateItem`, and delete via the existing
+   `ConfirmDialog.vue` + `useDeleteItem`, with tests.~~ **Done.**
+5. ~~Frontend: wire up drag-to-reorder + up/down buttons + `useReorderItem`, with
+   tests.~~ **Done** (via `vue-draggable-plus`, not `vuedraggable` — see §Frontend
+   implementation notes), plus an end-to-end Playwright journey.
