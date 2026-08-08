@@ -12,6 +12,7 @@ that is rolled back at the end, so nothing touches the real data and tests can r
 in any order. ``get_db`` is overridden so the app and the test share one session.
 """
 
+import uuid
 from collections.abc import Iterator
 
 import pytest
@@ -23,6 +24,7 @@ from app.auth.session import issue_session
 from app.core.config import settings
 from app.db.session import engine, get_db
 from app.main import create_app
+from app.models.user import User
 from app.services import user_service
 
 
@@ -79,6 +81,31 @@ def auth_client(client: TestClient) -> TestClient:
     response = client.post("/auth/dev-login")
     assert response.status_code == 200
     return client
+
+
+@pytest.fixture
+def fresh_user(db_session: Session) -> User:
+    """A brand-new user (unique ``sub`` per test) with no pre-existing data.
+
+    ``auth_client`` logs in as the fixed dev-login identity — the same user a
+    developer's browser session and the Playwright e2e suite use against the same
+    local database. The per-test rollback isolates what tests WRITE, but not rows
+    that already exist: any list the dev user owns (manual testing, e2e leftovers)
+    is visible to a test asserting exact index contents, and such tests fail on a
+    lived-in dev DB. Give those tests this user (+ ``fresh_user_client``) instead.
+    """
+    return user_service.get_or_create_user(
+        db_session,
+        Claims(sub=f"fresh-{uuid.uuid4()}", email="fresh@example.com", name="Fresh User"),
+    )
+
+
+@pytest.fixture
+def fresh_user_client(client: TestClient, fresh_user: User) -> Iterator[TestClient]:
+    """A logged-in TestClient for ``fresh_user`` — see that fixture for when to use it."""
+    with TestClient(client.app) as fresh_client:
+        fresh_client.cookies.set(settings.session_cookie_name, issue_session(fresh_user))
+        yield fresh_client
 
 
 @pytest.fixture

@@ -49,6 +49,28 @@
   --font-body:
     'Figtree', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial,
     sans-serif;
+
+  /* Motion (docs/DESIGN.md §Motion) — small, quick, and a little springy.
+     Interactive elements should FEEL pressed/lifted, not just recolor. Two
+     easings: a soft settle for things appearing, a playful overshoot for pops.
+     Anything that MOVES must sit behind Tailwind's `motion-safe:` variant so
+     `prefers-reduced-motion` users get color-only feedback. */
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Entrance for overlays/panels (dialogs, menus): rise + settle, fast. */
+  --animate-rise-in: rise-in 0.2s var(--ease-out-soft) both;
+
+  @keyframes rise-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
 
 /* Base document styling driven entirely by the tokens above. */
@@ -64,4 +86,28 @@ body {
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* SortableJS state classes, wired up via vuedraggable's `ghost-class` /
+   `chosen-class` props on the list detail page. Plain CSS (not utilities)
+   because SortableJS toggles these class NAMES on rows itself — they have to
+   exist as real selectors. `ghost` = the drop-slot placeholder left in the
+   list; `chosen` = the row being dragged. */
+.drag-ghost {
+  opacity: 0.35;
+  background-color: var(--color-elevated);
+}
+
+.drag-chosen {
+  background-color: var(--color-elevated);
+  box-shadow: 0 12px 28px rgb(0 0 0 / 0.4);
+}
+
+/* The moving clone while dragging (forceFallback mode): reads as a physically
+   picked-up card — lifted, slightly tilted, grabbing cursor. */
+.drag-dragging {
+  opacity: 0.95;
+  transform: rotate(1.5deg) scale(1.02);
+  box-shadow: 0 16px 36px rgb(0 0 0 / 0.5);
+  cursor: grabbing;
 }

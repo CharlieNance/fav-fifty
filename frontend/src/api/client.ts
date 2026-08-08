@@ -24,12 +24,35 @@ export function apiUrl(path: string): URL {
 
 export class ApiError extends Error {
   readonly status: number
+  /**
+   * The backend's human-readable `detail` string, when the error body had one
+   * (FastAPI's `HTTPException(detail=...)` shape). UI code can show this
+   * directly for statuses where the backend writes user-facing copy (e.g. the
+   * 409s from items: "This list already has 50 items."), and fall back to its
+   * own generic message when it's null.
+   */
+  readonly detail: string | null
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, detail: string | null = null) {
     super(message)
     this.name = 'ApiError'
     this.status = status
+    this.detail = detail
   }
+}
+
+/** Best-effort extraction of FastAPI's `{ "detail": "..." }` from an error body. */
+async function readErrorDetail(response: Response): Promise<string | null> {
+  try {
+    const body: unknown = await response.json()
+    if (body && typeof body === 'object' && 'detail' in body) {
+      const detail = (body as { detail: unknown }).detail
+      if (typeof detail === 'string') return detail
+    }
+  } catch {
+    // Not JSON (or empty) — fine, the caller falls back to a generic message.
+  }
+  return null
 }
 
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -46,7 +69,11 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
     })
 
     if (!response.ok) {
-      throw new ApiError(response.status, `Request to ${path} failed with ${response.status}`)
+      throw new ApiError(
+        response.status,
+        `Request to ${path} failed with ${response.status}`,
+        await readErrorDetail(response),
+      )
     }
 
     // 204 No Content has no body to parse.

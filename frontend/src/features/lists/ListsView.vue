@@ -81,9 +81,18 @@ async function confirmDelete(list: ListSummary): Promise<void> {
       You haven't started a list yet — create your first one above.
     </p>
 
-    <ul v-else class="mt-6 divide-y divide-border">
-      <li v-for="list in lists" :key="list.id" class="flex items-center justify-between gap-4 py-3">
-        <RouterLink :to="{ name: 'list-detail', params: { id: list.id } }" class="text-ink">
+    <!-- Rows light up under the pointer (hover surface + title shifts to the
+         accent) so "this whole row is a place to go" reads at a glance. -->
+    <ul v-else class="mt-6 space-y-1">
+      <li
+        v-for="list in lists"
+        :key="list.id"
+        class="flex items-center justify-between gap-4 rounded-xl px-3 py-3 transition-colors duration-150 hover:bg-surface"
+      >
+        <RouterLink
+          :to="{ name: 'list-detail', params: { id: list.id } }"
+          class="font-medium text-ink transition-colors duration-150 hover:text-accent"
+        >
           {{ list.title }}
         </RouterLink>
         <div class="flex items-center gap-2">

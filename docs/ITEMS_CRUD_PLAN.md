@@ -12,9 +12,9 @@ explicitly deferred item management to this doc.
 - Add / edit / delete an item on a list you own (text, optional note, optional image
   URL)
 - Reorder items by moving one item to a new rank
-- Backend: fully built this slice (API + tests)
-- Frontend: designed in this doc, **built as the next slice** — see §Frontend design
-  below for what to build then
+- Backend: fully built (API + tests)
+- Frontend: **built (2026-08-08)** — see §Frontend implementation notes for where the
+  build deviated from the design sketched here, and why
 
 ### Out of scope (future features)
 
@@ -163,11 +163,11 @@ an existing item; otherwise inserts at `position = current_count + 1` → `201`.
 **Tests:** appends at the correct position; 50th item succeeds, 51st `409`s;
 duplicate text `409`s; invalid `text`/`note`/`image_url` → `422`; wrong-owner/
 soft-deleted-list/nonexistent-list → `404`; unauthenticated → `401`.
-**Backend: done.** Frontend (not yet built): an "Add item" modal on the list details
-page (`ListDetailView.vue`), same shape as `CreateListModal.vue` — text/note/
-image-url fields, client-side checks mirror the backend's but the backend stays the
-source of truth, a `409` (duplicate/full) surfaces as an inline error without closing
-the modal.
+**Backend: done. Frontend: done** — `ItemFormModal.vue` in add mode (see §Frontend
+implementation notes), opened from the page's "Add item" button (or the empty state's
+"Add your first favorite"). Client-side checks mirror the backend's but the backend
+stays the source of truth; a `409` (duplicate/full) surfaces the backend's own
+`detail` copy inline without closing the modal. The Add button disables at 50.
 
 ## Interaction 2 — Edit an item
 
@@ -176,9 +176,9 @@ the modal.
 (keeping your own current text is never a collision) → `200`.
 **Tests:** edits all three fields; self-collision allowed, cross-item collision
 `409`s; wrong-list/wrong-owner/nonexistent item → `404`; invalid fields → `422`.
-**Backend: done.** Frontend (not yet built): an "Edit item" modal, same shape as
-`EditListModal.vue` — prefilled from the item already in hand from the page's item
-list (no extra `GET` needed, matching how `EditListModal` avoids one for lists).
+**Backend: done. Frontend: done** — `ItemFormModal.vue` in edit mode, prefilled from
+the item already in hand from the page's item list (no extra `GET` needed, matching
+how `EditListModal` avoids one for lists).
 
 ## Interaction 3 — Delete an item
 
@@ -188,9 +188,10 @@ soft-delete and §Implementation note above) → `204`.
 **Tests:** item removed; remaining items repack to a contiguous `1..N` in their
 original relative order; deleting twice → `404` the second time; wrong-list/
 wrong-owner → `404`; unauthenticated → `401`.
-**Backend: done.** Frontend (not yet built): reuses `ConfirmDialog.vue` exactly as-is
-(it's already list-agnostic — see `LISTS_CRUD_PLAN.md` §Interaction 4) from a delete
-icon on each item row.
+**Backend: done. Frontend: done** — reuses `ConfirmDialog.vue` exactly as-is (it's
+already list-agnostic — see `LISTS_CRUD_PLAN.md` §Interaction 4) from a delete icon on
+each item row; on success the local array repacks positions the same way the backend
+did (`useListItems.removeItem`), since the `204` carries no fresh list.
 
 ## Interaction 4 — Reorder items
 
@@ -201,21 +202,70 @@ otherwise shifts the range and returns the **full** re-ordered `list[ItemRead]`.
 **Tests:** move earlier and move later, asserting the full resulting order for both
 directions; no-op on same position; out-of-range position (`0`, negative, `>
 count`) → `422`; wrong-list item → `404`.
-**Backend: done.** Frontend (not yet built, design captured now so the next slice
-doesn't re-derive it):
+**Backend: done. Frontend: done**, as designed except for the library (see §Frontend
+implementation notes):
 
-- Drag-to-reorder via [`vuedraggable`](https://github.com/SortableJS/vue.draggable.next)
-  (thin Vue 3 wrapper over SortableJS) — **no drag/sort library exists in the repo
-  today**, this would be a new `frontend/` dependency (free, no recurring cost).
-  On drop, call the `PATCH .../position` endpoint with the item's new 1-based index
-  and replace the local item list with the response.
+- Drag-to-reorder via [`vue-draggable-plus`](https://github.com/Alfred-Skyblue/vue-draggable-plus)
+  (MIT, typed, maintained Vue 3 wrapper over SortableJS) — **not** the `vuedraggable`
+  this doc originally named, which turned out to crash with Vue 3.5. On drop, the
+  `PATCH .../position` endpoint is called with the item's new 1-based index and the
+  local item list is replaced with the response; on failure the rows re-sort by their
+  server-assigned `position` fields (`useListItems.restoreServerOrder`), so the UI
+  never silently disagrees with the server.
 - Up/down move buttons on each row as a keyboard-accessible affordance, calling the
   exact same endpoint — not dependent on the drag library working, so reordering
   isn't drag-only.
-- New composables, one concern each (matching the Lists feature's shape — see
-  `LISTS_CRUD_PLAN.md` §Testing strategy notes): `useListItems` (fetch, mirrors
-  `useListDetail`), `useCreateItem`, `useUpdateItem`, `useDeleteItem` (pairs with the
-  existing `ConfirmDialog.vue`), `useReorderItem`.
+- Composables, one concern each (matching the Lists feature's shape — see
+  `LISTS_CRUD_PLAN.md` §Testing strategy notes): `useListItems` (fetch + the local
+  array mutators every flow reports back into), `useCreateItem`, `useUpdateItem`,
+  `useDeleteItem` (pairs with the existing `ConfirmDialog.vue`), `useReorderItem`.
+
+## Frontend implementation notes (2026-08-08)
+
+Where the build deviated from the sketch above, and decisions made along the way:
+
+- **One `ItemFormModal.vue`, not `AddItemModal` + `EditItemModal`.** The plan mirrored
+  the Lists feature's Create/Edit pair, but unlike those two (different hosting,
+  navigation, and store wiring), the item versions would have been byte-for-byte
+  duplicates — same three fields, same validation, same 409 handling. One component,
+  mode driven by whether an `item` prop is present.
+- **Item modal state is component-local**, not in `useListModalsStore` — the item
+  modals are only reachable from the details page, so plain refs there suffice; the
+  store keeps earning its place only for the list modals, which open from several
+  pages.
+- **`ApiError` now carries the backend's `detail` string** (`api/client.ts`), so the
+  modal shows "This list already has 50 items." / "An item with this text already
+  exists in this list." verbatim on a 409 instead of a generic failure line.
+- **Library pivot: `vuedraggable` → `vue-draggable-plus`.** `vuedraggable@4` (named in
+  this doc's original design) is unmaintained (last release 2022) and **crashes with
+  Vue 3.5+**: mid-drag it throws `Cannot read properties of null (reading 'element')`
+  and the drop never lands. Found by driving a real browser — jsdom unit tests can't
+  catch it because they can't perform a real drag. `vue-draggable-plus` is the
+  maintained equivalent: same SortableJS underneath, MIT, ships TypeScript types.
+- **Sortable runs in `forceFallback` + `fallbackOnBody` mode.** Two reasons: (1) the
+  picked-up row is a styled clone (`.drag-dragging` in `main.css`) identical in every
+  browser instead of the OS's washed-out native drag image, and (2) fallback mode is
+  what SortableJS uses on touch devices *anyway* — and without `fallbackOnBody` the
+  clone lands inside the `<ul>`, which the Vue wrapper can't map to an item and
+  crashes on. Desktop drags now exercise the exact code path phones will use, and
+  Playwright can drive them (native HTML5 drags can't be started synthetically).
+- **`vite.config.ts` excludes `vue-draggable-plus` from `optimizeDeps`** — prebundled,
+  the dev server hands it a second copy of Vue and its internal template ref dies with
+  "Missing ref owner context" / "Root element not found". Dev-server-only quirk; prod
+  builds dedupe fine.
+- **E2E coverage** (`frontend/e2e/list-items.spec.ts`): one Playwright journey against
+  the real backend — add ×3, duplicate-409 copy shown, edit, button-reorder, a real
+  drag-reorder, reload-persistence of the order, delete + renumber. The drag gesture
+  needs a press → small move → stepped glide → release sequence; Playwright's one-shot
+  `dragTo()` is too abrupt for Sortable's fallback-mode hit-testing.
+- **The local DB is shared — e2e, backend pytest, and manual browser testing all use
+  the same dev-login user.** Failed e2e runs initially left "E2E favorites …" lists
+  behind, which broke the three `test_lists.py` tests that asserted exact `/lists`
+  index contents (pytest's per-test rollback isolates writes, not pre-existing rows).
+  Fixed on both sides: the spec now sweeps its lists in an `afterEach` (pass or
+  fail), and those index tests use the new `fresh_user`/`fresh_user_client` fixtures
+  (`conftest.py`) — a unique user per test that can't own leftovers. Rule of thumb:
+  any test asserting "exactly these rows for this user" must not run as the dev user.
 
 ## Testing strategy notes
 
@@ -227,22 +277,25 @@ doesn't re-derive it):
   — the reorder/repack algorithm, since a bug there surfaces as a DB
   `IntegrityError`, not just a wrong-looking HTTP response, and is worth catching
   without the HTTP layer in the way.
-- **Frontend** (next slice): follows the existing colocated-`.spec.ts` pattern (Vue
-  Test Utils + Vitest), mocking `apiFetch` per `LISTS_CRUD_PLAN.md`'s conventions. The
-  reorder tests in particular should cover: a drag/button move triggers the `PATCH`
-  with the right position, the item list re-renders in the response's order, and a
-  failed reorder request doesn't silently leave the UI showing a different order than
-  the server has.
+- **Frontend** (done): follows the existing colocated-`.spec.ts` pattern (Vue Test
+  Utils + Vitest), mocking `apiFetch` per `LISTS_CRUD_PLAN.md`'s conventions; shared
+  item fixtures live in `itemTestUtils.ts`. The reorder tests cover: a drag/button
+  move triggers the `PATCH` with the right position, the item list re-renders in the
+  response's order, and a failed reorder resnaps the rows to the server's order with
+  a visible alert. Real-browser behavior (including an actual drag) is covered by
+  `e2e/list-items.spec.ts` — see §Frontend implementation notes.
 
 ## Suggested build order
 
 1. ~~Backend: `schemas/list_item.py` + `services/list_item_service.py` +
    `routes/list_items.py` for all five endpoints, with `test_list_items.py` +
    `test_list_item_service.py`.~~ **Done.**
-2. Frontend: `useListItems` + rendering the item list on `ListDetailView.vue`
-   (replacing the "🚧 Items are coming soon" placeholder), with tests.
-3. Frontend: `AddItemModal.vue` + `useCreateItem`, with tests.
-4. Frontend: `EditItemModal.vue` + `useUpdateItem`, and delete via the existing
-   `ConfirmDialog.vue` + `useDeleteItem`, with tests.
-5. Frontend: add `vuedraggable`, wire up drag-to-reorder + up/down buttons +
-   `useReorderItem`, with tests.
+2. ~~Frontend: `useListItems` + rendering the item list on `ListDetailView.vue`
+   (replacing the "🚧 Items are coming soon" placeholder), with tests.~~ **Done.**
+3. ~~Frontend: add-item modal + `useCreateItem`, with tests.~~ **Done** (as
+   `ItemFormModal.vue`, shared with edit — see §Frontend implementation notes).
+4. ~~Frontend: edit-item modal + `useUpdateItem`, and delete via the existing
+   `ConfirmDialog.vue` + `useDeleteItem`, with tests.~~ **Done.**
+5. ~~Frontend: wire up drag-to-reorder + up/down buttons + `useReorderItem`, with
+   tests.~~ **Done** (via `vue-draggable-plus`, not `vuedraggable` — see §Frontend
+   implementation notes), plus an end-to-end Playwright journey.

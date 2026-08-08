@@ -8,7 +8,7 @@ _Last updated: 2026-07-31_
 ## Stack & infrastructure
 
 | Area | Decision | Notes |
-|------|----------|-------|
+| ------ | ---------- | ------- |
 | **Database** | PostgreSQL on **Aurora Serverless v2** | Relational fits the social roadmap; scales to zero when idle. |
 | **Backend compute** | **Docker container on AWS Lightsail** | Owner wants Docker/Lightsail experience; FastAPI runs unchanged. |
 | **Auth** | **AWS Cognito**, social login only | **Google at launch.** Facebook/Apple possible later. Twitter/X dropped. No email/password. |
@@ -64,11 +64,12 @@ identity came from the stub or Cognito.
 
 **Why this works without Cognito existing yet:** the app needs only standard OIDC claims
 (`sub` → `cognito_sub`, `name` → `display_name`, `picture` → `avatar_url`, `email`), and
-Cognito is *configured to match* that contract later (via Google→Cognito attribute mapping).
+Cognito is **configured to match** that contract later (via Google→Cognito attribute mapping).
 Only config values wait for Cognito — issuer URL, JWKS endpoint, audience (app-client ID) —
 none of which change the app's internals.
 
 Gotchas to remember when wiring Cognito:
+
 - Cognito's `sub` is **Cognito's own per-pool user UUID**, not Google's ID — that's what we
   store in `cognito_sub` (stable per user in our pool).
 - Whether `name`/`picture` arrive depends on **Cognito attribute mapping** — a config step
@@ -131,7 +132,7 @@ Decisions from QUESTIONS.md §10, to guide the schema:
 - **Items**
   - **Ranked/ordered** within a list.
   - Have **text**, an optional **note**, and an optional **image link (URL)**.
-  - Image *uploads/storage* (e.g. S3) are a later enhancement — start with URLs only.
+  - Image **uploads/storage** (e.g. S3) are a later enhancement — start with URLs only.
 - **Tags (instead of fixed categories, for now)**
   - A list can have **multiple tags**.
   - Tags are **free-form** text entered by users.

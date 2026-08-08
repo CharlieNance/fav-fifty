@@ -7,6 +7,15 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [vue(), tailwindcss()],
+  optimizeDeps: {
+    // Serve vue-draggable-plus as source instead of prebundling it: the
+    // prebundle gives it a SECOND copy of Vue in dev, and its internal
+    // template ref then fails with "Missing ref owner context" / "Root
+    // element not found" the moment a drag list mounts. Excluded, its `vue`
+    // import resolves to the same module the app uses. (Prod builds are
+    // unaffected — Rollup always dedupes.)
+    exclude: ['vue-draggable-plus'],
+  },
   resolve: {
     // `@` -> `src`, so imports don't turn into ../../../ chains.
     alias: {

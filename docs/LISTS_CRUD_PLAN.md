@@ -306,7 +306,7 @@ confirm step, even though the row survives server-side for now as a soft-delete.
     index, or redirect away from a now-gone details page); cancelling/dismissing closes
     the dialog and never calls `apiFetch`; the dialog is reachable from both entry
     points.
-** Completed and Verified 2026-08-01 9:58 PM ** 
+**Completed and Verified 2026-08-01 9:58 PM**
 
 ## Interaction 5 — List details page (stub)
 
@@ -326,7 +326,7 @@ being fully static.
     opens the modal without navigating; Delete opens the confirm dialog.
   - (Backend coverage for the `GET` itself is already exercised by Interaction 3's
     tests, since it's the same endpoint.)
-** Completed and Verified at 10:45 PM **
+**Completed and Verified at 10:45 PM**
 
 ## Testing strategy notes
 

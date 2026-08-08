@@ -83,6 +83,7 @@ Do everything in one region (`us-east-1` recommended) and keep the browser tab w
 `backend/.env` open to paste values as you go.
 
 **Step A — Create the user pool.**
+
 1. Cognito → **Create user pool**.
 2. Sign-in options: you can leave the Cognito-native options unchecked — we only use a
    federated provider. (Cognito requires at least a pool; we won't use its own accounts.)
@@ -91,6 +92,7 @@ Do everything in one region (`us-east-1` recommended) and keep the browser tab w
    `COGNITO_REGION` is the region prefix (`us-east-1`).
 
 **Step B — Add Google as an identity provider.**
+
 1. User pool → **Sign-in experience → Federated identity provider sign-in → Add**.
 2. Choose **Google**. Paste the **Client ID / Client secret** from §1 (`GOOGLE_CLIENT_ID`
    / `GOOGLE_CLIENT_SECRET`).
@@ -104,6 +106,7 @@ Do everything in one region (`us-east-1` recommended) and keep the browser tab w
    to skip the account chooser, so keep this exact name.
 
 **Step C — Hosted UI domain.**
+
 1. User pool → **App integration → Domain → Create Cognito domain**.
 2. Pick a prefix, e.g. `favfifty` → full host `favfifty.auth.us-east-1.amazoncognito.com`.
 3. Put that **host only** (no `https://`) into `COGNITO_DOMAIN`.
@@ -111,6 +114,7 @@ Do everything in one region (`us-east-1` recommended) and keep the browser tab w
    redirect URIs**: `https://<domain>/oauth2/idpresponse`.
 
 **Step D — Create the app client.**
+
 1. User pool → **App integration → App clients → Create app client**.
 2. Type: **Confidential client** (our backend holds the secret) → this generates a
    **client secret**.
@@ -145,7 +149,7 @@ records present to receive mail.
 
 Records to **PRESERVE** by recreating them in Route 53:
 
-```
+``` text
 ; MX — Google Workspace email (apex record, name = favfifty.com)
 favfifty.com.  MX  1   aspmx.l.google.com.
 favfifty.com.  MX  5   alt1.aspmx.l.google.com.
@@ -176,9 +180,10 @@ record for when CloudFront exists.)
 custom nameservers for this domain (it generally does post-Google-Domains migration).
 
 **Step E — Verify.** After propagation (minutes to a few hours):
-   - `dig NS favfifty.com` shows the Route 53 nameservers.
-   - `dig MX favfifty.com` shows Google's mail records.
-   - Send a test email to the mailbox to confirm delivery.
+
+- `dig NS favfifty.com` shows the Route 53 nameservers.
+- `dig MX favfifty.com` shows Google's mail records.
+- Send a test email to the mailbox to confirm delivery.
 
 **Later (during first deploy):** add an **ALIAS/A** record for `favfifty.com` (and `www`)
 pointing at the CloudFront distribution, and request an **ACM certificate** (in

@@ -44,11 +44,16 @@ Goal: the actual product — a logged-in user manages their own lists.
 - [x] CRUD API for lists (create, read, update, delete) — scoped to the owner (2026-08-08)
 - [x] CRUD/reorder API for the items within a list (up to 50, ranked/ordered; each item has text + optional note + optional image URL) (2026-08-08)
 - [ ] Free-form tags on lists (multiple per list); publish/unpublish (draft vs public)
-- [ ] Frontend: create a list, add/edit/remove/reorder items, manage tags, delete a list
+- [x] Frontend: create a list, add/edit/remove/reorder items, delete a list — done
+      (2026-08-08, items UI per [ITEMS_CRUD_PLAN.md](ITEMS_CRUD_PLAN.md) §Frontend
+      implementation notes); *manage tags* still pending with the tags feature above
 - [ ] Validation & limits (title length, item count cap of 50, tag handling, no
       duplicate list titles per user or duplicate item names within a list — see
-      [LISTS_CRUD_PLAN.md](LISTS_CRUD_PLAN.md) §Validation)
-- [ ] Tests for all of the above
+      [LISTS_CRUD_PLAN.md](LISTS_CRUD_PLAN.md) §Validation) — done for items
+      (cap + dedup enforced backend and surfaced in the UI); list-title dedup still open
+- [x] Tests for all of the above — backend pytest, frontend Vitest, plus a Playwright
+      end-to-end journey (`frontend/e2e/list-items.spec.ts`) covering the full
+      add/edit/reorder(drag)/delete flow in a real browser
 - [ ] First deploy to AWS (frontend static hosting + backend + DB), behind `favfifty.com`
 
 **🎯 "Phase one complete" target.** Everything below is incremental.
@@ -90,5 +95,9 @@ already in place (`.github/workflows/ci.yml`). Remaining Phase 1 items, in order
 3. ~~**CRUD API for lists**~~ — done (2026-08-08).
 4. ~~**CRUD/reorder API for list items**~~ — done (2026-08-08), backend only, see
    [ITEMS_CRUD_PLAN.md](ITEMS_CRUD_PLAN.md).
-5. Now: **frontend for item management** — add/edit/remove/reorder items on the list
-   details page, per `ITEMS_CRUD_PLAN.md` §Suggested build order (steps 2–5).
+5. ~~**Frontend for item management**~~ — done (2026-08-08): add/edit/remove/reorder
+   (drag + buttons) on the list details page, with unit + e2e tests, plus a
+   site-wide interaction-feedback pass (see [DESIGN.md](DESIGN.md) §Motion).
+6. Now: **tags + publish/unpublish** (the last Phase 2 feature slice), then the
+   **first AWS deploy**. The **light/dark toggle** (DESIGN.md) must land before
+   go-live but doesn't block feature work.
