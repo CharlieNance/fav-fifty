@@ -32,17 +32,20 @@ def _get_owned_list(
 
 
 def _get_owned_item(
+    list_id: uuid.UUID,
     item_id: uuid.UUID,
-    list_row: List = Depends(_get_owned_list),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> ListItem:
     """Resolve `{item_id}` scoped to the caller's `{list_id}`, or 404.
 
-    Shared by every single-item route (PATCH/DELETE/reorder) — see
-    list_item_service.get_owned_item.
+    Shared by every single-item route (PATCH/DELETE/reorder). Deliberately does
+    NOT depend on `_get_owned_list`: `list_item_service.get_owned_item` already
+    performs the full ownership check itself (wrong owner, soft-deleted list,
+    item in a different list — all None → 404), so the dependency would just
+    run the same list-ownership query a second time.
     """
-    row = list_item_service.get_owned_item(db, list_row.id, item_id, current_user.id)
+    row = list_item_service.get_owned_item(db, list_id, item_id, current_user.id)
     if row is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     return row
