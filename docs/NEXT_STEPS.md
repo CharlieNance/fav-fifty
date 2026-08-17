@@ -15,10 +15,10 @@ Goal: a clean repo and clear decisions before any app code.
 - [x] Answer the open decisions → recorded in [DECISIONS.md](DECISIONS.md)
 - [x] Choose a license and add `LICENSE` (MIT)
 - [x] Make the initial git commit and push to GitHub (verify no secrets are tracked)
-- [ ] **External setup** — follow [SETUP.md](SETUP.md):
+- [x] **External setup** — follow [SETUP.md](SETUP.md):
   - [x] Create Google OAuth Web Application client ID + secret
   - [x] Set up AWS account (root MFA, IAM user/group, MFA) + billing budget/alarm
-  - [ ] Create Route 53 hosted zone; copy Google email MX/SPF records; point Squarespace nameservers at it
+  - [x] Create Route 53 hosted zone; copy Google email MX/SPF records; point Squarespace nameservers at it
   - [x] Cognito user pool + Google IdP + hosted domain + app client — set up and verified end-to-end (2026-07-31)
 
 ## Phase 1 — Walking skeleton (thin end-to-end slice)
