@@ -88,7 +88,8 @@ def login(redirect: str | None = None) -> RedirectResponse:
         "nonce": nonce,
         "code_challenge": code_challenge,
         "code_challenge_method": "S256",
-        # Skip the Cognito account chooser and go straight to Google (our only IdP).
+        # Tell Cognito's Hosted UI to skip its account-chooser page and forward directly to its
+        # Google IdP (our only one); the OAuth flow still runs entirely through Cognito.
         "identity_provider": "Google",
     }
     authorize_url = f"{settings.cognito_authorize_url}?{urlencode(params)}"
