@@ -14,6 +14,7 @@ HTTP app.
 import re
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -67,7 +68,19 @@ def set_list_tags(db: Session, list_row: List, names: list[str]) -> List:
     if len(deduped) > settings.max_tags_per_list:
         raise TooManyTagsError
 
-    list_row.tags = [_get_or_create_tag(db, name) for name in deduped]
-    db.commit()
+    # Two requests introducing the same brand-new tag name at once can both miss
+    # `_get_or_create_tag`'s lookup and race to insert it, tripping `tags.name`'s
+    # unique constraint. Retry once after a rollback so the loser just reuses the
+    # row the winner committed, instead of surfacing a raw 500.
+    for attempt in range(2):
+        try:
+            list_row.tags = [_get_or_create_tag(db, name) for name in deduped]
+            db.commit()
+            break
+        except IntegrityError:
+            db.rollback()
+            if attempt == 1:
+                raise
+
     db.refresh(list_row)
     return list_row

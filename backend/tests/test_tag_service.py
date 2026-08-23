@@ -2,6 +2,7 @@
 
 import pytest
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth.claims import Claims
@@ -102,6 +103,40 @@ def test_set_list_tags_reuses_one_tag_row_across_different_lists(db_session: Ses
     tag_service.set_list_tags(db_session, theirs, ["board games"])
 
     rows = list(db_session.scalars(select(Tag).where(Tag.name == "board games")))
+    assert len(rows) == 1
+
+
+def test_set_list_tags_retries_once_when_a_concurrent_request_wins_the_create_race(
+    db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Two requests introducing the same brand-new tag can both miss
+    # `_get_or_create_tag`'s SELECT and race to INSERT; the loser should trip
+    # `tags.name`'s unique constraint, retry, and reuse the winner's row
+    # instead of surfacing a raw IntegrityError. Simulated deterministically
+    # (rather than with real threads) by making the first attempt commit a
+    # "concurrent" insert of its own before raising the constraint error the
+    # real DB would raise in that situation.
+    owner = _user(db_session, "owner")
+    row = _list(db_session, owner)
+    original = tag_service._get_or_create_tag
+    attempts = 0
+
+    def flaky_once(db: Session, name: str) -> Tag:
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            db.add(Tag(name=name))
+            db.flush()
+            db.commit()
+            raise IntegrityError("insert", {}, Exception("duplicate key value"))
+        return original(db, name)
+
+    monkeypatch.setattr(tag_service, "_get_or_create_tag", flaky_once)
+
+    updated = tag_service.set_list_tags(db_session, row, ["sci-fi"])
+
+    assert _tag_names(updated) == ["sci-fi"]
+    rows = list(db_session.scalars(select(Tag).where(Tag.name == "sci-fi")))
     assert len(rows) == 1
 
 

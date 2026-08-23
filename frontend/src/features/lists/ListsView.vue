@@ -6,7 +6,7 @@
 // (ConfirmDialog) are both mounted right here per-row, keyed off the same
 // store's `editingListId`/`deletingListId` — none of the three ever navigates
 // away from this page.
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   MagnifyingGlassIcon,
@@ -39,8 +39,14 @@ const router = useRouter()
 // Destructured to top-level bindings (not held as `search.query`) so Vue's
 // template compiler auto-unwraps the ref — nested member access like
 // `search.query` is not unwrapped automatically.
-const { query: searchQuery, clear: clearSearch } = useListSearch((q) => void load(q || undefined))
+const {
+  query: searchQuery,
+  clear: clearSearch,
+  dispose: disposeSearch,
+} = useListSearch((q) => void load(q || undefined))
 const isSearching = computed(() => searchQuery.value.trim().length > 0)
+
+onUnmounted(disposeSearch)
 
 onMounted(() => {
   void load()

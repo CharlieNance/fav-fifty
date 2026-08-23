@@ -74,6 +74,23 @@ def test_list_for_user_filters_by_tag_substring(db_session: Session) -> None:
     assert [row.id for row in result] == [matching.id]
 
 
+def test_list_for_user_filter_treats_percent_and_underscore_as_literal(
+    db_session: Session,
+) -> None:
+    # `%` and `_` are SQL LIKE wildcards, not just regular characters — a query
+    # containing them must match only the literal text, not "any characters"
+    # (`%`) or "any one character" (`_`), per docs/TAGS_SEARCH_PLAN.md
+    # §Cross-cutting's "treated as literal characters" guarantee.
+    owner = _user(db_session, "owner")
+    literal = _list(db_session, owner, "50% off list")
+    _list(db_session, owner, "50X off list")  # would false-match "50%" unescaped
+    _list(db_session, owner, "Something else entirely")
+
+    result = list_service.list_for_user(db_session, owner.id, "50%")
+
+    assert [row.id for row in result] == [literal.id]
+
+
 def test_list_for_user_filter_is_case_insensitive(db_session: Session) -> None:
     owner = _user(db_session, "owner")
     matching = _list(db_session, owner, "Board Games")

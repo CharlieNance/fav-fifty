@@ -37,5 +37,15 @@ export function useListSearch(onSearch: (query: string) => void, debounceMs = DE
     onSearch('')
   }
 
-  return { query, clear }
+  // Vue's watcher stops itself on unmount, but a raw setTimeout isn't part of
+  // that effect scope — a caller mounted as a component (ListsView.vue) should
+  // wire this into onUnmounted(dispose), or a stale onSearch fires after the
+  // component (and its callback) is gone. Returned rather than called via
+  // onUnmounted in here so this composable stays callable outside a component's
+  // setup(), e.g. directly from a unit test.
+  function dispose(): void {
+    clearTimeout(timer)
+  }
+
+  return { query, clear, dispose }
 }

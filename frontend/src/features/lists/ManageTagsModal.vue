@@ -7,48 +7,34 @@
  * it into a chip, click a chip's × to drop it. The whole edited set is only
  * sent to the server once, on Save — Cancel discards every change made here.
  */
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { nextTick, onMounted, ref } from 'vue'
 
 import BaseButton from '@/components/BaseButton.vue'
 import TagChip from './TagChip.vue'
 import type { ListSummary } from './types'
 import { useListTags } from './useListTags'
 
-// Mirrors the backend's `settings.max_tags_per_list` (backend/app/core/config.py)
-// — client-side check is just for a fast, friendly message; the server is the
-// source of truth and re-checks this on save.
-const MAX_TAGS = 100
-
 const props = defineProps<{ list: ListSummary }>()
 const emit = defineEmits<{ saved: [list: ListSummary]; cancel: [] }>()
 
 const tags = ref<string[]>([...props.list.tags])
 const draft = ref('')
-const clientError = ref<string | null>(null)
 const inputRef = ref<HTMLInputElement | null>(null)
 
-const { pending, error: serverError, setTags, reset: resetServerError } = useListTags()
-const error = computed(() => clientError.value ?? serverError.value)
+const { pending, error, setTags, reset: resetError } = useListTags()
 
-/** Same trim/collapse/lower-case rule as the backend's `normalize_tag_name`. */
+/** Same trim/collapse/lower-case rule as the backend's `normalize_tag_name`, so a
+ *  chip previews as it'll actually be stored. The server re-validates (length,
+ *  the per-list cap) on Save and its 422 `detail` is what's shown on failure —
+ *  no client-side mirror of those checks, so there's one place they can drift. */
 function normalize(raw: string): string {
   return raw.trim().replace(/\s+/g, ' ').toLowerCase()
 }
 
 function addTag(): void {
-  clientError.value = null
   const name = normalize(draft.value)
-  if (!name) return
-  if (name.length > 50) {
-    clientError.value = 'Tags must be 50 characters or fewer.'
-    return
-  }
-  if (tags.value.includes(name)) {
+  if (!name || tags.value.includes(name)) {
     draft.value = ''
-    return
-  }
-  if (tags.value.length >= MAX_TAGS) {
-    clientError.value = `A list can have at most ${MAX_TAGS} tags.`
     return
   }
   tags.value.push(name)
@@ -64,8 +50,7 @@ function cancel(): void {
 }
 
 async function save(): Promise<void> {
-  resetServerError()
-  clientError.value = null
+  resetError()
   const updated = await setTags(props.list.id, tags.value)
   if (updated) {
     emit('saved', updated)
