@@ -14,6 +14,7 @@ import BaseButton from '@/components/BaseButton.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import IconButton from '@/components/IconButton.vue'
 import EditListModal from './EditListModal.vue'
+import TagChip from './TagChip.vue'
 import type { ListSummary } from './types'
 import { useDeleteList } from './useDeleteList'
 import { useLists } from './useLists'
@@ -89,13 +90,20 @@ async function confirmDelete(list: ListSummary): Promise<void> {
         :key="list.id"
         class="flex items-center justify-between gap-4 rounded-xl px-3 py-3 transition-colors duration-150 hover:bg-surface"
       >
-        <RouterLink
-          :to="{ name: 'list-detail', params: { id: list.id } }"
-          class="font-medium text-ink transition-colors duration-150 hover:text-accent"
-        >
-          {{ list.title }}
-        </RouterLink>
-        <div class="flex items-center gap-2">
+        <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+          <RouterLink
+            :to="{ name: 'list-detail', params: { id: list.id } }"
+            class="font-medium text-ink transition-colors duration-150 hover:text-accent"
+          >
+            {{ list.title }}
+          </RouterLink>
+          <ul v-if="list.tags.length > 0" class="flex flex-wrap gap-1">
+            <li v-for="tag in list.tags" :key="tag">
+              <TagChip :label="tag" />
+            </li>
+          </ul>
+        </div>
+        <div class="flex shrink-0 items-center gap-2">
           <IconButton
             :icon="PencilSquareIcon"
             :label="`Rename ${list.title}`"

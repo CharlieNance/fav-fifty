@@ -14,6 +14,7 @@ vi.mock('@/api/client', async (importOriginal) => {
 
 import { apiFetch } from '@/api/client'
 import ListsView from './ListsView.vue'
+import TagChip from './TagChip.vue'
 
 const apiFetchMock = vi.mocked(apiFetch)
 
@@ -87,6 +88,26 @@ describe('ListsView', () => {
     const links = wrapper.findAllComponents({ name: 'RouterLink' })
     const detailLink = links.find((link) => link.text() === 'Best sandwiches')
     expect(detailLink?.props('to')).toEqual({ name: 'list-detail', params: { id: 'list-1' } })
+  })
+
+  it("renders a row's tags as read-only chips", async () => {
+    apiFetchMock.mockResolvedValueOnce([{ ...LISTS[0]!, tags: ['deli', 'classics'] }, LISTS[1]!])
+
+    const wrapper = await mountAtLists(testRouter())
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('deli')
+    expect(wrapper.text()).toContain('classics')
+  })
+
+  it('renders no chips for a row with no tags', async () => {
+    apiFetchMock.mockResolvedValueOnce(LISTS)
+
+    const wrapper = await mountAtLists(testRouter())
+    await flushPromises()
+
+    const row = wrapper.findAll('li').find((li) => li.text().includes('Best sandwiches'))
+    expect(row?.findAllComponents(TagChip)).toHaveLength(0)
   })
 
   it('renders an empty state with a call to action when there are no lists', async () => {

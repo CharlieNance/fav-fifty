@@ -298,12 +298,12 @@ incrementally"):
 
 1. **Backend:** tag normalization + `set_list_tags` in `list_service.py` (or
    `tag_service.py`, per open question 3), `schemas/tag.py` (`TagsUpdate`), `tags`
-   field added to `ListRead`, `PUT /api/lists/{list_id}/tags` route. Tests.
+   field added to `ListRead`, `PUT /api/lists/{list_id}/tags` route. Tests. **Complete**
 2. **Frontend:** `TagChip.vue`, `useListTags.ts`, tag management UI on
    `ListDetailView.vue` (per the UX call in open question 2), `ListSummary`/
-   `ListItem` types gain `tags`. Tests.
+   `ListItem` types gain `tags`. Tests. **Complete**
 3. **Frontend:** render read-only tag chips on `ListsView.vue` rows (Interaction 2 —
-   no backend change, `tags` is already on `ListRead` from step 1). Tests.
+   no backend change, `tags` is already on `ListRead` from step 1). Tests. **Complete**
 4. **Backend:** `q` search param on `GET /api/lists`, extending
    `list_service.list_for_user`. Tests.
 5. **Frontend:** search box on `ListsView.vue`, wired to the extended endpoint, debounce,
