@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
@@ -286,5 +286,90 @@ describe('ListsView', () => {
     expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
     expect(wrapper.find('[role="alert"]').exists()).toBe(true)
     expect(wrapper.text()).toContain('Best sandwiches')
+  })
+
+  describe('search', () => {
+    beforeEach(() => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
+    it('typing in the search box does not call apiFetch on every keystroke', async () => {
+      apiFetchMock.mockResolvedValueOnce(LISTS)
+      const router = testRouter()
+
+      const wrapper = await mountAtLists(router)
+      await flushPromises()
+      apiFetchMock.mockResolvedValueOnce(LISTS)
+
+      const input = wrapper.find('#list-search')
+      await input.setValue('sand')
+      await input.setValue('sandw')
+      await input.setValue('sandwi')
+
+      expect(apiFetchMock).toHaveBeenCalledTimes(1) // only the initial load so far
+
+      await vi.advanceTimersByTimeAsync(300)
+      await flushPromises()
+
+      expect(apiFetchMock).toHaveBeenCalledTimes(2)
+      expect(apiFetchMock).toHaveBeenLastCalledWith('/lists?q=sandwi')
+    })
+
+    it('filters rows to what the debounced search returns', async () => {
+      apiFetchMock.mockResolvedValueOnce(LISTS)
+      const router = testRouter()
+
+      const wrapper = await mountAtLists(router)
+      await flushPromises()
+
+      apiFetchMock.mockResolvedValueOnce([LISTS[0]!])
+      await wrapper.find('#list-search').setValue('sandwiches')
+      await vi.advanceTimersByTimeAsync(300)
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('Best sandwiches')
+      expect(wrapper.text()).not.toContain('Favorite albums')
+    })
+
+    it('shows a distinct "no matches" empty state, not the "no lists yet" one', async () => {
+      apiFetchMock.mockResolvedValueOnce(LISTS)
+      const router = testRouter()
+
+      const wrapper = await mountAtLists(router)
+      await flushPromises()
+
+      apiFetchMock.mockResolvedValueOnce([])
+      await wrapper.find('#list-search').setValue('nothing matches this')
+      await vi.advanceTimersByTimeAsync(300)
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('No lists match')
+      expect(wrapper.text()).not.toContain("You haven't started a list yet")
+    })
+
+    it('clearing the box restores the full list immediately, without waiting for the debounce', async () => {
+      apiFetchMock.mockResolvedValueOnce(LISTS)
+      const router = testRouter()
+
+      const wrapper = await mountAtLists(router)
+      await flushPromises()
+
+      apiFetchMock.mockResolvedValueOnce([LISTS[0]!])
+      await wrapper.find('#list-search').setValue('sandwiches')
+      await vi.advanceTimersByTimeAsync(300)
+      await flushPromises()
+
+      apiFetchMock.mockResolvedValueOnce(LISTS)
+      const clearButton = wrapper.find('button[aria-label="Clear search"]')
+      await clearButton.trigger('click')
+      await flushPromises()
+
+      expect(apiFetchMock).toHaveBeenLastCalledWith('/lists')
+      expect(wrapper.text()).toContain('Favorite albums')
+    })
   })
 })

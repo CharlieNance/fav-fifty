@@ -14,12 +14,21 @@ export function useLists() {
   const status = ref<ListsStatus>('idle')
   const lists = ref<ListSummary[]>([])
 
-  async function load(): Promise<void> {
+  // Guards against a slower, earlier request (e.g. a stale search query)
+  // resolving after a faster, later one and clobbering fresher results.
+  let requestId = 0
+
+  async function load(q?: string): Promise<void> {
+    const thisRequest = ++requestId
     status.value = 'loading'
     try {
-      lists.value = await apiFetch<ListSummary[]>('/lists')
+      const path = q ? `/lists?q=${encodeURIComponent(q)}` : '/lists'
+      const result = await apiFetch<ListSummary[]>(path)
+      if (thisRequest !== requestId) return
+      lists.value = result
       status.value = 'success'
     } catch {
+      if (thisRequest !== requestId) return
       status.value = 'error'
     }
   }
