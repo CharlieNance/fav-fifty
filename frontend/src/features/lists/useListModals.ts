@@ -17,6 +17,11 @@ export const useListModalsStore = defineStore('listModals', () => {
   // Same shape as editingListId, for the delete confirmation (Interaction 4):
   // whichever page has the list in hand mounts ConfirmDialog, keyed off this id.
   const deletingListId = ref<string | null>(null)
+  // Same shape again, for the tag management modal (docs/TAGS_SEARCH_PLAN.md
+  // Interaction 1) — only ever opened from the details page today, but kept
+  // here rather than component-local so it follows the same pattern as the
+  // other two per-list overlays.
+  const managingTagsListId = ref<string | null>(null)
 
   function openCreate(): void {
     isCreateOpen.value = true
@@ -42,6 +47,14 @@ export const useListModalsStore = defineStore('listModals', () => {
     deletingListId.value = null
   }
 
+  function openManageTags(listId: string): void {
+    managingTagsListId.value = listId
+  }
+
+  function closeManageTags(): void {
+    managingTagsListId.value = null
+  }
+
   return {
     isCreateOpen,
     openCreate,
@@ -52,5 +65,8 @@ export const useListModalsStore = defineStore('listModals', () => {
     deletingListId,
     openDelete,
     closeDelete,
+    managingTagsListId,
+    openManageTags,
+    closeManageTags,
   }
 })

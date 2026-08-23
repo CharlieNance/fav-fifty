@@ -7,6 +7,7 @@ export interface ListSummary {
   id: string
   title: string
   status: string
+  tags: string[]
   created_at: string
   updated_at: string
 }

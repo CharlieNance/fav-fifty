@@ -34,6 +34,7 @@ const LIST: ListSummary = {
   id: 'list-1',
   title: 'Best sandwiches',
   status: 'draft',
+  tags: [],
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
 }
@@ -347,6 +348,43 @@ describe('ListDetailView', () => {
       await flushPromises()
 
       expect(wrapper.text()).toContain('Favorite sandwiches')
+      expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+      expect(router.currentRoute.value.name).toBe('list-detail')
+    })
+
+    it("renders the list's tags as read-only chips", async () => {
+      mockApi({
+        'GET /lists/list-1': { ...LIST, tags: ['deli', 'classics'] },
+        'GET /lists/list-1/items': [],
+      })
+      const wrapper = await mountAtDetail(testRouter())
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('deli')
+      expect(wrapper.text()).toContain('classics')
+      // Read-only here — no remove control on the details page itself.
+      expect(wrapper.find('[aria-label="Remove tag deli"]').exists()).toBe(false)
+    })
+
+    it('Tags opens ManageTagsModal and saving updates the chips without navigating', async () => {
+      const routes = initialRoutes([])
+      mockApi(routes)
+      const router = testRouter()
+      const wrapper = await mountAtDetail(router)
+      await flushPromises()
+
+      const tagsButton = wrapper.findAll('button').find((b) => b.text() === 'Tags')
+      await tagsButton!.trigger('click')
+      expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
+
+      routes['PUT /lists/list-1/tags'] = { ...LIST, tags: ['sci-fi'] }
+      await wrapper.find('#new-tag').setValue('sci-fi')
+      await wrapper.find('form').trigger('submit')
+      const saveButton = wrapper.findAll('button').find((b) => b.text() === 'Save')
+      await saveButton!.trigger('click')
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('sci-fi')
       expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
       expect(router.currentRoute.value.name).toBe('list-detail')
     })
