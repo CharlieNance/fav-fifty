@@ -9,9 +9,10 @@ from sqlalchemy.orm import Session
 
 from app.auth.claims import Claims
 from app.auth.providers import DEV_CLAIMS
+from app.core.config import settings
 from app.models.list import List
 from app.models.user import User
-from app.services import user_service
+from app.services import tag_service, user_service
 
 
 def _dev_user(db_session: Session) -> User:
@@ -252,3 +253,131 @@ def test_delete_list_404s_for_a_different_users_list(
 
 def test_delete_list_404s_for_a_nonexistent_id(auth_client: TestClient) -> None:
     assert auth_client.delete(f"/lists/{uuid.uuid4()}").status_code == 404
+
+
+def test_get_list_includes_its_tags(auth_client: TestClient, db_session: Session) -> None:
+    row = _list(db_session, _dev_user(db_session), "Mine")
+    tag_service.set_list_tags(db_session, row, ["games", "sci-fi"])
+
+    response = auth_client.get(f"/lists/{row.id}")
+
+    assert sorted(response.json()["tags"]) == ["games", "sci-fi"]
+
+
+def test_get_list_has_an_empty_tags_list_by_default(
+    auth_client: TestClient, db_session: Session
+) -> None:
+    row = _list(db_session, _dev_user(db_session), "Mine")
+    assert auth_client.get(f"/lists/{row.id}").json()["tags"] == []
+
+
+def test_update_list_tags_requires_authentication(client: TestClient, db_session: Session) -> None:
+    row = _list(db_session, _dev_user(db_session), "Mine")
+    response = client.put(f"/lists/{row.id}/tags", json={"tags": ["games"]})
+    assert response.status_code == 401
+
+
+def test_update_list_tags_sets_the_owners_tags(
+    auth_client: TestClient, db_session: Session
+) -> None:
+    row = _list(db_session, _dev_user(db_session), "Mine")
+
+    response = auth_client.put(f"/lists/{row.id}/tags", json={"tags": ["Games", "Sci-Fi"]})
+
+    assert response.status_code == 200
+    assert sorted(response.json()["tags"]) == ["games", "sci-fi"]
+    db_session.refresh(row)
+    assert sorted(tag.name for tag in row.tags) == ["games", "sci-fi"]
+
+
+def test_update_list_tags_replaces_rather_than_merges(
+    auth_client: TestClient, db_session: Session
+) -> None:
+    row = _list(db_session, _dev_user(db_session), "Mine")
+    auth_client.put(f"/lists/{row.id}/tags", json={"tags": ["games", "sci-fi"]})
+
+    response = auth_client.put(f"/lists/{row.id}/tags", json={"tags": ["board games"]})
+
+    assert response.status_code == 200
+    assert response.json()["tags"] == ["board games"]
+
+
+def test_update_list_tags_normalizes_and_dedupes(
+    auth_client: TestClient, db_session: Session
+) -> None:
+    row = _list(db_session, _dev_user(db_session), "Mine")
+
+    response = auth_client.put(
+        f"/lists/{row.id}/tags", json={"tags": ["  Sci-Fi  ", "sci-fi", "SCI-FI"]}
+    )
+
+    assert response.status_code == 200
+    assert response.json()["tags"] == ["sci-fi"]
+
+
+def test_update_list_tags_clears_with_an_empty_list(
+    auth_client: TestClient, db_session: Session
+) -> None:
+    row = _list(db_session, _dev_user(db_session), "Mine")
+    auth_client.put(f"/lists/{row.id}/tags", json={"tags": ["games"]})
+
+    response = auth_client.put(f"/lists/{row.id}/tags", json={"tags": []})
+
+    assert response.status_code == 200
+    assert response.json()["tags"] == []
+
+
+@pytest.mark.parametrize("tag", ["", "   ", "x" * 51])
+def test_update_list_tags_rejects_an_invalid_tag(
+    auth_client: TestClient, db_session: Session, tag: str
+) -> None:
+    row = _list(db_session, _dev_user(db_session), "Mine")
+    response = auth_client.put(f"/lists/{row.id}/tags", json={"tags": [tag]})
+    assert response.status_code == 422
+
+
+def test_update_list_tags_rejects_over_the_cap(
+    auth_client: TestClient, db_session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(settings, "max_tags_per_list", 2)
+    row = _list(db_session, _dev_user(db_session), "Mine")
+
+    response = auth_client.put(f"/lists/{row.id}/tags", json={"tags": ["a", "b", "c"]})
+
+    assert response.status_code == 422
+
+
+def test_update_list_tags_404s_for_a_different_users_list(
+    auth_client: TestClient, db_session: Session
+) -> None:
+    theirs = _list(db_session, _second_user(db_session), "Someone else's")
+    response = auth_client.put(f"/lists/{theirs.id}/tags", json={"tags": ["games"]})
+    assert response.status_code == 404
+
+
+def test_update_list_tags_404s_for_a_soft_deleted_list(
+    auth_client: TestClient, db_session: Session
+) -> None:
+    deleted = _list(db_session, _dev_user(db_session), "Gone", deleted_at=datetime.now(UTC))
+    response = auth_client.put(f"/lists/{deleted.id}/tags", json={"tags": ["games"]})
+    assert response.status_code == 404
+
+
+def test_update_list_tags_404s_for_a_nonexistent_id(auth_client: TestClient) -> None:
+    response = auth_client.put(f"/lists/{uuid.uuid4()}/tags", json={"tags": ["games"]})
+    assert response.status_code == 404
+
+
+def test_update_list_tags_reuses_one_tag_row_across_users(
+    auth_client: TestClient, second_user_client: TestClient, db_session: Session
+) -> None:
+    """Route-level check that reuse-not-duplicate happens even across owners."""
+    mine = _list(db_session, _dev_user(db_session), "Mine")
+    theirs = _list(db_session, _second_user(db_session), "Theirs")
+
+    auth_client.put(f"/lists/{mine.id}/tags", json={"tags": ["board games"]})
+    second_user_client.put(f"/lists/{theirs.id}/tags", json={"tags": ["board games"]})
+
+    db_session.refresh(mine)
+    db_session.refresh(theirs)
+    assert mine.tags[0].id == theirs.tags[0].id
