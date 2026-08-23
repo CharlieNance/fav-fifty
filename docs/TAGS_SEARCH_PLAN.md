@@ -305,7 +305,7 @@ incrementally"):
 3. **Frontend:** render read-only tag chips on `ListsView.vue` rows (Interaction 2 —
    no backend change, `tags` is already on `ListRead` from step 1). Tests. **Complete**
 4. **Backend:** `q` search param on `GET /api/lists`, extending
-   `list_service.list_for_user`. Tests.
+   `list_service.list_for_user`. Tests. **Complete**
 5. **Frontend:** search box on `ListsView.vue`, wired to the extended endpoint, debounce,
    "no matches" empty state. Tests.
 6. **E2E:** one end-to-end journey covering add-tag → see-on-index → search-finds-it,

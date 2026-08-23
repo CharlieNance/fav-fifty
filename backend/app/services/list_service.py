@@ -7,21 +7,29 @@ HTTP app. Routes delegate here; the DB row is queried/mutated here and nowhere e
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.models.list import List
+from app.models.tag import Tag
 
 
-def list_for_user(db: Session, user_id: uuid.UUID) -> list[List]:
-    """Return ``user_id``'s non-deleted lists, most recently updated first."""
-    return list(
-        db.scalars(
-            select(List)
-            .where(List.user_id == user_id, List.deleted_at.is_(None))
-            .order_by(List.updated_at.desc())
-        )
-    )
+def list_for_user(db: Session, user_id: uuid.UUID, q: str | None = None) -> list[List]:
+    """Return ``user_id``'s non-deleted lists, most recently updated first.
+
+    ``q``, if given, filters to lists whose title or any tag name contains it
+    (case-insensitive substring). Whitespace-only or omitted ``q`` means "no filter" —
+    same result as calling this without the argument at all (see
+    docs/TAGS_SEARCH_PLAN.md §Search semantics). Matching a tag uses an ``EXISTS``
+    subquery (``List.tags.any(...)``) rather than a join, so a list with multiple
+    matching tags is still returned once.
+    """
+    stmt = select(List).where(List.user_id == user_id, List.deleted_at.is_(None))
+    query = q.strip() if q else None
+    if query:
+        pattern = f"%{query}%"
+        stmt = stmt.where(or_(List.title.ilike(pattern), List.tags.any(Tag.name.ilike(pattern))))
+    return list(db.scalars(stmt.order_by(List.updated_at.desc())))
 
 
 def create_list(db: Session, user_id: uuid.UUID, title: str) -> List:

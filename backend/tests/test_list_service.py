@@ -3,12 +3,13 @@
 import uuid
 from datetime import UTC, datetime, timedelta
 
+import pytest
 from sqlalchemy.orm import Session
 
 from app.auth.claims import Claims
 from app.models.list import List
 from app.models.user import User
-from app.services import list_service, user_service
+from app.services import list_service, tag_service, user_service
 
 
 def _user(db_session: Session, sub: str) -> User:
@@ -50,6 +51,82 @@ def test_list_for_user_orders_by_updated_at_descending(db_session: Session) -> N
     result = list_service.list_for_user(db_session, user.id)
 
     assert [row.id for row in result] == [newer.id, older.id]
+
+
+def test_list_for_user_filters_by_title_substring(db_session: Session) -> None:
+    owner = _user(db_session, "owner")
+    matching = _list(db_session, owner, "Board Games")
+    _list(db_session, owner, "Desserts")
+
+    result = list_service.list_for_user(db_session, owner.id, "board")
+
+    assert [row.id for row in result] == [matching.id]
+
+
+def test_list_for_user_filters_by_tag_substring(db_session: Session) -> None:
+    owner = _user(db_session, "owner")
+    matching = _list(db_session, owner, "My List")
+    tag_service.set_list_tags(db_session, matching, ["sci-fi"])
+    _list(db_session, owner, "Untagged")
+
+    result = list_service.list_for_user(db_session, owner.id, "sci")
+
+    assert [row.id for row in result] == [matching.id]
+
+
+def test_list_for_user_filter_is_case_insensitive(db_session: Session) -> None:
+    owner = _user(db_session, "owner")
+    matching = _list(db_session, owner, "Board Games")
+
+    result = list_service.list_for_user(db_session, owner.id, "BOARD")
+
+    assert [row.id for row in result] == [matching.id]
+
+
+def test_list_for_user_filter_returns_a_matching_list_once_per_multiple_matching_tags(
+    db_session: Session,
+) -> None:
+    owner = _user(db_session, "owner")
+    matching = _list(db_session, owner, "My List")
+    tag_service.set_list_tags(db_session, matching, ["sci-fi", "sci-fi classics"])
+
+    result = list_service.list_for_user(db_session, owner.id, "sci")
+
+    assert [row.id for row in result] == [matching.id]
+
+
+def test_list_for_user_filter_with_no_matches_is_empty(db_session: Session) -> None:
+    owner = _user(db_session, "owner")
+    _list(db_session, owner, "Board Games")
+
+    assert list_service.list_for_user(db_session, owner.id, "desserts") == []
+
+
+@pytest.mark.parametrize("q", [None, "", "   "])
+def test_list_for_user_blank_filter_behaves_like_no_filter(
+    db_session: Session, q: str | None
+) -> None:
+    owner = _user(db_session, "owner")
+    row = _list(db_session, owner, "Mine")
+
+    result = list_service.list_for_user(db_session, owner.id, q)
+
+    assert [item.id for item in result] == [row.id]
+
+
+def test_list_for_user_filter_only_matches_the_users_own_lists(db_session: Session) -> None:
+    owner = _user(db_session, "owner")
+    other = _user(db_session, "other")
+    _list(db_session, other, "Board Games")
+
+    assert list_service.list_for_user(db_session, owner.id, "board") == []
+
+
+def test_list_for_user_filter_never_matches_soft_deleted_lists(db_session: Session) -> None:
+    owner = _user(db_session, "owner")
+    _list(db_session, owner, "Board Games", deleted_at=datetime.now(UTC))
+
+    assert list_service.list_for_user(db_session, owner.id, "board") == []
 
 
 def test_create_list_returns_a_new_row_owned_by_the_user(db_session: Session) -> None:

@@ -89,6 +89,76 @@ def test_list_lists_isolates_a_different_authenticated_user(
     assert [row["id"] for row in response.json()] == [str(theirs.id)]
 
 
+def test_list_lists_filters_by_title_substring(
+    fresh_user_client: TestClient, fresh_user: User, db_session: Session
+) -> None:
+    matching = _list(db_session, fresh_user, "Board Games")
+    _list(db_session, fresh_user, "Desserts")
+
+    response = fresh_user_client.get("/lists", params={"q": "board"})
+
+    assert response.status_code == 200
+    assert [row["id"] for row in response.json()] == [str(matching.id)]
+
+
+def test_list_lists_filters_by_tag_substring(
+    fresh_user_client: TestClient, fresh_user: User, db_session: Session
+) -> None:
+    matching = _list(db_session, fresh_user, "My List")
+    tag_service.set_list_tags(db_session, matching, ["sci-fi"])
+    _list(db_session, fresh_user, "Untagged")
+
+    response = fresh_user_client.get("/lists", params={"q": "sci"})
+
+    assert response.status_code == 200
+    assert [row["id"] for row in response.json()] == [str(matching.id)]
+
+
+def test_list_lists_filter_with_no_matches_is_empty(
+    fresh_user_client: TestClient, fresh_user: User, db_session: Session
+) -> None:
+    _list(db_session, fresh_user, "Board Games")
+
+    response = fresh_user_client.get("/lists", params={"q": "desserts"})
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+@pytest.mark.parametrize("q", ["", "   "])
+def test_list_lists_blank_filter_behaves_like_no_filter(
+    fresh_user_client: TestClient, fresh_user: User, db_session: Session, q: str
+) -> None:
+    row = _list(db_session, fresh_user, "Mine")
+
+    response = fresh_user_client.get("/lists", params={"q": q})
+
+    assert response.status_code == 200
+    assert [item["id"] for item in response.json()] == [str(row.id)]
+
+
+def test_list_lists_filter_only_matches_the_callers_own_lists(
+    fresh_user_client: TestClient, db_session: Session
+) -> None:
+    _list(db_session, _second_user(db_session), "Board Games")
+
+    response = fresh_user_client.get("/lists", params={"q": "board"})
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
+def test_list_lists_filter_never_matches_soft_deleted_lists(
+    fresh_user_client: TestClient, fresh_user: User, db_session: Session
+) -> None:
+    _list(db_session, fresh_user, "Board Games", deleted_at=datetime.now(UTC))
+
+    response = fresh_user_client.get("/lists", params={"q": "board"})
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
 def test_create_list_requires_authentication(client: TestClient) -> None:
     assert client.post("/lists", json={"title": "New list"}).status_code == 401
 
