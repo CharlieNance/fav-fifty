@@ -279,7 +279,7 @@ empty state.
    **Decision:** I like the filter as-you-type approach, that does seem like a better
    user experience. I want to stay extensible though, in the future we might add suggested
    tags, or maybe some sort of auto-complete, or a fuzzy search of options. Anything we can
-   do now to make plugging stuff like that in easier later, without overengeneering now would
+   do now to make plugging stuff like that in easier later, without overengineering now would
    be great.
 5. **Tag input UX** — free-text field with Enter-to-add (chip-style, like many tag
    pickers), or a comma-separated single text field parsed on submit? Chip-style is
