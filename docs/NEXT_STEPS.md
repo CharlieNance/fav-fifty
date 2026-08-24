@@ -43,8 +43,9 @@ Goal: the actual product — a logged-in user manages their own lists.
 
 - [x] CRUD API for lists (create, read, update, delete) — scoped to the owner (2026-08-08)
 - [x] CRUD/reorder API for the items within a list (up to 50, ranked/ordered; each item has text + optional note + optional image URL) (2026-08-08)
-- [ ] Free-form tags on lists (multiple per list), plus search by title/tag — see
-      [TAGS_SEARCH_PLAN.md](TAGS_SEARCH_PLAN.md); publish/unpublish (draft vs public)
+- [x] Free-form tags on lists (multiple per list), plus search by title/tag — see
+      [TAGS_SEARCH_PLAN.md](TAGS_SEARCH_PLAN.md); (2026-08-23)
+- [ ] publish/unpublish (draft vs public)
 - [x] Frontend: create a list, add/edit/remove/reorder items, delete a list — done
       (2026-08-08, items UI per [ITEMS_CRUD_PLAN.md](ITEMS_CRUD_PLAN.md) §Frontend
       implementation notes); *manage tags* still pending with the tags feature above
@@ -93,7 +94,7 @@ already in place (`.github/workflows/ci.yml`). Remaining Phase 1 items, in order
 1. ~~**`email` column on `users`**~~ — done (2026-08-01), see [DECISIONS.md](DECISIONS.md)
    §Product data model.
 2. **Route 53 migration** ([SETUP.md](SETUP.md) §4): deferred, no urgency since it doesn't
-   block app work — do it whenever there's a lull.
+   block app work — do it whenever there's a lull. Done (2026-08-15)
 3. ~~**CRUD API for lists**~~ — done (2026-08-08).
 4. ~~**CRUD/reorder API for list items**~~ — done (2026-08-08), backend only, see
    [ITEMS_CRUD_PLAN.md](ITEMS_CRUD_PLAN.md).
@@ -101,6 +102,6 @@ already in place (`.github/workflows/ci.yml`). Remaining Phase 1 items, in order
    (drag + buttons) on the list details page, with unit + e2e tests, plus a
    site-wide interaction-feedback pass (see [DESIGN.md](DESIGN.md) §Motion).
 6. Now: **tags + search** ([TAGS_SEARCH_PLAN.md](TAGS_SEARCH_PLAN.md)) + publish/unpublish
-   (the last Phase 2 feature slice), then the
+   (the last Phase 2 feature slice), then the done (2026-08-23)
    **first AWS deploy**. The **light/dark toggle** (DESIGN.md) must land before
    go-live but doesn't block feature work.
