@@ -287,7 +287,7 @@ empty state.
    first and can be upgraded later without an API change (the wire format is already
    `string[]` either way).
    **Decision:** I like the chip style, I think it looks better and is a better user experience.
-   I do want it to be styled distincly though, a user shouldn't mistake a tag for a list item, or get
+   I do want it to be styled distinctly though, a user shouldn't mistake a tag for a list item, or get
    confused as to which interface they are in, so we should use a different background or outline to make
    sure that they know what they are working with at a glance.
 
