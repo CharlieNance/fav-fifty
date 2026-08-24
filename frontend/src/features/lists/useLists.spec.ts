@@ -17,6 +17,7 @@ const LIST: ListSummary = {
   id: 'list-1',
   title: 'Best sandwiches',
   status: 'draft',
+  tags: [],
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
 }
@@ -39,6 +40,43 @@ describe('useLists', () => {
     await load()
 
     expect(apiFetchMock).toHaveBeenCalledWith('/lists')
+    expect(status.value).toBe('success')
+    expect(lists.value).toEqual([LIST])
+  })
+
+  it('loads with a q param when given a search query', async () => {
+    apiFetchMock.mockResolvedValueOnce([LIST])
+    const { load } = useLists()
+
+    await load('sci-fi')
+
+    expect(apiFetchMock).toHaveBeenCalledWith('/lists?q=sci-fi')
+  })
+
+  it('URL-encodes the q param', async () => {
+    apiFetchMock.mockResolvedValueOnce([])
+    const { load } = useLists()
+
+    await load('board games')
+
+    expect(apiFetchMock).toHaveBeenCalledWith('/lists?q=board%20games')
+  })
+
+  it('ignores a stale response that resolves after a newer request', async () => {
+    let resolveFirst: (value: ListSummary[]) => void = () => {}
+    apiFetchMock.mockReturnValueOnce(
+      new Promise((resolve) => {
+        resolveFirst = resolve
+      }),
+    )
+    const { status, lists, load } = useLists()
+
+    const first = load('stale query')
+    apiFetchMock.mockResolvedValueOnce([LIST])
+    const second = load('fresh query')
+    resolveFirst([])
+    await Promise.all([first, second])
+
     expect(status.value).toBe('success')
     expect(lists.value).toEqual([LIST])
   })

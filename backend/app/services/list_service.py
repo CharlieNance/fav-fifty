@@ -7,21 +7,54 @@ HTTP app. Routes delegate here; the DB row is queried/mutated here and nowhere e
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy import or_, select
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.list import List
+from app.models.tag import Tag
+
+# Escapes LIKE metacharacters (and the escape character itself) in user-supplied
+# search text, paired with `escape="\\"` on every `ilike()` call below — without
+# this, a literal `%`/`_` in `q` is interpreted as a SQL wildcard instead of the
+# literal character a user typed (see docs/TAGS_SEARCH_PLAN.md §Cross-cutting).
+_LIKE_ESCAPE_CHAR = "\\"
 
 
-def list_for_user(db: Session, user_id: uuid.UUID) -> list[List]:
-    """Return ``user_id``'s non-deleted lists, most recently updated first."""
-    return list(
-        db.scalars(
-            select(List)
-            .where(List.user_id == user_id, List.deleted_at.is_(None))
-            .order_by(List.updated_at.desc())
-        )
+def _escape_like(value: str) -> str:
+    return (
+        value.replace(_LIKE_ESCAPE_CHAR, _LIKE_ESCAPE_CHAR * 2)
+        .replace("%", f"{_LIKE_ESCAPE_CHAR}%")
+        .replace("_", f"{_LIKE_ESCAPE_CHAR}_")
     )
+
+
+def list_for_user(db: Session, user_id: uuid.UUID, q: str | None = None) -> list[List]:
+    """Return ``user_id``'s non-deleted lists, most recently updated first.
+
+    ``q``, if given, filters to lists whose title or any tag name contains it
+    (case-insensitive substring). Whitespace-only or omitted ``q`` means "no filter" —
+    same result as calling this without the argument at all (see
+    docs/TAGS_SEARCH_PLAN.md §Search semantics). Matching a tag uses an ``EXISTS``
+    subquery (``List.tags.any(...)``) rather than a join, so a list with multiple
+    matching tags is still returned once. Tags are eager-loaded (``selectinload``)
+    since every result renders its ``tags`` in ``ListRead`` — otherwise each row
+    would trigger its own lazy-load query.
+    """
+    stmt = (
+        select(List)
+        .where(List.user_id == user_id, List.deleted_at.is_(None))
+        .options(selectinload(List.tags))
+    )
+    query = q.strip() if q else None
+    if query:
+        pattern = f"%{_escape_like(query)}%"
+        stmt = stmt.where(
+            or_(
+                List.title.ilike(pattern, escape=_LIKE_ESCAPE_CHAR),
+                List.tags.any(Tag.name.ilike(pattern, escape=_LIKE_ESCAPE_CHAR)),
+            )
+        )
+    return list(db.scalars(stmt.order_by(List.updated_at.desc())))
 
 
 def create_list(db: Session, user_id: uuid.UUID, title: str) -> List:

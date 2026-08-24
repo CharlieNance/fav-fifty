@@ -17,6 +17,8 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import EditListModal from './EditListModal.vue'
 import ItemFormModal from './ItemFormModal.vue'
 import ListItemRow from './ListItemRow.vue'
+import ManageTagsModal from './ManageTagsModal.vue'
+import TagChip from './TagChip.vue'
 import type { ListItem, ListSummary } from './types'
 import { useDeleteItem } from './useDeleteItem'
 import { useDeleteList } from './useDeleteList'
@@ -90,6 +92,11 @@ onBeforeRouteUpdate((to) => {
 function handleRenamed(updated: ListSummary): void {
   updateList(updated)
   modals.closeEdit()
+}
+
+function handleTagsSaved(updated: ListSummary): void {
+  updateList(updated)
+  modals.closeManageTags()
 }
 
 function openDeleteConfirm(): void {
@@ -201,12 +208,21 @@ function nudge(item: ListItem, direction: -1 | 1): void {
       <div class="flex items-center justify-between gap-4">
         <h1 class="font-display text-3xl font-extrabold text-ink">{{ list.title }}</h1>
         <div class="flex items-center gap-2">
+          <BaseButton variant="secondary" size="sm" @click="modals.openManageTags(list.id)">
+            Tags
+          </BaseButton>
           <BaseButton variant="secondary" size="sm" @click="modals.openEdit(list.id)">
             Edit
           </BaseButton>
           <BaseButton variant="secondary" size="sm" @click="openDeleteConfirm">Delete</BaseButton>
         </div>
       </div>
+
+      <ul v-if="list.tags.length > 0" class="mt-3 flex flex-wrap gap-2">
+        <li v-for="tag in list.tags" :key="tag">
+          <TagChip :label="tag" />
+        </li>
+      </ul>
 
       <!-- ——— Items ——— -->
 
@@ -303,6 +319,13 @@ function nudge(item: ListItem, direction: -1 | 1): void {
         :list="list"
         @saved="handleRenamed"
         @cancel="modals.closeEdit()"
+      />
+
+      <ManageTagsModal
+        v-if="modals.managingTagsListId === list.id"
+        :list="list"
+        @saved="handleTagsSaved"
+        @cancel="modals.closeManageTags()"
       />
 
       <ConfirmDialog

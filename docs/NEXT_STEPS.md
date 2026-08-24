@@ -43,7 +43,8 @@ Goal: the actual product — a logged-in user manages their own lists.
 
 - [x] CRUD API for lists (create, read, update, delete) — scoped to the owner (2026-08-08)
 - [x] CRUD/reorder API for the items within a list (up to 50, ranked/ordered; each item has text + optional note + optional image URL) (2026-08-08)
-- [ ] Free-form tags on lists (multiple per list); publish/unpublish (draft vs public)
+- [ ] Free-form tags on lists (multiple per list), plus search by title/tag — see
+      [TAGS_SEARCH_PLAN.md](TAGS_SEARCH_PLAN.md); publish/unpublish (draft vs public)
 - [x] Frontend: create a list, add/edit/remove/reorder items, delete a list — done
       (2026-08-08, items UI per [ITEMS_CRUD_PLAN.md](ITEMS_CRUD_PLAN.md) §Frontend
       implementation notes); *manage tags* still pending with the tags feature above
@@ -74,10 +75,11 @@ Goal: the actual product — a logged-in user manages their own lists.
 
 ## Later / backlog
 
-- Search across lists and items
+- Search across lists and items — title/tag search for a user's own lists is being
+  pulled into the Phase 2 tags slice above ([TAGS_SEARCH_PLAN.md](TAGS_SEARCH_PLAN.md));
+  searching *within* a list's items, or cross-user search, stays here
 - Notifications (someone commented on / voted for your list)
 - Reporting & moderation tools
-- Tags / multiple categories per list
 - Rate limiting and anti-abuse hardening
 - Analytics (privacy-respecting)
 
@@ -98,6 +100,7 @@ already in place (`.github/workflows/ci.yml`). Remaining Phase 1 items, in order
 5. ~~**Frontend for item management**~~ — done (2026-08-08): add/edit/remove/reorder
    (drag + buttons) on the list details page, with unit + e2e tests, plus a
    site-wide interaction-feedback pass (see [DESIGN.md](DESIGN.md) §Motion).
-6. Now: **tags + publish/unpublish** (the last Phase 2 feature slice), then the
+6. Now: **tags + search** ([TAGS_SEARCH_PLAN.md](TAGS_SEARCH_PLAN.md)) + publish/unpublish
+   (the last Phase 2 feature slice), then the
    **first AWS deploy**. The **light/dark toggle** (DESIGN.md) must land before
    go-live but doesn't block feature work.

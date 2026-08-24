@@ -2,8 +2,12 @@
 
 import uuid
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, field_validator
+
+if TYPE_CHECKING:
+    from app.models.tag import Tag
 
 
 class ListRead(BaseModel):
@@ -14,8 +18,19 @@ class ListRead(BaseModel):
     id: uuid.UUID
     title: str
     status: str
+    tags: list[str]
     created_at: datetime
     updated_at: datetime
+
+    @field_validator("tags", mode="before")
+    @classmethod
+    def _tag_names(cls, value: "list[str | Tag]") -> list[str]:
+        """Read from the ORM's ``list[Tag]`` relationship as plain tag names.
+
+        The wire shape is ``string[]`` (see docs/TAGS_SEARCH_PLAN.md §Data model
+        additions) — the frontend never needs a tag's id, only its name.
+        """
+        return [item if isinstance(item, str) else item.name for item in value]
 
 
 def _validated_title(value: str) -> str:

@@ -46,6 +46,11 @@ class Settings(BaseSettings):
     # and as the default landing page after a successful sign-in.
     frontend_url: str = "http://localhost:5173"
 
+    # Max tags one list can carry (PUT /api/lists/{id}/tags rejects a larger set).
+    # Left high since the user base is tiny (docs/TAGS_SEARCH_PLAN.md open question
+    # 1) — lower it here if unbounded chip lists ever become a real problem.
+    max_tags_per_list: int = 100
+
     # ─── AWS Cognito (real Google→Cognito auth) ────────────────────────────────
     # All empty in local dev, where the dev-login stub stands in. When these are
     # set, the real OAuth routes activate and Cognito becomes the identity provider
