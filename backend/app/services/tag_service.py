@@ -57,8 +57,8 @@ def _get_or_create_tag(db: Session, name: str) -> Tag:
 def set_list_tags(db: Session, list_row: List, names: list[str]) -> List:
     """Replace ``list_row``'s full tag set with ``names`` (already normalized).
 
-    Duplicate names are de-duplicated (case is already folded by normalization,
-    order of first appearance is kept) rather than rejected. Reuses an existing
+    Duplicate names are de-duplicated (case is already folded by normalization) rather than rejected.
+    Reuses an existing
     ``Tag`` row by name instead of creating a duplicate, so two lists — even two
     different owners' lists — that both use "board games" share one row; a list that
     stops using a tag simply drops out of that row's ``lists`` relationship, and the
