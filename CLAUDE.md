@@ -58,6 +58,8 @@ suspicious."
 - **Commits:** small and focused. Imperative subject lines (e.g. "Add list creation endpoint").
 - **Tests:** new backend behavior ships with pytest coverage; new frontend logic with Vitest. Don't merge red.
 - **Types:** TypeScript on the frontend, type hints + Pydantic on the backend. Avoid `any`.
+- **Line endings:** LF everywhere except `*.bat`/`*.cmd`/`*.ps1`, which are CRLF. Enforced twice on purpose: [`.gitattributes`](.gitattributes) normalizes on check-in (so the repo stays LF whatever your editor does) and [`.editorconfig`](.editorconfig) keeps the working tree LF (so CRLF never shows up in a local diff). Keep the two in agreement when adding a rule to either. **On Windows, beware tools that rewrite files in text mode** — Python's `open()`/`Path.write_text()` silently translate `\n` → `\r\n`, which dirties the working copy even though `.gitattributes` cleans it up at commit time. Write bytes explicitly, or re-check with `git ls-files --eol` (not `grep`, which misreports here).
+- **Formatting:** Ruff owns the backend, Prettier owns the frontend — don't hand-format around them. `./tools/check.sh` runs what CI runs.
 - **Helper scripts:** Reusable, multi-step, or fiddly-to-retype commands live in `tools/` as small bash scripts (`set -euo pipefail`, a top comment saying what/why, path-independent via `REPO_ROOT`). **When you (Claude) run a command the owner may want to rerun, offer to save it to `tools/`** and add a row to [`tools/README.md`](tools/README.md). Keep each script short and readable.
 
 ## Things to never do

@@ -3,7 +3,7 @@
 // real Google→Cognito flow (see docs/DECISIONS.md §Auth seam). In development a
 // second button uses the dev-login stub so the app is usable before Cognito exists.
 // `?redirect=` is where we send the user after a successful sign-in.
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
@@ -18,13 +18,26 @@ const redirect = typeof rawRedirect === 'string' ? rawRedirect : undefined
 const isDev = import.meta.env.DEV
 
 const busy = ref(false)
+
 // The backend bounces a failed OAuth round-trip back here as `?error=` (details
 // stay in its logs, never in the URL). Without surfacing it the user just lands
 // on the login page again with no idea why, so say something — generic, since
-// that flag is deliberately the only thing we're told.
-const error = ref<string | null>(
-  route.query.error ? 'Sign-in didn’t complete. Please try again.' : null,
+// that flag is deliberately the only thing we're told. Presence is what matters,
+// not the value: `?error=` or a bare `?error` still means the round-trip failed.
+//
+// Derived from the route rather than snapshotted at setup: the header's "Log in"
+// link points at a bare `/login`, so navigating there from an errored `/login`
+// reuses this instance without re-running setup — a snapshot would leave a stale
+// alert on a URL that no longer claims anything failed.
+const oauthError = computed(() =>
+  'error' in route.query ? 'Sign-in didn’t complete. Please try again.' : null,
 )
+
+// The dev stub fails locally, not via the URL, so this one is genuinely state.
+const devLoginError = ref<string | null>(null)
+
+// A just-attempted dev login is the more specific story, so it wins.
+const error = computed(() => devLoginError.value ?? oauthError.value)
 
 function signInWithGoogle(): void {
   busy.value = true
@@ -33,12 +46,12 @@ function signInWithGoogle(): void {
 
 async function signInAsDev(): Promise<void> {
   busy.value = true
-  error.value = null
+  devLoginError.value = null
   try {
     await auth.devLogin()
     await router.push(redirect ?? '/')
   } catch {
-    error.value = 'Dev login failed. Is the backend running with APP_ENV=development?'
+    devLoginError.value = 'Dev login failed. Is the backend running with APP_ENV=development?'
     busy.value = false
   }
 }
