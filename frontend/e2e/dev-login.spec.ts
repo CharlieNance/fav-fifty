@@ -17,3 +17,28 @@ test('dev login unlocks a protected route', async ({ page }) => {
   await expect(page).toHaveURL(/\/lists$/)
   await expect(page.getByRole('heading', { name: 'My lists' })).toBeVisible()
 })
+
+test('signing in with no destination in mind lands on your lists', async ({ page }) => {
+  // Straight to /login, the way the header's "Log in" link goes — no ?redirect=.
+  await page.goto('/login')
+
+  await page.getByRole('button', { name: /dev login/i }).click()
+
+  await expect(page).toHaveURL(/\/lists$/)
+  await expect(page.getByRole('heading', { name: 'My lists' })).toBeVisible()
+})
+
+test('logging out leaves the protected page and says what happened', async ({ page }) => {
+  await page.goto('/login')
+  await page.getByRole('button', { name: /dev login/i }).click()
+  await expect(page.getByRole('heading', { name: 'My lists' })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Log out' }).click()
+
+  // Off the lists page, back to the homepage hero — not left reading lists
+  // we're no longer signed in to see.
+  await expect(page).toHaveURL(/\/$/)
+  await expect(page.getByRole('heading', { name: /Stop stopping/ })).toBeVisible()
+  await expect(page.getByRole('status')).toContainText('logged out')
+  await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible()
+})

@@ -2,11 +2,13 @@
 // Login page. "Continue with Google" hands off to the backend, which brokers the
 // real Google→Cognito flow (see docs/DECISIONS.md §Auth seam). In development a
 // second button uses the dev-login stub so the app is usable before Cognito exists.
-// `?redirect=` is where we send the user after a successful sign-in.
+// `?redirect=` is where we send the user after a successful sign-in; without one
+// they go to DEFAULT_POST_LOGIN_PATH.
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
+import { DEFAULT_POST_LOGIN_PATH } from './postLogin'
 
 const route = useRoute()
 const router = useRouter()
@@ -49,7 +51,7 @@ async function signInAsDev(): Promise<void> {
   devLoginError.value = null
   try {
     await auth.devLogin()
-    await router.push(redirect ?? '/')
+    await router.push(redirect ?? DEFAULT_POST_LOGIN_PATH)
   } catch {
     devLoginError.value = 'Dev login failed. Is the backend running with APP_ENV=development?'
     busy.value = false

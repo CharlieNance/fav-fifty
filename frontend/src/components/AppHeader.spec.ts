@@ -6,6 +6,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import AppHeader from './AppHeader.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useListModalsStore } from '@/features/lists/useListModals'
+import { useToastStore } from '@/stores/toasts'
 
 const stub = { template: '<div />' }
 
@@ -57,6 +58,25 @@ describe('AppHeader', () => {
       .findAllComponents({ name: 'RouterLink' })
       .find((c) => c.text() === 'My lists')
     expect(link?.props('to')).toBe('/lists')
+  })
+
+  it('"Log out" sends you home and announces it', async () => {
+    const auth = useAuthStore()
+    auth.user = { id: 'u1', displayName: 'Shaggy', avatarUrl: null }
+    const router = testRouter()
+    await router.push('/lists')
+    const wrapper = mountHeader(router)
+    await router.isReady()
+
+    await wrapper
+      .findAll('button')
+      .find((b) => b.text().includes('Log out'))!
+      .trigger('click')
+    await flushPromises()
+
+    expect(router.currentRoute.value.name).toBe('home')
+    expect(wrapper.text()).toContain('Log in')
+    expect(useToastStore().toasts).toHaveLength(1)
   })
 
   it('"Start a list" routes an anonymous user to login, preserving intent', async () => {
