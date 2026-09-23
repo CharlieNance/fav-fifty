@@ -4,6 +4,7 @@ import { createMemoryHistory, createRouter, type Router } from 'vue-router'
 import { flushPromises, mount } from '@vue/test-utils'
 
 import LoginView from './LoginView.vue'
+import { DEFAULT_POST_LOGIN_PATH } from './postLogin'
 import { useAuthStore } from '@/stores/auth'
 
 const stub = { template: '<div />' }
@@ -14,6 +15,7 @@ function testRouter(): Router {
     routes: [
       { path: '/', name: 'home', component: stub },
       { path: '/login', name: 'login', component: LoginView },
+      { path: '/lists', name: 'lists', component: stub },
       { path: '/lists/new', name: 'create-list', component: stub },
     ],
   })
@@ -51,6 +53,17 @@ describe('LoginView', () => {
     await button(wrapper, 'Continue with Google')!.trigger('click')
 
     expect(spy).toHaveBeenCalledWith('/lists/new')
+  })
+
+  it('dev login with no redirect lands on the user’s lists, not the homepage', async () => {
+    const auth = useAuthStore()
+    vi.spyOn(auth, 'devLogin').mockResolvedValue()
+    const { wrapper, router } = await mountAt()
+
+    await button(wrapper, 'Dev login')!.trigger('click')
+    await flushPromises()
+
+    expect(router.currentRoute.value.fullPath).toBe(DEFAULT_POST_LOGIN_PATH)
   })
 
   it('dev login signs in then routes to the redirect target', async () => {

@@ -44,6 +44,29 @@
   --color-accent-hover: oklch(76% 0.16 40); /* accent on hover         */
   --color-accent-ink: oklch(18% 0.02 40); /* text/icon on an accent bg */
 
+  /* Status (docs/DESIGN.md §Status colors) — success / warning / error, used by
+     toasts today and inline banners later. Each is a FILLED chip: its text
+     contrast is internal (ink against its own fill, not against the page), which
+     is why one set of values can serve both dark and the light theme to come.
+     Contrast ink-on-fill: success 8.2:1, warning 9.7:1, error 5.1:1 — all past
+     WCAG AA. The `-border` shades are darker than their fill so the chip keeps a
+     visible edge on a light canvas, where a pale fill alone would float.
+     Hues are held clear of the coral accent (~40) so "error" never reads as
+     "brand": green 150, amber 85, red 22. */
+  --color-success: oklch(74% 0.15 150);
+  --color-success-ink: oklch(20% 0.05 150);
+  --color-success-border: oklch(52% 0.13 150);
+
+  --color-warning: oklch(83% 0.15 85);
+  --color-warning-ink: oklch(24% 0.06 85);
+  --color-warning-border: oklch(58% 0.13 85);
+
+  /* Red is the one that flips polarity: a red light enough for dark ink lands on
+     top of the coral accent, so this one is a deep fill with near-white ink. */
+  --color-error: oklch(55% 0.21 22);
+  --color-error-ink: oklch(98% 0.015 22);
+  --color-error-border: oklch(42% 0.19 22);
+
   /* Type — self-hosted (see @import above) */
   --font-display: 'Baloo 2', ui-sans-serif, system-ui, sans-serif;
   --font-body:
@@ -60,6 +83,22 @@
 
   /* Entrance for overlays/panels (dialogs, menus): rise + settle, fast. */
   --animate-rise-in: rise-in 0.2s var(--ease-out-soft) both;
+
+  /* Entrance for toasts: they arrive from off the top edge and settle with a
+     small overshoot (ease-pop), so a message that appears while you're reading
+     elsewhere still registers as having MOVED into place. */
+  --animate-drop-in: drop-in 0.5s var(--ease-pop) both;
+
+  @keyframes drop-in {
+    from {
+      opacity: 0;
+      transform: translateY(-1.25rem);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 
   @keyframes rise-in {
     from {

@@ -226,10 +226,10 @@ def test_pkce_pair_is_verifiable() -> None:
     [
         ("/lists/new", "/lists/new"),
         ("/", "/"),
-        (None, "/"),
-        ("//evil.com", "/"),  # protocol-relative open redirect
-        ("https://evil.com", "/"),  # absolute open redirect
-        ("javascript:alert(1)", "/"),  # scheme injection
+        (None, "/lists"),  # no redirect asked for → the user's own lists
+        ("//evil.com", "/lists"),  # protocol-relative open redirect
+        ("https://evil.com", "/lists"),  # absolute open redirect
+        ("javascript:alert(1)", "/lists"),  # scheme injection
     ],
 )
 def test_safe_redirect_path(raw: str | None, expected: str) -> None:

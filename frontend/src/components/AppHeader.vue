@@ -10,12 +10,15 @@
 import { storeToRefs } from 'pinia'
 
 import BaseButton from '@/components/BaseButton.vue'
+import { useLogout } from '@/features/auth/useLogout'
 import { useStartList } from '@/features/lists/useStartList'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
 const { user, isAuthenticated } = storeToRefs(auth)
 const { startList } = useStartList()
+// Logging out is more than clearing the session (navigate + confirm) — see useLogout.
+const { logout } = useLogout()
 
 // First letter of the display name, for the avatar fallback when there's no
 // picture from the social provider.
@@ -66,7 +69,7 @@ const initial = () => user.value?.displayName?.trim().charAt(0).toUpperCase() ||
         <button
           type="button"
           class="cursor-pointer text-sm font-medium text-muted transition-colors hover:text-ink"
-          @click="auth.logout()"
+          @click="logout()"
         >
           Log out
         </button>

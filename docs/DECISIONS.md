@@ -142,6 +142,14 @@ done — Cognito user pool, Google IdP, hosted domain, and app client are all li
 "Continue with Google" has been verified working end-to-end. Still to do at deploy time:
 a shared cookie domain across the API and site origins.
 
+**Update (2026-09-22) — where a sign-in lands:** `/lists`, not the homepage. Someone who
+just signed in came to use the app, while the homepage is still a pitch to a stranger. A
+`?redirect=` (set when the auth guard bounces you off a protected route, or by the "Start
+a list" CTA) always wins; the default only applies when there isn't one. It's spelled
+twice — `DEFAULT_POST_LOGIN_PATH` in `backend/app/auth/oauth.py` for the Cognito
+round-trip and in `frontend/src/features/auth/postLogin.ts` for the dev-login stub, which
+never touches the backend redirect — so keep the two in sync.
+
 ## Product data model (Phase 1–2)
 
 Decisions from QUESTIONS.md §10, to guide the schema:

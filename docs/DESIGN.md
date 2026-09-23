@@ -49,7 +49,10 @@ design problem than a graphical one. Whitespace, type, and one good accent color
   - **Reduced motion is respected**: every transform/animation sits behind Tailwind's
     `motion-safe:` variant; `prefers-reduced-motion` users get color-only feedback.
   - Restraint rule: motion never longer than ~200ms, never blocks input, and no new
-    colors were added for it.
+    colors were added for it. **One exception (owner call, 2026-09-22): the toast
+    drop-in runs 500ms.** It travels from off-screen rather than nudging in place,
+    and the longer arc is what makes it read as *falling into place* instead of
+    appearing. Feedback on something you just clicked stays at ~200ms.
 - **Light/dark toggle: required before launch (2026-08-08).** Upgraded from "when
   (if)" — owner wants a toggle live at go-live. Dark stays the design-first theme;
   the token architecture (one `@theme` block) is what makes the flip additive. Until
@@ -58,6 +61,46 @@ design problem than a graphical one. Whitespace, type, and one good accent color
 - **Dependency policy (2026-08-08).** Any frontend/backend library we add must be
   free and under a permissive license (MIT/BSD/Apache-2.0) — this is an open-source,
   no-revenue project; nothing paid, nothing copyleft-restrictive for our use.
+- **Toasts (2026-09-22): hand-rolled, not a library.** Transient status messages
+  ("You’ve been logged out.") live in a Pinia store (`stores/toasts.ts`) rendered by
+  one `ToastHost` in the app shell, so a message outlives the navigation that caused
+  it. A toast library would have owed us more than the ~50 lines this costs (see
+  Dependency policy above). The rules:
+  - **Always top-center**, at every breakpoint — offset to clear the header rather
+    than cover it. (Owner call: bottom-right is easy to miss.) They **drop in from
+    above** the viewport with a small overshoot (`--animate-drop-in`, `ease-pop`,
+    500ms — the one documented exception to the ~200ms restraint rule above),
+    behind `motion-safe:`, so an arrival registers as movement, not just new pixels.
+  - **Colored by status**, one of the three fills below — a toast that matched the
+    page had nothing to make it stand out.
+  - Each variant carries an **icon** as well as a color (check / triangle / x), since
+    color alone can’t be the signal.
+  - `role="status"` + `aria-live="polite"` on a region that stays mounted (an
+    announcement region that appears alongside its content doesn’t get read);
+    auto-dismiss after 5s, plus a manual close. Anything that must interrupt gets its
+    own `assertive` region later — don’t upgrade this one.
+- **Status colors (2026-09-22): green / amber / red, theme-independent.** Three
+  semantic sets in `main.css` — `--color-success|warning|error` plus a matching
+  `-ink` (text on the fill) and `-border` (edge) for each. Rules that make them work:
+  - They are **filled chips**, so the text contrast is *internal* — ink against its
+    own fill, never against the page. That’s what lets a single set of values serve
+    dark today and light later, instead of needing a second palette. Measured
+    ink-on-fill: success 8.2:1, warning 9.7:1, error 5.1:1 (all past WCAG AA).
+  - The `-border` shade is darker than its fill, so a chip still has a visible edge
+    on a light canvas, where a pale fill alone would float.
+  - **Hues stay clear of the coral accent (~40)**: green 150, amber 85, red 22. Red
+    is the one that flips polarity — a red light enough for dark ink lands right on
+    top of the brand accent, so it’s a deep fill with near-white ink.
+  - Usage is semantic, not decorative: success = it worked, warning = proceed with
+    care, error = it failed. Nothing else borrows these colors.
+  - **When light mode lands**, re-check these against the light canvas before
+    reaching for a second set of values — the expectation is that only the
+    surrounding surfaces flip.
+- **Logging out navigates home (2026-09-22).** Clearing the session in place left the
+  user on `/lists` still reading them, corrected only by the next navigation. Log out
+  now goes to `/` and toasts — home rather than login, since logging out isn’t a
+  prelude to logging back in. (Pairs with sign-in landing on `/lists`, see
+  [DECISIONS.md](DECISIONS.md).)
 - **Drag-and-drop library (2026-08-08): `vue-draggable-plus`** (MIT, typed,
   maintained; SortableJS underneath). Chosen over hand-rolled DnD (don't want to
   maintain drag code) and over `vuedraggable`, which is unmaintained and crashes with

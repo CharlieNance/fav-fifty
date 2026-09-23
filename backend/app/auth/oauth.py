@@ -29,6 +29,11 @@ OAUTH_STATE_COOKIE = "favfifty_oauth_state"
 # The authorize→callback round-trip is quick; a short life bounds the CSRF window.
 OAUTH_STATE_MAX_AGE_SECONDS = 600  # 10 minutes
 
+# Where a sign-in lands when no (safe) `redirect` came along: the user's own
+# lists, not the marketing homepage. Mirrored on the frontend for the dev-login
+# stub, which never comes through here (frontend/src/features/auth/postLogin.ts).
+DEFAULT_POST_LOGIN_PATH = "/lists"
+
 # Separate salt from the session signer so a token minted for one can't be
 # replayed against the other, even though both use SECRET_KEY.
 _state_serializer = URLSafeTimedSerializer(settings.secret_key, salt="favfifty.oauth-state")
@@ -64,11 +69,12 @@ def safe_redirect_path(raw: str | None) -> str:
     """Return a safe same-site path to land on after login.
 
     Only single-slash relative paths are allowed, which blocks open redirects to
-    ``//evil.com`` or ``https://evil.com``. Anything else falls back to ``/``.
+    ``//evil.com`` or ``https://evil.com``. Anything else — including a missing
+    redirect — falls back to :data:`DEFAULT_POST_LOGIN_PATH`.
     """
     if raw and raw.startswith("/") and not raw.startswith("//"):
         return raw
-    return "/"
+    return DEFAULT_POST_LOGIN_PATH
 
 
 def serialize_state(data: OAuthState) -> str:
