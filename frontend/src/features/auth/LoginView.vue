@@ -18,7 +18,13 @@ const redirect = typeof rawRedirect === 'string' ? rawRedirect : undefined
 const isDev = import.meta.env.DEV
 
 const busy = ref(false)
-const error = ref<string | null>(null)
+// The backend bounces a failed OAuth round-trip back here as `?error=` (details
+// stay in its logs, never in the URL). Without surfacing it the user just lands
+// on the login page again with no idea why, so say something — generic, since
+// that flag is deliberately the only thing we're told.
+const error = ref<string | null>(
+  route.query.error ? 'Sign-in didn’t complete. Please try again.' : null,
+)
 
 function signInWithGoogle(): void {
   busy.value = true

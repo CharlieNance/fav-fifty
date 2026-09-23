@@ -19,9 +19,9 @@ function testRouter(): Router {
   })
 }
 
-async function mountAt(redirect?: string) {
+async function mountAt(redirect?: string, query: Record<string, string> = {}) {
   const router = testRouter()
-  await router.push(redirect ? { name: 'login', query: { redirect } } : { name: 'login' })
+  await router.push({ name: 'login', query: { ...(redirect ? { redirect } : {}), ...query } })
   await router.isReady()
   const wrapper = mount(LoginView, { global: { plugins: [router] } })
   return { wrapper, router }
@@ -63,6 +63,18 @@ describe('LoginView', () => {
 
     expect(auth.devLogin).toHaveBeenCalledOnce()
     expect(router.currentRoute.value.fullPath).toBe('/lists/new')
+  })
+
+  it('explains the failure when the backend bounces back with ?error=', async () => {
+    const { wrapper } = await mountAt(undefined, { error: 'auth_failed' })
+
+    expect(wrapper.find('[role="alert"]').text()).toContain('try again')
+  })
+
+  it('shows no error on a normal visit', async () => {
+    const { wrapper } = await mountAt()
+
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
   })
 
   it('shows an error when dev login fails', async () => {
