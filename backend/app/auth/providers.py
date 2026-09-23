@@ -25,6 +25,18 @@ DEV_CLAIMS = Claims(
     picture=None,
 )
 
+# Clock-skew tolerance applied to the id token's time claims (`iat`, `exp`, `nbf`).
+#
+# Without it, verification fails whenever our clock trails Cognito's by even a
+# fraction of a second: Cognito stamps `iat` as a whole second, so a token minted
+# at 12:00:00.8 carries iat=12:00:00, and a machine reading 12:00:00.3 sees an
+# `iat` in its own future. PyJWT >= 2.10 rejects that outright
+# (`ImmatureSignatureError`), which made local logins fail intermittently — the
+# same sign-in would succeed on a retry. A minute is the conventional allowance
+# (RFC 7519 §4.1.4 explicitly provides for "a small leeway"); it is far shorter
+# than any token's lifetime, so it does not meaningfully widen the replay window.
+JWT_LEEWAY_SECONDS = 60
+
 
 class DevIdentityProvider:
     """Development-only identity stub: fixed claims, no network, no JWT.
@@ -77,6 +89,7 @@ class CognitoIdentityProvider:
             algorithms=["RS256"],  # Cognito signs id tokens with RS256
             audience=settings.cognito_client_id,  # `aud` must be our app client
             issuer=settings.cognito_issuer,  # `iss` must be our user pool
+            leeway=JWT_LEEWAY_SECONDS,  # tolerate small clock skew between us and AWS
             options={"require": ["exp", "iat", "sub", "aud", "iss"]},
         )
 

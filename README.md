@@ -15,7 +15,7 @@ See [docs/NEXT_STEPS.md](docs/NEXT_STEPS.md) for the roadmap and [docs/QUESTIONS
 ## Vision
 
 | Phase | Goal |
-|-------|------|
+| ------- | ------ |
 | **1 — MVP** | Google login; create/read/update/delete personal lists of up to 50 items, with tags, ranking, and notes. Publish/unpublish. |
 | **2 — Social** | Public lists, sharing via link, commenting. |
 | **3 — Community** | Suggestions/questions on lists, voting on lists, discovery/browse. |
@@ -37,7 +37,7 @@ Decisions recorded in [docs/DECISIONS.md](docs/DECISIONS.md) (deliberation in [d
 
 ## Repository Layout (planned)
 
-```
+``` tree
 fav-fifty/
 ├── README.md
 ├── CLAUDE.md              # Guidance for AI assistants working in this repo
@@ -64,8 +64,8 @@ Each app has its own env template — copy the one(s) you need and fill in value
  cp frontend/.env.example frontend/.env.local # SPA config: only VITE_ vars (public)
 ```
 
-- **Frontend:** see [`frontend/README.md`](frontend/README.md) — `cd frontend && npm install && npm run dev` (http://localhost:5173).
-- **Backend:** see [`backend/README.md`](backend/README.md) — `cd backend && uv sync --extra dev && uv run uvicorn app.main:app --reload` (http://localhost:8000).
+- **Frontend:** see [`frontend/README.md`](frontend/README.md) — `cd frontend && npm install && npm run dev` (<http://localhost:5173>).
+- **Backend:** see [`backend/README.md`](backend/README.md) — `cd backend && uv sync --extra dev && uv run uvicorn app.main:app --reload` (<http://localhost:8000>).
 - **Database:** `docker compose up -d db` (local Postgres) from the repo root.
 
 ## Contributing

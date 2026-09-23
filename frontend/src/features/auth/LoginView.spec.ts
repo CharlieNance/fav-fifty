@@ -19,9 +19,9 @@ function testRouter(): Router {
   })
 }
 
-async function mountAt(redirect?: string) {
+async function mountAt(redirect?: string, query: Record<string, string | null> = {}) {
   const router = testRouter()
-  await router.push(redirect ? { name: 'login', query: { redirect } } : { name: 'login' })
+  await router.push({ name: 'login', query: { ...(redirect ? { redirect } : {}), ...query } })
   await router.isReady()
   const wrapper = mount(LoginView, { global: { plugins: [router] } })
   return { wrapper, router }
@@ -63,6 +63,56 @@ describe('LoginView', () => {
 
     expect(auth.devLogin).toHaveBeenCalledOnce()
     expect(router.currentRoute.value.fullPath).toBe('/lists/new')
+  })
+
+  it('explains the failure when the backend bounces back with ?error=', async () => {
+    const { wrapper } = await mountAt(undefined, { error: 'auth_failed' })
+
+    expect(wrapper.find('[role="alert"]').text()).toContain('try again')
+  })
+
+  it('surfaces the failure on a valueless ?error= too', async () => {
+    // Presence is the signal, not the value — an empty flag still means failure.
+    const { wrapper } = await mountAt(undefined, { error: '' })
+
+    expect(wrapper.find('[role="alert"]').text()).toContain('try again')
+  })
+
+  it('surfaces the failure on a bare ?error with no value at all', async () => {
+    // vue-router parses a valueless `?error` as null, a different shape from ''.
+    const { wrapper, router } = await mountAt(undefined, { error: null })
+
+    expect(router.currentRoute.value.fullPath).toBe('/login?error')
+    expect(wrapper.find('[role="alert"]').text()).toContain('try again')
+  })
+
+  it('clears the error when a navigation drops the ?error= flag', async () => {
+    // The header's "Log in" link points at a bare /login, so this navigation is
+    // reachable from the errored page — and it reuses this component instance.
+    const { wrapper, router } = await mountAt(undefined, { error: 'auth_failed' })
+    expect(wrapper.find('[role="alert"]').exists()).toBe(true)
+
+    await router.push({ name: 'login' })
+    await flushPromises()
+
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+  })
+
+  it('lets a fresh dev-login failure speak over the stale ?error= flag', async () => {
+    const auth = useAuthStore()
+    vi.spyOn(auth, 'devLogin').mockRejectedValue(new Error('down'))
+    const { wrapper } = await mountAt(undefined, { error: 'auth_failed' })
+
+    await button(wrapper, 'Dev login')!.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.find('[role="alert"]').text()).toContain('Dev login failed')
+  })
+
+  it('shows no error on a normal visit', async () => {
+    const { wrapper } = await mountAt()
+
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
   })
 
   it('shows an error when dev login fails', async () => {

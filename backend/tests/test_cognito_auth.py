@@ -32,7 +32,7 @@ from app.auth.oauth import (
     safe_redirect_path,
     serialize_state,
 )
-from app.auth.providers import CognitoIdentityProvider
+from app.auth.providers import JWT_LEEWAY_SECONDS, CognitoIdentityProvider
 from app.core.config import settings
 
 # --- Test fixtures: a fake user pool + signing key ----------------------------
@@ -142,6 +142,32 @@ def test_expired_token_is_rejected(cognito_env: None, rsa_key: rsa.RSAPrivateKey
     past = int(time.time()) - 3600
     with pytest.raises(InvalidTokenError):
         provider.get_claims(make_id_token(rsa_key, exp=past, iat=past - 60), nonce="the-nonce")
+
+
+def test_token_issued_slightly_in_our_future_is_accepted(
+    cognito_env: None, rsa_key: rsa.RSAPrivateKey
+) -> None:
+    """A clock a few seconds behind AWS must not break login.
+
+    Cognito stamps `iat` as a whole second, so a token minted moments ago can sit
+    marginally in the future of a machine whose clock trails AWS's. PyJWT rejects
+    that with no leeway, which made real logins fail intermittently.
+    """
+    provider = build_provider(rsa_key)
+    ahead = int(time.time()) + 5
+    claims = provider.get_claims(make_id_token(rsa_key, iat=ahead), nonce="the-nonce")
+
+    assert claims.sub == "cognito-sub-123"
+
+
+def test_token_issued_far_in_the_future_is_still_rejected(
+    cognito_env: None, rsa_key: rsa.RSAPrivateKey
+) -> None:
+    """The leeway is a skew allowance, not an open door — well past it still fails."""
+    provider = build_provider(rsa_key)
+    far_ahead = int(time.time()) + JWT_LEEWAY_SECONDS + 3600
+    with pytest.raises(InvalidTokenError):
+        provider.get_claims(make_id_token(rsa_key, iat=far_ahead), nonce="the-nonce")
 
 
 def test_access_token_replayed_as_id_token_is_rejected(
