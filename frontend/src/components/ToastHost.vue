@@ -14,6 +14,11 @@
  * `assertive` — these are confirmations, not interruptions. If a future error
  * toast ever needs to cut in, give it its own assertive region rather than
  * upgrading this one.
+ *
+ * `aria-atomic="false"` overrides what `role="status"` implies (`true`): atomic
+ * means "re-read the WHOLE region on any change", so a second toast arriving
+ * would re-announce the first one alongside it. Only the new message should be
+ * read.
  */
 import { storeToRefs } from 'pinia'
 import {
@@ -51,6 +56,7 @@ const variantIcons: Record<ToastVariant, FunctionalComponent> = {
     class="pointer-events-none fixed inset-x-0 top-16 z-50 flex flex-col items-center gap-2 px-4 sm:top-20"
     role="status"
     aria-live="polite"
+    aria-atomic="false"
   >
     <div
       v-for="toast in toasts"

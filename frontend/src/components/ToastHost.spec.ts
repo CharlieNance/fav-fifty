@@ -15,6 +15,9 @@ describe('ToastHost', () => {
 
     const region = wrapper.get('[aria-live="polite"]')
     expect(region.attributes('role')).toBe('status')
+    // Not atomic: a second toast must not drag the first one back through the
+    // screen reader with it (role="status" would imply atomic otherwise).
+    expect(region.attributes('aria-atomic')).toBe('false')
     expect(wrapper.findAll('p')).toHaveLength(0)
   })
 

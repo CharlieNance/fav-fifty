@@ -49,7 +49,10 @@ design problem than a graphical one. Whitespace, type, and one good accent color
   - **Reduced motion is respected**: every transform/animation sits behind Tailwind's
     `motion-safe:` variant; `prefers-reduced-motion` users get color-only feedback.
   - Restraint rule: motion never longer than ~200ms, never blocks input, and no new
-    colors were added for it.
+    colors were added for it. **One exception (owner call, 2026-09-22): the toast
+    drop-in runs 500ms.** It travels from off-screen rather than nudging in place,
+    and the longer arc is what makes it read as *falling into place* instead of
+    appearing. Feedback on something you just clicked stays at ~200ms.
 - **Light/dark toggle: required before launch (2026-08-08).** Upgraded from "when
   (if)" — owner wants a toggle live at go-live. Dark stays the design-first theme;
   the token architecture (one `@theme` block) is what makes the flip additive. Until
@@ -65,7 +68,8 @@ design problem than a graphical one. Whitespace, type, and one good accent color
   Dependency policy above). The rules:
   - **Always top-center**, at every breakpoint — offset to clear the header rather
     than cover it. (Owner call: bottom-right is easy to miss.) They **drop in from
-    above** the viewport with a small overshoot (`--animate-drop-in`, `ease-pop`),
+    above** the viewport with a small overshoot (`--animate-drop-in`, `ease-pop`,
+    500ms — the one documented exception to the ~200ms restraint rule above),
     behind `motion-safe:`, so an arrival registers as movement, not just new pixels.
   - **Colored by status**, one of the three fills below — a toast that matched the
     page had nothing to make it stand out.
