@@ -15,7 +15,7 @@ vi.mock('@/api/client', async (importOriginal) => {
 import { apiFetch } from '@/api/client'
 const apiFetchMock = vi.mocked(apiFetch)
 
-const DEV_USER = { id: 'dev', displayName: 'Dev User', avatarUrl: null }
+const DEV_USER = { id: 'dev', display_name: 'Dev User', avatar_url: null }
 
 describe('auth store', () => {
   beforeEach(() => {

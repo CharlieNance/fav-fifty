@@ -46,7 +46,7 @@ describe('useLogout', () => {
 
   it('clears the session, leaves the protected page, and says so', async () => {
     const auth = useAuthStore()
-    auth.user = { id: 'u1', displayName: 'Shaggy', avatarUrl: null }
+    auth.user = { id: 'u1', display_name: 'Shaggy', avatar_url: null }
     const logoutSpy = vi.spyOn(auth, 'logout')
 
     const router = await logoutFrom('/lists')
@@ -60,7 +60,7 @@ describe('useLogout', () => {
   it('still announces it when you log out from the homepage', async () => {
     // No navigation to hint that anything happened, so the toast is the whole signal.
     const auth = useAuthStore()
-    auth.user = { id: 'u1', displayName: 'Shaggy', avatarUrl: null }
+    auth.user = { id: 'u1', display_name: 'Shaggy', avatar_url: null }
 
     const router = await logoutFrom('/')
 

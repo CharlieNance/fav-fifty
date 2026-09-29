@@ -7,6 +7,7 @@
  * it works) is intentionally omitted until those pages exist (Phase 3–4) so we
  * don't ship dead links.
  */
+import { ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 
 import BaseButton from '@/components/BaseButton.vue'
@@ -22,7 +23,15 @@ const { logout } = useLogout()
 
 // First letter of the display name, for the avatar fallback when there's no
 // picture from the social provider.
-const initial = () => user.value?.displayName?.trim().charAt(0).toUpperCase() || '?'
+const initial = () => user.value?.display_name?.trim().charAt(0).toUpperCase() || '?'
+
+// Provider-hosted avatars can fail to load (expired URL, rate limit, offline);
+// fall back to the initial rather than a broken image. Reset when the URL changes.
+const avatarFailed = ref(false)
+watch(
+  () => user.value?.avatar_url,
+  () => (avatarFailed.value = false),
+)
 </script>
 
 <template>
@@ -52,10 +61,12 @@ const initial = () => user.value?.displayName?.trim().charAt(0).toUpperCase() ||
         </RouterLink>
         <div class="flex items-center gap-2">
           <img
-            v-if="user?.avatarUrl"
-            :src="user.avatarUrl"
-            :alt="user.displayName"
+            v-if="user?.avatar_url && !avatarFailed"
+            :src="user.avatar_url"
+            :alt="user.display_name"
+            referrerpolicy="no-referrer"
             class="h-8 w-8 rounded-full object-cover"
+            @error="avatarFailed = true"
           />
           <span
             v-else
@@ -64,7 +75,9 @@ const initial = () => user.value?.displayName?.trim().charAt(0).toUpperCase() ||
           >
             {{ initial() }}
           </span>
-          <span class="hidden text-sm font-medium text-ink sm:inline">{{ user?.displayName }}</span>
+          <span class="hidden text-sm font-medium text-ink sm:inline">{{
+            user?.display_name
+          }}</span>
         </div>
         <button
           type="button"
