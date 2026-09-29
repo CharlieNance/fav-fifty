@@ -49,11 +49,17 @@ class List(Base, UUIDPrimaryKeyMixin, TimestampMixin):
 
 
 # How many items the list holds, computed by the database as a correlated
-# COUNT subquery every time a list row is loaded — so it's always current, needs
-# no column/migration, and costs one extra index lookup (list_items.list_id) per
-# row rather than loading the items themselves. Assigned after the class body
-# because the subquery has to reference `List.id`, which only exists once the
-# class is mapped.
+# COUNT subquery every time a list row is loaded — so it needs no stored
+# column/migration and can't drift from the real items, and costs one extra
+# index lookup (list_items.list_id, at most 50 rows) per list rather than
+# loading the items themselves. Assigned after the class body because the
+# subquery has to reference `List.id`, which only exists once the class is
+# mapped.
+#
+# It's a snapshot taken when the row is loaded: sessions don't expire on commit
+# (see app/db/session.py), so adding/removing items does NOT update the count on
+# an already-loaded `List` in the same session. Today no route returns a list
+# after changing its items; one that does must `db.refresh(list_row)` first.
 List.item_count = column_property(  # type: ignore[attr-defined]
     select(func.count(ListItem.id))
     .where(ListItem.list_id == List.id)

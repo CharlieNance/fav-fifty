@@ -36,4 +36,17 @@ describe('ItemCountBadge', () => {
     expect(wrapper.get('[role="img"]').attributes('aria-label')).toBe('50 of 50 items')
     expect(wrapper.text()).toBe('50')
   })
+
+  it('gives each star its own gradient id so several can share a page', () => {
+    const wrapper = mount({
+      components: { ItemCountBadge },
+      template: '<div><ItemCountBadge :count="50" /><ItemCountBadge :count="50" /></div>',
+    })
+
+    const ids = wrapper.findAll('linearGradient').map((g) => g.attributes('id'))
+    expect(new Set(ids).size).toBe(2)
+    wrapper.findAll('polygon').forEach((polygon, i) => {
+      expect(polygon.attributes('fill')).toBe(`url(#${ids[i]})`)
+    })
+  })
 })
