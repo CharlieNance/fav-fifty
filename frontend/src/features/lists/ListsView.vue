@@ -19,6 +19,7 @@ import BaseButton from '@/components/BaseButton.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import IconButton from '@/components/IconButton.vue'
 import EditListModal from './EditListModal.vue'
+import ItemCountBadge from './ItemCountBadge.vue'
 import TagChip from './TagChip.vue'
 import type { ListSummary } from './types'
 import { useDeleteList } from './useDeleteList'
@@ -83,7 +84,7 @@ async function confirmDelete(list: ListSummary): Promise<void> {
 </script>
 
 <template>
-  <section class="mx-auto max-w-3xl px-6 py-12">
+  <section class="mx-auto max-w-3xl px-6 py-12 sm:my-10 sm:px-10 sm:py-10 sm:page-panel">
     <div class="flex items-center justify-between gap-4">
       <h1 class="font-display text-3xl font-extrabold text-ink">My lists</h1>
       <BaseButton size="sm" @click="modals.openCreate()">New list</BaseButton>
@@ -127,13 +128,18 @@ async function confirmDelete(list: ListSummary): Promise<void> {
       You haven't started a list yet — create your first one above.
     </p>
 
-    <!-- Rows light up under the pointer (hover surface + title shifts to the
-         accent) so "this whole row is a place to go" reads at a glance. -->
-    <ul v-else class="mt-6 space-y-1">
+    <!-- Rows sit in a bordered, hairline-divided container with a faint zebra
+         stripe (same treatment as the ranked items on ListDetailView), and
+         light up under the pointer (hover surface + title shifts to the accent)
+         so "this whole row is a place to go" reads at a glance. -->
+    <ul
+      v-else
+      class="mt-6 divide-y divide-border/70 rounded-xl border border-border/70 bg-canvas/50"
+    >
       <li
         v-for="list in lists"
         :key="list.id"
-        class="flex items-center justify-between gap-4 rounded-xl px-3 py-3 transition-colors duration-150 hover:bg-surface"
+        class="flex items-center justify-between gap-4 px-3 py-3 transition-colors duration-150 first:rounded-t-xl last:rounded-b-xl even:bg-surface/40 hover:bg-elevated/60"
       >
         <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
           <RouterLink
@@ -149,6 +155,7 @@ async function confirmDelete(list: ListSummary): Promise<void> {
           </ul>
         </div>
         <div class="flex shrink-0 items-center gap-2">
+          <ItemCountBadge :count="list.item_count" class="mr-2" />
           <IconButton
             :icon="PencilSquareIcon"
             :label="`Rename ${list.title}`"

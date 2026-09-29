@@ -19,6 +19,9 @@ class ListRead(BaseModel):
     title: str
     status: str
     tags: list[str]
+    # Number of ranked items (0-50) — lets the index show list progress without
+    # fetching every list's items.
+    item_count: int
     created_at: datetime
     updated_at: datetime
 
