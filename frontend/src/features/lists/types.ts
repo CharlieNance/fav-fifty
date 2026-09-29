@@ -8,6 +8,8 @@ export interface ListSummary {
   title: string
   status: string
   tags: string[]
+  /** Number of ranked items the list holds (0–50). */
+  item_count: number
   created_at: string
   updated_at: string
 }

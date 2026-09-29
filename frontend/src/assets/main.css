@@ -67,6 +67,15 @@
   --color-error-ink: oklch(98% 0.015 22);
   --color-error-border: oklch(42% 0.19 22);
 
+  /* Gold — reserved for "you finished a full fifty" (the star on the list
+     index's ItemCountBadge). Kept a deeper, warmer yellow than `warning` so the
+     star never reads as "just the next tier up"; the star is shaded from
+     `gold-light` down to `gold`, with `gold-ink` for the number on top. */
+  --color-gold: oklch(74% 0.15 75);
+  --color-gold-light: oklch(90% 0.13 95);
+  --color-gold-border: oklch(52% 0.12 65);
+  --color-gold-ink: oklch(24% 0.06 65);
+
   /* Type — self-hosted (see @import above) */
   --font-display: 'Baloo 2', ui-sans-serif, system-ui, sans-serif;
   --font-body:
@@ -117,14 +126,35 @@ html {
   color-scheme: dark;
 }
 
+/* The page background: canvas plus two soft, low-chroma glows — coral (the
+   accent hue) from the top-left, a deeper rose from the bottom-right — so the
+   open space either side of the content has some depth instead of flat dark.
+   `fixed` keeps the glows put while the page scrolls, rather than stretching
+   them over the whole document height. */
 body {
   margin: 0;
   min-height: 100vh;
   background-color: var(--color-canvas);
+  background-image:
+    radial-gradient(70rem 45rem at 0% 0%, oklch(27% 0.055 40 / 0.6), transparent 70%),
+    radial-gradient(70rem 45rem at 100% 100%, oklch(25% 0.05 15 / 0.55), transparent 70%);
+  background-attachment: fixed;
   color: var(--color-ink);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* The content column on the list pages: a panel lifted just off the page
+   background with a barely-there top-to-bottom gradient, so the gutters around
+   it (where the body's glows show) carry the color and the reading area stays
+   calm. Applied from `sm:` up — on a phone there are no gutters to contrast
+   with, so the panel would only cost width. */
+@utility page-panel {
+  border: 1px solid oklch(29% 0.018 50 / 0.6);
+  border-radius: 2rem;
+  background-image: linear-gradient(to bottom, oklch(20% 0.016 50), oklch(17.5% 0.014 50));
+  box-shadow: 0 24px 60px rgb(0 0 0 / 0.35);
 }
 
 /* SortableJS state classes, wired up via vuedraggable's `ghost-class` /

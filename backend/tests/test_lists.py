@@ -11,6 +11,7 @@ from app.auth.claims import Claims
 from app.auth.providers import DEV_CLAIMS
 from app.core.config import settings
 from app.models.list import List
+from app.models.list_item import ListItem
 from app.models.user import User
 from app.services import tag_service, user_service
 
@@ -70,6 +71,30 @@ def test_list_lists_returns_only_own_non_deleted_lists(
     assert [row["id"] for row in body] == [str(mine.id)]
     assert body[0]["title"] == "Mine"
     assert "deleted_at" not in body[0]
+
+
+def test_list_lists_reports_each_lists_item_count(
+    fresh_user_client: TestClient, fresh_user: User, db_session: Session
+) -> None:
+    empty = _list(db_session, fresh_user, "Empty")
+    three = _list(db_session, fresh_user, "Three")
+    db_session.add_all(
+        ListItem(list_id=three.id, position=n, text=f"Thing {n}") for n in range(1, 4)
+    )
+    db_session.commit()
+
+    response = fresh_user_client.get("/lists")
+
+    assert response.status_code == 200
+    counts = {row["id"]: row["item_count"] for row in response.json()}
+    assert counts == {str(empty.id): 0, str(three.id): 3}
+
+
+def test_create_list_starts_with_zero_items(auth_client: TestClient) -> None:
+    response = auth_client.post("/lists", json={"title": "Brand new"})
+
+    assert response.status_code == 201
+    assert response.json()["item_count"] == 0
 
 
 def test_list_lists_isolates_a_different_authenticated_user(

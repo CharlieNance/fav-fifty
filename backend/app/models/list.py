@@ -10,14 +10,14 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, Text
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, Text, func, select
+from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
+from app.models.list_item import ListItem
 from app.models.tag import list_tags
 
 if TYPE_CHECKING:
-    from app.models.list_item import ListItem
     from app.models.tag import Tag
     from app.models.user import User
 
@@ -46,3 +46,17 @@ class List(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         order_by="ListItem.position",
     )
     tags: Mapped[list[Tag]] = relationship(secondary=list_tags, back_populates="lists")
+
+
+# How many items the list holds, computed by the database as a correlated
+# COUNT subquery every time a list row is loaded — so it's always current, needs
+# no column/migration, and costs one extra index lookup (list_items.list_id) per
+# row rather than loading the items themselves. Assigned after the class body
+# because the subquery has to reference `List.id`, which only exists once the
+# class is mapped.
+List.item_count = column_property(  # type: ignore[attr-defined]
+    select(func.count(ListItem.id))
+    .where(ListItem.list_id == List.id)
+    .correlate_except(ListItem)
+    .scalar_subquery()
+)

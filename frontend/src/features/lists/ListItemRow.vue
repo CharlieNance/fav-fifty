@@ -35,9 +35,12 @@ const isLast = (): boolean => props.item.position >= props.itemCount
 <template>
   <!-- `group` lets the action cluster brighten when the row is hovered (see
        below); the row itself gets a gentle surface lift so it reads as a thing
-       you can grab, not static text. -->
+       you can grab, not static text. Rows sit in a bordered, hairline-divided
+       container (ListDetailView) with a faint zebra stripe so the eye can track
+       a long row from rank to actions; the first/last rows round off to match
+       the container's corners. -->
   <li
-    class="group flex items-center gap-3 rounded-xl px-3 py-3 transition-colors duration-150 hover:bg-surface sm:gap-4"
+    class="group flex items-center gap-3 px-3 py-3 transition-colors duration-150 first:rounded-t-xl last:rounded-b-xl even:bg-surface/40 hover:bg-elevated/60 sm:gap-4"
   >
     <!-- Rank numeral — display face, accent color, wide enough for "50" -->
     <span

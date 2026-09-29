@@ -19,6 +19,7 @@ import ItemFormModal from './ItemFormModal.vue'
 import ListItemRow from './ListItemRow.vue'
 import ManageTagsModal from './ManageTagsModal.vue'
 import TagChip from './TagChip.vue'
+import { MAX_ITEMS } from './itemCountTier'
 import type { ListItem, ListSummary } from './types'
 import { useDeleteItem } from './useDeleteItem'
 import { useDeleteList } from './useDeleteList'
@@ -26,9 +27,6 @@ import { useListDetail } from './useListDetail'
 import { useListItems } from './useListItems'
 import { useListModalsStore } from './useListModals'
 import { useReorderItem } from './useReorderItem'
-
-/** The product's namesake cap — mirrors the backend's ListFullError threshold. */
-const MAX_ITEMS = 50
 
 const route = useRoute()
 const router = useRouter()
@@ -192,7 +190,7 @@ function nudge(item: ListItem, direction: -1 | 1): void {
 </script>
 
 <template>
-  <section class="mx-auto max-w-3xl px-6 py-12">
+  <section class="mx-auto max-w-3xl px-6 py-12 sm:my-10 sm:px-10 sm:py-10 sm:page-panel">
     <p v-if="status === 'loading'" class="text-muted">Loading…</p>
 
     <p v-else-if="status === 'not-found'" class="text-muted">
@@ -273,7 +271,7 @@ function nudge(item: ListItem, direction: -1 | 1): void {
             :fallback-on-body="true"
             :fallback-tolerance="3"
             :disabled="reorderPending"
-            class="mt-4 space-y-1"
+            class="mt-4 divide-y divide-border/70 rounded-xl border border-border/70 bg-canvas/50"
             @update="onSortUpdate"
           >
             <ListItemRow
