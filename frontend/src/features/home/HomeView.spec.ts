@@ -39,7 +39,7 @@ function testRouter(): Router {
 }
 
 function signIn(): void {
-  useAuthStore().user = { id: 'u-1', displayName: 'Dev', avatarUrl: null }
+  useAuthStore().user = { id: 'u-1', display_name: 'Dev', avatar_url: null }
 }
 
 async function mountHome() {

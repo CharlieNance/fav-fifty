@@ -39,7 +39,7 @@ describe('AppHeader', () => {
 
   it('shows the user and "Log out" when logged in', () => {
     const auth = useAuthStore()
-    auth.user = { id: 'u1', displayName: 'Shaggy', avatarUrl: null }
+    auth.user = { id: 'u1', display_name: 'Shaggy', avatar_url: null }
 
     const wrapper = mountHeader(testRouter())
     expect(wrapper.text()).toContain('Shaggy')
@@ -47,12 +47,42 @@ describe('AppHeader', () => {
     expect(wrapper.text()).not.toContain('Log in')
   })
 
+  it('shows the avatar image when the user has one', () => {
+    const auth = useAuthStore()
+    auth.user = { id: 'u1', display_name: 'Shaggy', avatar_url: 'https://example.com/s.png' }
+
+    const img = mountHeader(testRouter()).find('img')
+    expect(img.attributes('src')).toBe('https://example.com/s.png')
+    expect(img.attributes('alt')).toBe('Shaggy')
+    expect(img.attributes('referrerpolicy')).toBe('no-referrer')
+  })
+
+  it('shows the initial when there is no avatar', () => {
+    const auth = useAuthStore()
+    auth.user = { id: 'u1', display_name: 'shaggy', avatar_url: null }
+
+    const wrapper = mountHeader(testRouter())
+    expect(wrapper.find('img').exists()).toBe(false)
+    expect(wrapper.find('span[aria-hidden="true"]').text()).toBe('S')
+  })
+
+  it('falls back to the initial when the avatar fails to load', async () => {
+    const auth = useAuthStore()
+    auth.user = { id: 'u1', display_name: 'Shaggy', avatar_url: 'https://example.com/s.png' }
+
+    const wrapper = mountHeader(testRouter())
+    await wrapper.find('img').trigger('error')
+
+    expect(wrapper.find('img').exists()).toBe(false)
+    expect(wrapper.find('span[aria-hidden="true"]').text()).toBe('S')
+  })
+
   it('shows a "My lists" link only when logged in', () => {
     const loggedOut = mountHeader(testRouter())
     expect(loggedOut.text()).not.toContain('My lists')
 
     const auth = useAuthStore()
-    auth.user = { id: 'u1', displayName: 'Shaggy', avatarUrl: null }
+    auth.user = { id: 'u1', display_name: 'Shaggy', avatar_url: null }
     const loggedIn = mountHeader(testRouter())
     const link = loggedIn
       .findAllComponents({ name: 'RouterLink' })
@@ -62,7 +92,7 @@ describe('AppHeader', () => {
 
   it('"Log out" sends you home and announces it', async () => {
     const auth = useAuthStore()
-    auth.user = { id: 'u1', displayName: 'Shaggy', avatarUrl: null }
+    auth.user = { id: 'u1', display_name: 'Shaggy', avatar_url: null }
     const router = testRouter()
     await router.push('/lists')
     const wrapper = mountHeader(router)
@@ -95,7 +125,7 @@ describe('AppHeader', () => {
 
   it('"Start a list" opens the create modal for a logged-in user, without navigating', async () => {
     const auth = useAuthStore()
-    auth.user = { id: 'u1', displayName: 'Shaggy', avatarUrl: null }
+    auth.user = { id: 'u1', display_name: 'Shaggy', avatar_url: null }
     const router = testRouter()
     const wrapper = mountHeader(router)
     await router.isReady()

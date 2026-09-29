@@ -7,11 +7,13 @@ import { ApiError, apiFetch, apiUrl } from '@/api/client'
  * The current user as the frontend sees it. Mirrors the standard OIDC claims
  * the backend exposes (see docs/DECISIONS.md §Auth seam) — the frontend never
  * knows whether that identity came from the local dev stub or real Cognito.
+ * Field names are snake_case to match the `GET /me` JSON exactly — there's no
+ * case-conversion layer, so camelCase here would silently read `undefined`.
  */
 export interface User {
   id: string
-  displayName: string
-  avatarUrl: string | null
+  display_name: string
+  avatar_url: string | null
 }
 
 /**
