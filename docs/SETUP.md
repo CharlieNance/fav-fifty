@@ -120,7 +120,8 @@ Do everything in one region (`us-east-1` recommended) and keep the browser tab w
    **client secret**.
 3. **Allowed callback URLs** — must equal `COGNITO_REDIRECT_URI` exactly:
    - dev: `http://localhost:8000/auth/callback`
-   - prod: `https://api.favfifty.com/auth/callback` (your API origin)
+   - prod: `https://favfifty.com/api/v1/auth/callback` (the API shares the site's origin
+     — decided 2026-10-13; update this when the `/api/v1` prefix and first deploy land)
 4. **Allowed sign-out URLs:** your frontend, e.g. `http://localhost:5173` /
    `https://favfifty.com` (not used yet, but set it for later hosted-UI logout).
 5. **Identity providers:** enable **Google** (not Cognito user pool).
@@ -132,9 +133,10 @@ Do everything in one region (`us-east-1` recommended) and keep the browser tab w
 **Step E — Fill in `backend/.env` and set `FRONTEND_URL` / `COGNITO_REDIRECT_URI`.** With
 all five `COGNITO_*` values plus `GOOGLE_CLIENT_ID/SECRET` set, restart the backend and
 visit the app: "Continue with Google" now runs the real flow. (Locally, cookies work
-across `:8000`/`:5173` because they share the `localhost` host; in production put the API
-and site on the same registrable domain — e.g. `api.favfifty.com` + `favfifty.com` — and
-set the session cookie's `Domain` to `.favfifty.com`, a deploy-time follow-up.)
+across `:8000`/`:5173` because they share the `localhost` host. In production the API is
+served from the **same origin** as the site — `favfifty.com/api/v1` behind CloudFront — so
+no cookie `Domain` setting or CORS is needed; see
+[DEPLOYMENT_TOPOLOGY_PLAN.md](DEPLOYMENT_TOPOLOGY_PLAN.md).)
 
 ---
 

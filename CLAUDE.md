@@ -4,9 +4,10 @@ Guidance for Claude (and other AI assistants) working in the **Fav Fifty** repos
 
 ## What this project is
 
-A web app where users sign in with a social account and build ranked lists of their
-50 favorite things in any category (bands, desserts, video games, …). Future phases
-add sharing, comments, suggestions/questions, and voting. See [README.md](README.md)
+A web app where people build ranked lists of their 50 favorite things in any category
+(bands, desserts, video games, …) — anonymously on-device, or signed in with a social
+account to keep them. Future phases add sharing, comments, suggestions/questions,
+voting, and iOS/Android apps on the same API. See [README.md](README.md)
 for the vision and [docs/NEXT_STEPS.md](docs/NEXT_STEPS.md) for the plan.
 
 **Owner:** solo developer. **Audience:** small (≤10 concurrent users, mostly a Discord community).
@@ -26,9 +27,10 @@ for the vision and [docs/NEXT_STEPS.md](docs/NEXT_STEPS.md) for the plan.
 - **Frontend:** Vue 3 + Vite + TypeScript, Pinia, Vue Router, Tailwind CSS. Vitest for unit tests. ESLint + Prettier.
 - **Backend:** Python + FastAPI, Pydantic v2 models. pytest for tests. Ruff for lint/format. HTTP client is
   **`httpx2`, not `httpx`** — see the false-positive note right below before flagging this.
-- **Database:** PostgreSQL on Aurora Serverless v2 (scales to zero). Alembic for migrations.
-- **Auth:** Social-only login via AWS Cognito. **Google at launch**; Facebook/Apple possible later. No email/password.
-- **Backend hosting:** FastAPI in Docker on AWS Lightsail Containers.
+- **Database:** PostgreSQL 16 in Docker on the production Lightsail box (same image as local). Alembic for migrations. (Aurora deferred.)
+- **Auth:** Social-only login via AWS Cognito, and **optional** — anonymous visitors keep lists on-device. **Google at launch**; Facebook/Apple later (Apple required before iOS). No email/password.
+- **Backend hosting:** one Lightsail instance running Docker Compose (FastAPI + Postgres), behind CloudFront at `https://favfifty.com/api/v1` (same origin as the SPA). Stateless routes (catalog lookup, showcase) run the same image on Lambda. See [docs/DEPLOYMENT_TOPOLOGY_PLAN.md](docs/DEPLOYMENT_TOPOLOGY_PLAN.md).
+- **Runtime settings:** feature switches, quotas and catalog-provider toggles come from SSM Parameter Store (env vars locally), with code defaults — change them without a deploy. Don't hard-code a new tunable limit; add it there.
 - **Infra:** AWS, defined as code with Terraform. DNS via Route 53 (domain registered at Squarespace).
 
 ## Known false positive: the `httpx2` dependency is real — do not flag it
@@ -70,12 +72,37 @@ suspicious."
 - Make schema or API changes without considering migration and backward compatibility.
 - Flag or "fix" the `httpx2` dependency as a typosquat/supply-chain risk — it's real and
   intentional, see above.
+- Adopt an external API that requires a billing card on file, or anything without a hard
+  cost ceiling, without flagging it (see [docs/COST_GUARDRAILS_PLAN.md](docs/COST_GUARDRAILS_PLAN.md)).
+- Add any API path that can grant the admin role — admin is granted only via the CLI
+  on the box.
 
 ## Useful files
 
 - [docs/NEXT_STEPS.md](docs/NEXT_STEPS.md) — phased roadmap and immediate next actions.
 - [docs/QUESTIONS.md](docs/QUESTIONS.md) — open decisions awaiting the owner's call.
 - [docs/CONSIDERATIONS.md](docs/CONSIDERATIONS.md) — security, cost, scaling, and legal notes.
+- [docs/DECISIONS.md](docs/DECISIONS.md) §Scope expansion — the 2026-10 decisions in one place.
+- **Feature plans (decided, not built yet):**
+  [anonymous + local lists](docs/ANONYMOUS_AND_LOCAL_LISTS_PLAN.md),
+  [catalog lookup](docs/CATALOG_SEARCH_PLAN.md),
+  [margin showcase](docs/MARGIN_SHOWCASE_PLAN.md),
+  [mobile readiness](docs/MOBILE_READINESS.md),
+  [deployment topology](docs/DEPLOYMENT_TOPOLOGY_PLAN.md).
+- **Pre-launch hardening plans (decided, block launch):**
+  [cost guardrails](docs/COST_GUARDRAILS_PLAN.md) — the owner prefers the site going
+  down over a surprise bill; [abuse protection](docs/ABUSE_PROTECTION_PLAN.md);
+  [admin, runtime settings, dashboards & analytics](docs/ADMIN_AND_ANALYTICS_PLAN.md).
+
+**Rules for new backend code (from those plans):**
+
+- External APIs are called **only from the backend**, through the modular catalog
+  provider registry — never from a client.
+- Stay **portable between the Lightsail box and Lambda**: no in-process background work
+  after the response; no correctness depending on in-process caches; URLs from
+  settings, never the `Host` header; app startup must not require a DB connection.
+- API paths live under `/api/v1`; changes within v1 are **additive only** (old mobile
+  apps can't be force-updated); wire casing is **snake_case**.
 
 ## Commands
 

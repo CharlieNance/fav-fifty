@@ -1,6 +1,6 @@
 # Privacy Policy
 
-_Last updated: 2026-08-01_
+_Last updated: 2026-10-13_
 
 Fav Fifty ("the app", "we") is a small personal project, not a company. This policy
 explains what we collect and why, in plain language. It is not a substitute for legal
@@ -37,6 +37,16 @@ opt-in and this policy would be updated first.
 Only to run the app: to know who you are when you sign back in, to show your name and
 avatar next to your lists, and to associate your content with your account. We do not
 sell or share your data with third parties, and we don't use it for advertising.
+
+## Who can see your data
+
+**Your lists are not private from us.** Fav Fifty is run by one person, who has access to
+the database and may read stored content, including lists that aren't published, when
+it's needed to debug a problem or investigate an account (for example, a report of
+abuse). Access through the app's admin tools (being built) is logged.
+
+What we will **never** do with your data: sell it, share it with advertisers, use it for
+anything other than running Fav Fifty, or publish content you haven't chosen to publish.
 
 ## Where it's stored
 

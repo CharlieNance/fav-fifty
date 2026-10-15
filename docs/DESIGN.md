@@ -31,9 +31,12 @@ design problem than a graphical one. Whitespace, type, and one good accent color
 - **Mobile-first, always.** The mock is desktop-first; we port it as mobile-first
   responsive (design the narrow layout, scale up at `sm:`/`md:`). Audience arrives via
   Discord links, mostly on phones.
-- **Logged-out "Start a list" (2026-07-14).** Button stays visible; clicking it when
+- ~~**Logged-out "Start a list" (2026-07-14).** Button stays visible; clicking it when
   logged out routes to login and **preserves intent** (continue to create-a-list after).
-  Gate the action, not the button — more inviting, better funnel.
+  Gate the action, not the button — more inviting, better funnel.~~
+  **Superseded (2026-10-13):** anonymous visitors can build lists on-device, so "Start a
+  list" no longer gates on login at all. Sign-in prompts move to *keeping* (sync across
+  devices) and *sharing*. See [ANONYMOUS_AND_LOCAL_LISTS_PLAN.md](ANONYMOUS_AND_LOCAL_LISTS_PLAN.md).
 - **Motion (2026-08-08).** Small, quick, and a little springy — interactive elements
   should *feel* pressed and lifted, not just recolor. (Owner call: hover/click was too
   flat; the site should give feedback and feel alive.) Concretely:
@@ -101,6 +104,18 @@ design problem than a graphical one. Whitespace, type, and one good accent color
   now goes to `/` and toasts — home rather than login, since logging out isn’t a
   prelude to logging back in. (Pairs with sign-in landing on `/lists`, see
   [DECISIONS.md](DECISIONS.md).)
+- **Margin showcase (decided 2026-10-13, QUESTIONS.md Q17).** Scrolling art in the side
+  gutters, **only on screens ≥1280px** (not even fetched below that):
+  - **posters on the left, album covers on the right**;
+  - low opacity with edge fades;
+  - a slow, opposing-direction loop;
+  - off under `prefers-reduced-motion`, plus a user off-toggle.
+
+  It's decorative (`aria-hidden`, no pointer events). It's the second documented
+  **exception** to the ~200ms motion rule: *ambient* motion, not feedback. Opacity
+  and tint are tokens in `main.css`, so the light theme can tune them. Images come
+  through the `img.favfifty.com` proxy.
+  [MARGIN_SHOWCASE_PLAN.md](MARGIN_SHOWCASE_PLAN.md).
 - **Drag-and-drop library (2026-08-08): `vue-draggable-plus`** (MIT, typed,
   maintained; SortableJS underneath). Chosen over hand-rolled DnD (don't want to
   maintain drag code) and over `vuedraggable`, which is unmaintained and crashes with
@@ -113,6 +128,15 @@ design problem than a graphical one. Whitespace, type, and one good accent color
   text wordmark from the mock; favicon still the scaffold default.)
 - **Light theme:** *whether* is decided (yes, pre-launch — see Decided above); still
   open is *when* to build it and what the light palette's exact values are.
+- **Margin showcase: exact values.** The shape is decided (see Decided: Margin
+  showcase). Opacity, tint, fade-mask depth and scroll speed get settled with a static
+  mock before animating —
+  [MARGIN_SHOWCASE_PLAN.md](MARGIN_SHOWCASE_PLAN.md).
+- **Anonymous-user states.** "Saved on this device" badge, export/import, the post-sign-in
+  "Bring your lists with you?" claim dialog, and gentle sign-in nudges — need designing.
+- **Catalog type-ahead.** Combobox dropdown rows (thumbnail + title + subtitle), list-kind
+  picker chips, and where provider attribution sits —
+  [CATALOG_SEARCH_PLAN.md](CATALOG_SEARCH_PLAN.md) §Frontend design.
 
 ## Core interactions to design deliberately
 

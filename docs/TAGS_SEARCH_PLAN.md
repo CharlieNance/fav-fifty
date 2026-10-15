@@ -256,6 +256,9 @@ empty state.
    **Decision:** Could we set this as a config value? Since we have such a low user
    base I'm inclined to leave it high, default to 100, and if we start running into issues
    I can lower it. Unless there is a reason I'm not thinking of it should be lower.
+   **Update (2026-10-13):** with anonymous users arriving, the default drops to **25**
+   ([QUESTIONS.md](QUESTIONS.md) Q25), and the value moves under runtime settings so it
+   can change without a deploy ([ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md)).
 2. **Tag editing UX on the details page** — inline autosave-per-change (add a tag,
    it's saved immediately; remove a chip, it's saved immediately) vs. a small
    edit-tags modal with explicit Save/Cancel (consistent with how title editing
