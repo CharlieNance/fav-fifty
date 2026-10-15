@@ -212,9 +212,10 @@ docs). All of QUESTIONS.md Round 2 is decided. **Suggested order:**
 1. **AWS console only (no code):** the account is already on the **Paid** plan
    (confirmed 2026-10-14), so there is no close-or-upgrade deadline, but real charges
    can already happen. Finish the spend alerts:
-   - Budgets ($25/$50/$100). Budgets exist; check thresholds and recipients.
-   - Cost Anomaly Detection.
-   - Notifications: email + AWS Console app push + Discord webhook.
+   - [x] Budgets: $10/$25/$50/$100 monthly cost budgets with email alerts (2026-10-14).
+   - [x] Cost Anomaly Detection (2026-10-14).
+   - [ ] Notifications beyond email: AWS Console app push + Discord webhook (can wait
+         for the breaker's SNS topic at deploy).
 
    Budgets alone can't stop spending. The breaker does that, at deploy time. See
    [COST_GUARDRAILS_PLAN.md](COST_GUARDRAILS_PLAN.md) §Account timeline.
