@@ -3,15 +3,17 @@
 The resolved choices that shape the build. This is the quick-reference summary; the
 full deliberation and trade-offs live in [QUESTIONS.md](QUESTIONS.md).
 
-_Last updated: 2026-08-23_
+_Last updated: 2026-10-13_
 
 ## Stack & infrastructure
 
 | Area | Decision | Notes |
 | ------ | ---------- | ------- |
-| **Database** | PostgreSQL on **Aurora Serverless v2** | Relational fits the social roadmap; scales to zero when idle. |
-| **Backend compute** | **Docker container on AWS Lightsail** | Owner wants Docker/Lightsail experience; FastAPI runs unchanged. |
-| **Auth** | **AWS Cognito**, social login only | **Google at launch.** Facebook/Apple possible later. Twitter/X dropped. No email/password. |
+| **Database** | **PostgreSQL 16 in Docker on the Lightsail instance** (changed 2026-10-13, Q20) | Relational fits the social roadmap. Same image as local dev. We own backups (nightly `pg_dump` → S3 + Lightsail snapshots) and updates. **Aurora Serverless v2 is deferred, not rejected:** plain SQLAlchemy/Alembic/Postgres means a later move is dump/restore + config. *(Was: Aurora Serverless v2, 2026-06-28.)* |
+| **Backend compute** | **One Lightsail instance (2 GB, ~$12/mo fixed) running Docker Compose** (FastAPI + Postgres + a TLS reverse proxy), plus **Lambda for stateless routes** (catalog lookup, showcase) (changed 2026-10-13, Q20) | The same Docker image runs on both (Lambda Web Adapter). Stateless route groups can switch box ↔ Lambda at the CloudFront edge without client changes; DB-backed routes are pinned to the box. Full Lambda is deferred (it would need a managed DB). [DEPLOYMENT_TOPOLOGY_PLAN.md](DEPLOYMENT_TOPOLOGY_PLAN.md). *(Was: Lightsail Containers, 2026-06-28.)* |
+| **Edge / CDN** | **CloudFront on flat-rate Free plans** (2026-10-13, Q22) | `favfifty.com` serves the SPA (S3) **and** the API. A second distribution, `img.favfifty.com`, proxies catalog images. $0 with **no overage charges**; WAF included. Requires upgrading the AWS account from the Free account plan to Paid (due before launch). |
+| **API URL** | **`https://favfifty.com/api/v1`**, same origin as the SPA (2026-10-13, Q19) | No CORS or cross-site cookies on the web. Additive-only changes within v1. Wire casing is **snake_case**. Replaces the earlier `api.favfifty.com` plan. |
+| **Auth** | **AWS Cognito**, social login only — **and optional** | **Google at launch.** Facebook/Apple possible later (**Apple required before an iOS release**, which comes last, see [MOBILE_READINESS.md](MOBILE_READINESS.md) §3). Twitter/X dropped. No email/password. **2026-10-13:** signing in is no longer required to build lists — see §Scope expansion. |
 | **IaC** | **Terraform** | Portable, declarative. |
 | **Frontend language** | **TypeScript** | Plus ESLint + a frontend test runner (Vitest). |
 | **Styling** | **Tailwind CSS v4** | Configured CSS-first via semantic design tokens (`@theme`). Site should look fun and distinctive — custom theme/layout, not generic. **Dark-first** (light theme a later flip). Color/type/layout tracked in [DESIGN.md](DESIGN.md). |
@@ -20,6 +22,7 @@ _Last updated: 2026-08-23_
 | **Email sending** | Not needed yet | Revisit (AWS SES) when notifications arrive. |
 | **Environments** | **local + production** to start | Add **staging** later when warranted. |
 | **License** | **MIT** | In repo root. |
+| **Monetization** | **Never** (2026-10-13, Q15) | No ads, no charges, open source forever. A voluntary donation link (e.g. PayPal) may be added. Non-commercial API terms (TMDB etc.) are fine. A surprise bill is existential, so cost guardrails are mandatory. |
 
 ### HTTP client: `httpx2`, not `httpx` (decided 2026-08-23)
 
@@ -42,11 +45,102 @@ If you have concrete new evidence the package itself is compromised (not just th
 name is unfamiliar), that's worth raising specifically — but "this name looks odd" on
 its own isn't new information; it's already been weighed here.
 
+## Scope expansion & pre-launch hardening (decided 2026-10-13)
+
+A pre-launch pivot, deliberated in [QUESTIONS.md](QUESTIONS.md) Round 2 (Q11–Q25). Each
+item links to the plan that owns the details.
+
+### Product
+
+- **Anonymous use** (Q11, Q12). Visitors build lists without signing in, **stored only on
+  their device** as versioned JSON (no server guest accounts). On sign-in, a "bring your
+  lists with you?" dialog imports them in one atomic, idempotent request:
+  - a title conflict is renamed `"Title (2)"` and reported;
+  - any invalid list **rejects the whole import** with a message saying why;
+  - a successful import **clears the local copy**.
+
+  Supersedes the "logged-out *Start a list* routes to login" decision in
+  [DESIGN.md](DESIGN.md). Plan: [ANONYMOUS_AND_LOCAL_LISTS_PLAN.md](ANONYMOUS_AND_LOCAL_LISTS_PLAN.md).
+- **List kind** (Q13): a fixed, small enum on `lists.kind` ("What's this list of?"),
+  separate from tags. It picks the catalog to search. It isn't the deferred category
+  system.
+- **Catalog lookup / find-as-you-type** (Q14): **always via the backend, never from
+  clients.**
+  - Every provider that's free or nearly free, keyed or keyless, is in scope, built
+    in waves.
+  - Providers are **modular** and can be **enabled or disabled at runtime** (config +
+    admin portal).
+  - Excluded: anything needing a billing card (e.g. Google Places), and Spotify (its
+    dev-mode limits).
+  - Plan: [CATALOG_SEARCH_PLAN.md](CATALOG_SEARCH_PLAN.md).
+- **Margin showcase** (Q17): scrolling posters (left) and album covers (right) on
+  screens ≥1280px; low opacity, edge fades, slow opposing scroll; off under reduced
+  motion; a user off-toggle. Plan: [MARGIN_SHOWCASE_PLAN.md](MARGIN_SHOWCASE_PLAN.md).
+- **Catalog images are proxied** (Q17) through `img.favfifty.com`, so providers never see
+  visitor IPs. Only non-redirecting image sources are used for now; copying images into
+  S3 is the later fix for the rest, and for user-pasted URLs.
+- **Mobile apps** (Q18): planned, technology deferred (Capacitor is the lead candidate).
+  Android before iOS. Apple's $99/yr and Google's $25 one-time fees are accepted.
+  Requirements: [MOBILE_READINESS.md](MOBILE_READINESS.md).
+
+### Platform
+
+- **Topology** (Q20): one Lightsail box (FastAPI + Postgres) + Lambda for stateless
+  routes, behind CloudFront. See the Stack table above and
+  [DEPLOYMENT_TOPOLOGY_PLAN.md](DEPLOYMENT_TOPOLOGY_PLAN.md).
+- **Catalog/showcase rate limiting is enforced by AWS, not app code** (Q16):
+  - a WAF per-IP rule;
+  - CloudFront caching of identical searches;
+  - Lambda **reserved concurrency (~3)** as the global cap on upstream calls.
+
+  Python keeps only a per-provider circuit breaker. A DynamoDB counter is added only
+  if a daily-quota provider is enabled. Signed-in write routes keep app-level
+  per-user limits. Plan: [ABUSE_PROTECTION_PLAN.md](ABUSE_PROTECTION_PLAN.md).
+- **Runtime settings** (Q14, Q25): feature switches, limits and provider toggles live in
+  **SSM Parameter Store**. Each has a code default and is editable from the admin portal
+  without a deploy; env vars override them locally. Plan:
+  [ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md) §Runtime settings.
+- **Quotas** (Q25), all runtime-configurable:
+  - 100 lists per user;
+  - **25 tags per list** (the existing `max_tags_per_list` setting, default lowered
+    from 100);
+  - description ≤ 1,000 characters;
+  - 2,000 write actions per user per day;
+  - import ≤ 100 lists.
+
+  The 50-item cap stays fixed in code.
+
+### Pre-launch hardening (all block launch)
+
+- **Cost guardrails** (Q21, Q22): when cost-driving traffic goes wild, **the site
+  degrades and then goes offline rather than running up the bill**, and only the owner
+  revives it.
+
+  | Trigger | Level |
+  | --- | --- |
+  | Budget **$25** | Notify: email + repeat reminders + phone push (AWS Console app / Discord webhook). SMS isn't free, so it isn't planned. |
+  | Budget **$50**, or usage tripwires | **Degrade** |
+  | Budget **$100**, or tripwires persisting | **Maintenance** |
+
+  Every level is **manual-revive**. Plan: [COST_GUARDRAILS_PLAN.md](COST_GUARDRAILS_PLAN.md).
+- **Abuse protection:** WAF rules, app rate limits for signed-in writes, quotas, request
+  hygiene, CSRF origin checks, security headers, a backup restore test.
+  [ABUSE_PROTECTION_PLAN.md](ABUSE_PROTECTION_PLAN.md).
+- **Admin portal** (Q24): **the owner is the only admin.** Admin can only be granted by a
+  CLI command on the box; no API can elevate an account. Every action is audit-logged.
+  The admin **can read private lists** (debugging, investigations). The privacy policy
+  says so, and that data is never sold, used for anything else, or published.
+- **Analytics** (Q23): **Cloudflare Web Analytics** (cookieless) for traffic, plus a
+  first-party `/events` endpoint (allowlisted events; user id attached when signed in;
+  IPs not stored; 90-day retention). Errors: logs only for now.
+
 ## Auth detail
 
 - Launch supports **Google sign-in only**, brokered by Cognito.
 - For the OAuth client we only need a **Google OAuth Web Application client ID** for now.
 - Facebook and Apple are nice-to-haves for later (both are native Cognito IdPs).
+  **Apple becomes required before an iOS app ships** (App Store guideline 4.8 — an app
+  offering Google sign-in must offer an equivalent privacy-focused login).
 - Twitter/X is explicitly **not** supported.
 
 ### Google OAuth consent screen: Testing now, Production later (decided 2026-07-31)
@@ -139,8 +233,10 @@ Update (`feat/auth-page`): the two remaining code pieces are done —
 
 **Update (2026-07-31):** the AWS/Google console setup (see [SETUP.md](SETUP.md) §3) is
 done — Cognito user pool, Google IdP, hosted domain, and app client are all live, and
-"Continue with Google" has been verified working end-to-end. Still to do at deploy time:
-a shared cookie domain across the API and site origins.
+"Continue with Google" has been verified working end-to-end. ~~Still to do at deploy time:
+a shared cookie domain across the API and site origins.~~ **Not needed (2026-10-13):** the
+API moves to the same origin as the site (`favfifty.com/api/v1`, Q19). The prod Cognito
+callback URL becomes `https://favfifty.com/api/v1/auth/callback`.
 
 **Update (2026-09-22) — where a sign-in lands:** `/lists`, not the homepage. Someone who
 just signed in came to use the app, while the homepage is still a pitch to a stranger. A
@@ -190,9 +286,23 @@ Decisions from QUESTIONS.md §10, to guide the schema:
 
 Later phases add: `comments`, `votes`, `suggestions`/`questions`, and possibly `categories`.
 
+### Planned schema additions (2026-10 plans; not yet migrated)
+
+All additive and nullable, or defaulted, so backward compatible. Each lands with the
+feature that needs it:
+
+- `lists.kind` (enum-ish string), `list_items.catalog_source` / `catalog_id` /
+  `catalog_kind`: [CATALOG_SEARCH_PLAN.md](CATALOG_SEARCH_PLAN.md).
+- `lists.import_key` (or an import-record table) for idempotent imports:
+  [ANONYMOUS_AND_LOCAL_LISTS_PLAN.md](ANONYMOUS_AND_LOCAL_LISTS_PLAN.md).
+- `users.role` (`user` | `admin`), `admin_audit_log`, `analytics_events`,
+  `analytics_daily`, per-minute request counters:
+  [ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md).
+
 ## Development workflow & testing (decided 2026-07-09)
 
-- **Local database:** Postgres via the root `docker-compose.yml`. During development the DB
+- **Local database:** Postgres via the root `docker-compose.yml` (production runs the same
+  `postgres:16` image on the Lightsail box). During development the DB
   is **disposable** — no data is worth preserving until launch. Rebuild anytime with
   `docker compose down -v` then `alembic upgrade head`.
 - **Schema changes:** always via **Alembic migrations**, never by hand. Each migration's
@@ -207,7 +317,15 @@ Later phases add: `comments`, `votes`, `suggestions`/`questions`, and possibly `
 
 - Exact color theme, branding, type, and layout for the frontend (owner to design) — tracked in [DESIGN.md](DESIGN.md).
 - Whether/when to add a staging environment.
-- Image storage (S3) — deferred until after MVP.
-- Category system — deferred; tags first.
-- Formal production DB rollback process (snapshot-first, tested downgrades) — defined at launch.
+- Image storage (S3): now also the fix for redirecting catalog image sources and
+  user-pasted image URLs (privacy). Deferred until after launch.
+- Category system: deferred; tags first (`lists.kind` is separate and doesn't replace it).
+- Formal production DB rollback process (snapshot-first, tested downgrades): defined at
+  launch, now alongside the box's backup/restore runbook.
+- Mobile app technology (Q18): deferred until mobile work starts; Capacitor is the lead
+  candidate.
+- Full Lambda (moving DB-backed routes off the box): deferred; it would require a
+  managed database ([DEPLOYMENT_TOPOLOGY_PLAN.md](DEPLOYMENT_TOPOLOGY_PLAN.md) §Future).
+- Keeping data on-device even when signed in, with bulk sync (owner idea, Q12): future
+  design, not planned.
 - Auth — **fully implemented and live** (see §Auth detail): dev stub, real Cognito provider, frontend login state, OAuth callback, all verified working end-to-end (2026-07-31).

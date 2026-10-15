@@ -2,7 +2,8 @@
 
 Planning doc for giving signed-in users a real avatar in the header and an **Account**
 page to click through to, built so that adding **Apple** and **email** sign-in later
-doesn't mean redoing it. Nothing here is built yet.
+doesn't mean redoing it. **Status (2026-10-13):** PR 1 (the casing fix, `referrerpolicy`,
+`@error` fallback) shipped in commit `3f98dcd`; the rest isn't built yet.
 
 ## Scope
 
@@ -253,8 +254,8 @@ where it is.
 
 ## Suggested PR order
 
-1. **Fix the casing bug + `referrerpolicy` + `@error` fallback** (frontend only,
-   tiny, immediately visible)
+1. ~~**Fix the casing bug + `referrerpolicy` + `@error` fallback**~~ — done (`3f98dcd`);
+   the frontend reads snake_case, which is now the API's wire casing for good
 2. **`auth_provider` column + `Claims.provider` + `AvatarService`** (backend,
    migration, pytest)
 3. **`MeRead` + revoke-sessions endpoint** (backend)
@@ -264,7 +265,8 @@ where it is.
 ## Open questions for the owner
 
 1. OK with **Option A** (store the URL, not the image) until user uploads exist?
-2. Is the **$99/yr Apple Developer fee** acceptable, or does Apple wait?
+2. ~~Is the **$99/yr Apple Developer fee** acceptable, or does Apple wait?~~ Answered
+   (QUESTIONS.md Q18): acceptable, but Apple comes **last**, with the iOS app.
 3. When email sign-up comes: **initials only, or opt-in Gravatar?**
 4. **Account linking:** same email across providers means one account, or keep them
    separate?
