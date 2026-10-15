@@ -152,8 +152,8 @@ Planning doc for how Fav Fifty runs in AWS. **Decided 2026-10-13**
 | **Expected total** | **~$13–15/month, almost entirely fixed** |
 
 The flat-rate CloudFront plans require the AWS account to be on the **Paid** account
-plan. The owner is ~4 months into the credit-based Free account plan, so upgrading
-is part of the first deploy. See COST_GUARDRAILS_PLAN.md §Account timeline.
+plan. The account is already Paid (confirmed 2026-10-14), so no upgrade step is needed.
+See COST_GUARDRAILS_PLAN.md §Account timeline.
 
 ## Testing parity
 
@@ -201,7 +201,7 @@ the box becomes a real limitation. At ≤10 concurrent users it won't be.
 1. **Track 0 (before any deploy):** the `/api/v1` prefix, the OpenAPI snapshot, and
    `deploy_target` in health (NEXT_STEPS.md).
 2. **First deploy:**
-   - Upgrade the AWS account to Paid, with budgets set *before* the upgrade.
+   - Budgets and anomaly detection already in place (the account is already Paid).
    - Terraform: the box, S3, distribution #1 on the Free plan with WAF; update the
      Cognito callback URL.
    - Get backups running and do the test restore.

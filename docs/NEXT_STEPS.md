@@ -62,7 +62,7 @@ Goal: the actual product. A user manages their own lists, signed in or (since th
       [DEPLOYMENT_TOPOLOGY_PLAN.md](DEPLOYMENT_TOPOLOGY_PLAN.md): one Lightsail box
       (Docker Compose: FastAPI + Postgres 16 + TLS proxy), the SPA on S3, and one
       CloudFront distribution (flat-rate Free plan) serving the SPA *and* `/api/v1/*`.
-      Includes: upgrading the AWS account to Paid, the Cognito callback URL →
+      Includes: the Cognito callback URL →
       `https://favfifty.com/api/v1/auth/callback`, nightly `pg_dump` + snapshots + one
       test restore.
 
@@ -209,16 +209,15 @@ See [MOBILE_READINESS.md](MOBILE_READINESS.md). Prerequisites are mostly Track 0
 Phases 0–1 and the Phase 2 list/item/tag features are done (history in git and the plan
 docs). All of QUESTIONS.md Round 2 is decided. **Suggested order:**
 
-1. **⏰ Time-sensitive, AWS console only (no code):** the AWS account is ~4 months into
-   the credit-based **Free account plan**, which ends after 6 months (around
-   **December 2026**) or when credits run out. If it lapses, **the account closes**,
-   taking the Cognito pool and the **Route 53 zone (including Google Workspace email
-   DNS)** with it. Before then:
-   - set up Budgets ($25/$50/$100), Cost Anomaly Detection, and notifications
-     (email + AWS Console app push + Discord webhook);
-   - then **upgrade to Paid**.
+1. **AWS console only (no code):** the account is already on the **Paid** plan
+   (confirmed 2026-10-14), so there is no close-or-upgrade deadline, but real charges
+   can already happen. Finish the spend alerts:
+   - Budgets ($25/$50/$100). Budgets exist; check thresholds and recipients.
+   - Cost Anomaly Detection.
+   - Notifications: email + AWS Console app push + Discord webhook.
 
-   See [COST_GUARDRAILS_PLAN.md](COST_GUARDRAILS_PLAN.md) §Account timeline.
+   Budgets alone can't stop spending. The breaker does that, at deploy time. See
+   [COST_GUARDRAILS_PLAN.md](COST_GUARDRAILS_PLAN.md) §Account timeline.
 2. **Next feature: Track 0 (API groundwork).** Small, touches every path, and every
    later track builds on it:
    - the `/api/v1` prefix + same-origin config;

@@ -374,6 +374,10 @@ What should trip what? Proposed (monthly, all tunable later):
   (flagged) — only if we outgrow Free.
 
 > **Decision:** I'm on the free account plan now, but I think I have been on it for 4 months, so it is likely I will have to upgrade to a paid plan before we launch. But if there is a way to "Adopt the CloudFront flat-rate" and stay on that, yeah let's do that
+>
+> **Update 2026-10-14:** checked: the account is already on the **Paid** plan
+> (`aws freetier get-account-plan-state` → `PAID`, `ACTIVE`). No upgrade or deadline;
+> the flat-rate CloudFront plan is available now.
 
 ---
 
