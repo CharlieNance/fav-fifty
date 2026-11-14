@@ -1,5 +1,5 @@
 /**
- * Calls `POST /api/lists/:id/items` and tracks in-flight/error state for the
+ * Calls `POST /api/v1/lists/:id/items` and tracks in-flight/error state for the
  * add-item modal (Interaction 1, docs/ITEMS_CRUD_PLAN.md). A 409 means the
  * backend refused for a reason the user can fix (duplicate text, or the list
  * is at 50) — its `detail` copy is shown verbatim instead of a generic error.

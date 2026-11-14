@@ -94,11 +94,9 @@ Notes:
 Web clients update on refresh. **Installed apps don't**: people run old versions for
 months. So:
 
-- **Version the path now, before launch.** Routes are currently unprefixed (`/lists`)
-  and `/api` is only a dev-proxy prefix that Vite strips. Recommendation: the app
+- **Version the path now, before launch.** Done (Track 0, 2026-10-14): the app
   itself serves **`/api/v1/...`** in every environment (no rewrite anywhere), as
-  CONSIDERATIONS.md §Extensibility already suggested. Do it pre-launch while there
-  are no external clients.
+  CONSIDERATIONS.md §Extensibility suggested.
 - **One permanent public base URL: `https://favfifty.com/api/v1`** (decided, Q19), baked into
   the apps. What runs *behind* it (Lightsail, Lambda, or both) must be changeable
   without an app release. That's the core of
@@ -111,8 +109,9 @@ months. So:
   instead of failing strangely. It's the same public config endpoint that serves
   runtime limits and switches ([ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md)
   §Runtime settings).
-- **Contract as an artifact:** commit FastAPI's OpenAPI schema
-  (`openapi.json`) and have **CI fail on unreviewed changes**. Generate the
+- **Contract as an artifact:** FastAPI's OpenAPI schema is committed
+  (`backend/openapi.json`) and **CI fails on unreviewed changes**
+  (`tests/test_api_contract.py`; regenerate with `./tools/openapi_snapshot.sh`). Generate the
   TypeScript client types from it (already intended in CONSIDERATIONS.md), and
   Swift/Kotlin if we ever go native. The same snapshot proves every deployment target
   serves the same contract.

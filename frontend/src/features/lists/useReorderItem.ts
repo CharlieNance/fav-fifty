@@ -1,5 +1,5 @@
 /**
- * Calls `PATCH /api/lists/:listId/items/:itemId/position` (Interaction 4,
+ * Calls `PATCH /api/v1/lists/:listId/items/:itemId/position` (Interaction 4,
  * docs/ITEMS_CRUD_PLAN.md). One move per call — the endpoint matches a single
  * drag-drop or up/down-button move directly, and its response is the FULL
  * re-ranked item list, so the caller swaps its whole array in one shot and can

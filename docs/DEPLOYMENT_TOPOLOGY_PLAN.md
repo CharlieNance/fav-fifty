@@ -198,8 +198,10 @@ the box becomes a real limitation. At ≤10 concurrent users it won't be.
 
 ## Sequencing
 
-1. **Track 0 (before any deploy):** the `/api/v1` prefix, the OpenAPI snapshot, and
-   `deploy_target` in health (NEXT_STEPS.md).
+1. ~~**Track 0 (before any deploy):** the `/api/v1` prefix, the OpenAPI snapshot, and
+   `deploy_target` in health (NEXT_STEPS.md).~~ Done 2026-10-14. The image build sets
+   `GIT_SHA`; each runtime sets `DEPLOY_TARGET` (`lightsail` / `lambda`) and
+   `RUNTIME_SETTINGS_SOURCE=ssm`.
 2. **First deploy:**
    - Budgets and anomaly detection already in place (the account is already Paid).
    - Terraform: the box, S3, distribution #1 on the Free plan with WAF; update the

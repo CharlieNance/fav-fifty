@@ -4,13 +4,13 @@ Run locally from the ``backend/`` directory:
 
     uvicorn app.main:app --reload
 
-Then open http://localhost:8000/health and http://localhost:8000/docs
+Then open http://localhost:8000/api/v1/health and http://localhost:8000/api/v1/docs
 """
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import auth, health, list_items, lists, me
+from app.api.router import API_V1_PREFIX, api_router
 from app.core.config import settings
 
 
@@ -20,7 +20,16 @@ def create_app() -> FastAPI:
     Using a factory (instead of a single module-level instance) keeps setup
     explicit and lets tests construct a fresh, isolated app per test.
     """
-    app = FastAPI(title="Fav Fifty API", version="0.1.0")
+    # The docs and schema live under the API prefix too: in production only
+    # `/api/v1/*` reaches this app (everything else is the SPA), so root-level
+    # `/docs` would be unreachable there.
+    app = FastAPI(
+        title="Fav Fifty API",
+        version="0.1.0",
+        openapi_url=f"{API_V1_PREFIX}/openapi.json",
+        docs_url=f"{API_V1_PREFIX}/docs",
+        redoc_url=None,
+    )
 
     # Restrict cross-origin requests to known frontends (the Vue dev server, prod site).
     app.add_middleware(
@@ -31,12 +40,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Routers are registered here. Each feature gets its own router module.
-    app.include_router(health.router)
-    app.include_router(auth.router)
-    app.include_router(me.router)
-    app.include_router(lists.router)
-    app.include_router(list_items.router)
+    app.include_router(api_router)
 
     return app
 

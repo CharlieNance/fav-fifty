@@ -38,6 +38,6 @@ else
    echo $! >"$REPO_ROOT/logs/frontend.pid")
 fi
 
-echo "Backend:  http://localhost:8000/docs   (logs/backend.log)"
+echo "Backend:  http://localhost:8000/api/v1/docs   (logs/backend.log)"
 echo "Frontend: http://localhost:5173        (logs/frontend.log)"
 echo "Run ./tools/stop_dev.sh when done."

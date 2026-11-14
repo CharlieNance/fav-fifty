@@ -24,11 +24,10 @@ export default defineConfig({
   },
   server: {
     // Proxy API calls to the FastAPI backend during local dev. Requests to
-    // `/api/*` are forwarded to localhost:8000, so the browser sees a single
-    // origin — no CORS in dev, and the HttpOnly session cookie "just works".
-    // The backend mounts its routers at the root (`/me`, `/auth/*`), so we strip
-    // the `/api` prefix here. In prod the SPA calls the API's real origin via
-    // VITE_API_BASE_URL, so this rewrite is a dev-only concern.
+    // `/api/*` are forwarded to localhost:8000 unchanged (the backend serves
+    // `/api/v1/...` itself), so the browser sees a single origin — no CORS, and
+    // the HttpOnly session cookie "just works". Prod is the same shape:
+    // CloudFront routes `/api/v1/*` on favfifty.com to the backend.
     proxy: {
       '/api': {
         // Use 127.0.0.1, not localhost: Node 17+ resolves `localhost` to IPv6
@@ -36,7 +35,6 @@ export default defineConfig({
         // `localhost` target gets ECONNREFUSED. Pinning IPv4 avoids that.
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
       },
     },
   },

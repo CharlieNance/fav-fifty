@@ -1,6 +1,7 @@
 """Tests for /lists — a signed-in user's own lists (index + create)."""
 
 import uuid
+from collections.abc import Callable
 from datetime import UTC, datetime
 
 import pytest
@@ -9,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.claims import Claims
 from app.auth.providers import DEV_CLAIMS
-from app.core.config import settings
+from app.core.runtime_settings import Limits, RuntimeSettings
 from app.models.list import List
 from app.models.list_item import ListItem
 from app.models.user import User
@@ -130,7 +131,7 @@ def test_list_lists_filters_by_tag_substring(
     fresh_user_client: TestClient, fresh_user: User, db_session: Session
 ) -> None:
     matching = _list(db_session, fresh_user, "My List")
-    tag_service.set_list_tags(db_session, matching, ["sci-fi"])
+    tag_service.set_list_tags(db_session, matching, ["sci-fi"], max_tags=25)
     _list(db_session, fresh_user, "Untagged")
 
     response = fresh_user_client.get("/lists", params={"q": "sci"})
@@ -352,7 +353,7 @@ def test_delete_list_404s_for_a_nonexistent_id(auth_client: TestClient) -> None:
 
 def test_get_list_includes_its_tags(auth_client: TestClient, db_session: Session) -> None:
     row = _list(db_session, _dev_user(db_session), "Mine")
-    tag_service.set_list_tags(db_session, row, ["games", "sci-fi"])
+    tag_service.set_list_tags(db_session, row, ["games", "sci-fi"], max_tags=25)
 
     response = auth_client.get(f"/lists/{row.id}")
 
@@ -432,14 +433,17 @@ def test_update_list_tags_rejects_an_invalid_tag(
 
 
 def test_update_list_tags_rejects_over_the_cap(
-    auth_client: TestClient, db_session: Session, monkeypatch: pytest.MonkeyPatch
+    auth_client: TestClient,
+    db_session: Session,
+    set_runtime_settings: Callable[[RuntimeSettings], None],
 ) -> None:
-    monkeypatch.setattr(settings, "max_tags_per_list", 2)
+    set_runtime_settings(RuntimeSettings(limits=Limits(max_tags_per_list=2)))
     row = _list(db_session, _dev_user(db_session), "Mine")
 
     response = auth_client.put(f"/lists/{row.id}/tags", json={"tags": ["a", "b", "c"]})
 
     assert response.status_code == 422
+    assert response.json()["detail"] == "A list can have at most 2 tags."
 
 
 def test_update_list_tags_404s_for_a_different_users_list(

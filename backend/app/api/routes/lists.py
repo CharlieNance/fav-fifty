@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
-from app.core.config import settings
+from app.core.runtime_settings import RuntimeSettings, get_runtime_settings
 from app.models.list import List
 from app.models.user import User
 from app.schemas.list import ListCreate, ListRead, ListUpdate
@@ -90,16 +90,18 @@ def update_list_tags(
     payload: TagsUpdate,
     list_row: List = Depends(get_owned_list),
     db: Session = Depends(get_db),
+    runtime: RuntimeSettings = Depends(get_runtime_settings),
 ) -> List:
     """Replace one of the current user's lists' full tag set (404 if missing, not
     theirs, or deleted).
 
     422 if the submitted set (after de-duplication) exceeds the per-list tag cap.
     """
+    max_tags = runtime.limits.max_tags_per_list
     try:
-        return tag_service.set_list_tags(db, list_row, payload.tags)
+        return tag_service.set_list_tags(db, list_row, payload.tags, max_tags=max_tags)
     except tag_service.TooManyTagsError:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=f"A list can have at most {settings.max_tags_per_list} tags.",
+            detail=f"A list can have at most {max_tags} tags.",
         ) from None

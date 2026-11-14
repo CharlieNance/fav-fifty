@@ -87,10 +87,10 @@ lists per request.
   settings** (SSM-backed, editable from the admin portal; see
   [ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md) §Runtime settings). A
   change applies within ~30 s.
-- **The tag cap already exists:** `settings.max_tags_per_list` in
-  `backend/app/core/config.py` (env `MAX_TAGS_PER_LIST`), enforced in
-  `tag_service`. Its default drops from **100 to 25**, and it moves under runtime
-  settings with the rest.
+- **The tag cap already exists:** `limits.max_tags_per_list` in the runtime settings
+  (`backend/app/core/runtime_settings.py`; SSM `/favfifty/settings/limits/max_tags_per_list`,
+  env `RUNTIME_LIMITS__MAX_TAGS_PER_LIST` locally), default **25**, enforced in
+  `tag_service`. Moved there in Track 0 (2026-10-14); the other quotas join it.
 - Enforced in the service layer like the item cap, with friendly 409/422 messages.
   The same values go to clients via `GET /api/v1/config/client`, so the anonymous
   mode's local validation stays in step (ANONYMOUS_AND_LOCAL_LISTS_PLAN.md §Key

@@ -2,18 +2,19 @@
  * Minimal typed fetch wrapper — the single seam through which the app talks to
  * the backend. Kept deliberately tiny (no axios) until we actually need more.
  *
- * Base URL is `/api` by default, which the Vite dev server proxies to FastAPI
- * (see vite.config.ts). `credentials: 'include'` sends the session cookie once
+ * Base URL is `/api/v1` by default: the API shares the site's origin in every
+ * environment (CloudFront routes `/api/v1/*` to it in prod; the Vite dev server
+ * proxies it to FastAPI locally — see vite.config.ts). `credentials: 'include'` sends the session cookie once
  * auth lands. When we add real endpoints we'll generate request/response types
  * from the backend's OpenAPI schema and layer them on top of this helper.
  */
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api'
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api/v1'
 
 /**
  * Absolute URL for a backend `path`, honoring the same base as {@link apiFetch}.
  * Use for full-page navigations (e.g. the OAuth redirect) where `fetch` isn't
- * involved. Works whether `BASE_URL` is relative (`/api`, dev) or an absolute
- * origin (prod): a relative base resolves against the current origin, and an
+ * involved. Works whether `BASE_URL` is relative (`/api/v1`, the default) or an absolute
+ * origin: a relative base resolves against the current origin, and an
  * absolute base makes the second `URL` argument a no-op.
  */
 export function apiUrl(path: string): URL {

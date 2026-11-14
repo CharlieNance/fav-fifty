@@ -66,7 +66,7 @@ def test_list_for_user_filters_by_title_substring(db_session: Session) -> None:
 def test_list_for_user_filters_by_tag_substring(db_session: Session) -> None:
     owner = _user(db_session, "owner")
     matching = _list(db_session, owner, "My List")
-    tag_service.set_list_tags(db_session, matching, ["sci-fi"])
+    tag_service.set_list_tags(db_session, matching, ["sci-fi"], max_tags=25)
     _list(db_session, owner, "Untagged")
 
     result = list_service.list_for_user(db_session, owner.id, "sci")
@@ -105,7 +105,7 @@ def test_list_for_user_filter_returns_a_matching_list_once_per_multiple_matching
 ) -> None:
     owner = _user(db_session, "owner")
     matching = _list(db_session, owner, "My List")
-    tag_service.set_list_tags(db_session, matching, ["sci-fi", "sci-fi classics"])
+    tag_service.set_list_tags(db_session, matching, ["sci-fi", "sci-fi classics"], max_tags=25)
 
     result = list_service.list_for_user(db_session, owner.id, "sci")
 

@@ -1,5 +1,5 @@
 /**
- * A list as the API returns it (`GET /api/lists`, `GET /api/lists/:id`) — mirrors
+ * A list as the API returns it (`GET /api/v1/lists`, `GET /api/v1/lists/:id`) — mirrors
  * the backend's `ListRead` schema (`backend/app/schemas/list.py`) field-for-field,
  * including its snake_case JSON keys.
  */
@@ -15,7 +15,7 @@ export interface ListSummary {
 }
 
 /**
- * A ranked item as the API returns it (`GET /api/lists/:id/items` and friends) —
+ * A ranked item as the API returns it (`GET /api/v1/lists/:id/items` and friends) —
  * mirrors the backend's `ItemRead` schema (`backend/app/schemas/list_item.py`)
  * field-for-field, including its snake_case JSON keys. `position` is the 1-based
  * rank, always contiguous `1..N` (the backend repacks on delete/reorder).

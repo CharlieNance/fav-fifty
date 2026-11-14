@@ -17,7 +17,6 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.core.config import settings
 from app.models.list import List
 from app.models.tag import Tag
 
@@ -25,7 +24,7 @@ _WHITESPACE_RE = re.compile(r"\s+")
 
 
 class TooManyTagsError(Exception):
-    """Raised when a submitted tag set exceeds ``settings.max_tags_per_list``."""
+    """Raised when a submitted tag set exceeds the per-list tag cap."""
 
 
 def normalize_tag_name(name: str) -> str:
@@ -54,8 +53,11 @@ def _get_or_create_tag(db: Session, name: str) -> Tag:
     return row
 
 
-def set_list_tags(db: Session, list_row: List, names: list[str]) -> List:
+def set_list_tags(db: Session, list_row: List, names: list[str], max_tags: int) -> List:
     """Replace ``list_row``'s full tag set with ``names`` (already normalized).
+
+    ``max_tags`` is the cap (a runtime setting, passed in by the caller) on the
+    de-duplicated set; more raises ``TooManyTagsError``.
 
     Duplicate names are de-duplicated (case is already folded by normalization)
     rather than rejected.
@@ -66,7 +68,7 @@ def set_list_tags(db: Session, list_row: List, names: list[str]) -> List:
     orphaned ``Tag`` row is left in place (see docs/TAGS_SEARCH_PLAN.md).
     """
     deduped = list(dict.fromkeys(names))
-    if len(deduped) > settings.max_tags_per_list:
+    if len(deduped) > max_tags:
         raise TooManyTagsError
 
     # Two requests introducing the same brand-new tag name at once can both miss

@@ -119,9 +119,12 @@ Do everything in one region (`us-east-1` recommended) and keep the browser tab w
 2. Type: **Confidential client** (our backend holds the secret) → this generates a
    **client secret**.
 3. **Allowed callback URLs** — must equal `COGNITO_REDIRECT_URI` exactly:
-   - dev: `http://localhost:8000/auth/callback`
+   - dev: `http://localhost:8000/api/v1/auth/callback`
    - prod: `https://favfifty.com/api/v1/auth/callback` (the API shares the site's origin
-     — decided 2026-10-13; update this when the `/api/v1` prefix and first deploy land)
+     — decided 2026-10-13; add it at first deploy)
+
+   The app serves every route under `/api/v1` (since Track 0, 2026-10-14). If your app
+   client still lists the old dev URL `http://localhost:8000/auth/callback`, replace it.
 4. **Allowed sign-out URLs:** your frontend, e.g. `http://localhost:5173` /
    `https://favfifty.com` (not used yet, but set it for later hosted-UI logout).
 5. **Identity providers:** enable **Google** (not Cognito user pool).

@@ -13,19 +13,28 @@ in any order. ``get_db`` is overridden so the app and the test share one session
 """
 
 import uuid
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
+from typing import cast
 
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.api.router import API_V1_PREFIX
 from app.auth.claims import Claims
 from app.auth.session import issue_session
 from app.core.config import settings
+from app.core.runtime_settings import RuntimeSettings, get_runtime_settings
 from app.db.session import engine, get_db
 from app.main import create_app
 from app.models.user import User
 from app.services import user_service
+
+# Every TestClient talks to the versioned API, so tests write the path relative to it
+# — ``client.get("/lists")`` hits ``/api/v1/lists``. An absolute URL
+# (``"http://testserver/lists"``) bypasses the prefix when a test needs to.
+API_BASE_URL = f"http://testserver{API_V1_PREFIX}"
 
 
 @pytest.fixture(autouse=True)
@@ -67,12 +76,28 @@ def db_session() -> Iterator[Session]:
 
 @pytest.fixture
 def client(db_session: Session) -> Iterator[TestClient]:
-    """A TestClient whose app shares the test's rolled-back DB session."""
+    """A TestClient whose app shares the test's rolled-back DB session.
+
+    Runtime settings are pinned to their code defaults, so a ``RUNTIME_*`` value in a
+    developer's ``backend/.env`` can't change test outcomes; use
+    ``set_runtime_settings`` to test other values.
+    """
     app = create_app()
     app.dependency_overrides[get_db] = lambda: db_session
-    with TestClient(app) as test_client:
+    app.dependency_overrides[get_runtime_settings] = RuntimeSettings
+    with TestClient(app, base_url=API_BASE_URL) as test_client:
         yield test_client
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def set_runtime_settings(client: TestClient) -> Callable[[RuntimeSettings], None]:
+    """Swap the runtime settings every request on ``client``'s app sees."""
+
+    def _set(value: RuntimeSettings) -> None:
+        cast(FastAPI, client.app).dependency_overrides[get_runtime_settings] = lambda: value
+
+    return _set
 
 
 @pytest.fixture
@@ -103,7 +128,7 @@ def fresh_user(db_session: Session) -> User:
 @pytest.fixture
 def fresh_user_client(client: TestClient, fresh_user: User) -> Iterator[TestClient]:
     """A logged-in TestClient for ``fresh_user`` — see that fixture for when to use it."""
-    with TestClient(client.app) as fresh_client:
+    with TestClient(client.app, base_url=API_BASE_URL) as fresh_client:
         fresh_client.cookies.set(settings.session_cookie_name, issue_session(fresh_user))
         yield fresh_client
 
@@ -122,6 +147,6 @@ def second_user_client(client: TestClient, db_session: Session) -> Iterator[Test
         db_session,
         Claims(sub="second-user", email="second@example.com", name="Second User"),
     )
-    with TestClient(client.app) as other_client:
+    with TestClient(client.app, base_url=API_BASE_URL) as other_client:
         other_client.cookies.set(settings.session_cookie_name, issue_session(user))
         yield other_client

@@ -25,7 +25,7 @@ export default defineConfig({
     {
       command: 'uv run uvicorn app.main:app --reload',
       cwd: '../backend',
-      url: 'http://localhost:8000/health',
+      url: 'http://localhost:8000/api/v1/health',
       reuseExistingServer: !process.env.CI,
     },
   ],

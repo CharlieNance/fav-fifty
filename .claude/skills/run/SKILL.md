@@ -22,7 +22,8 @@ Starts Postgres (via `docker compose`), the backend (`uv run uvicorn app.main:ap
 doesn't come up. Safe to rerun; it skips anything already running.
 
 - Frontend: **http://localhost:5173**
-- Backend + Swagger docs: **http://localhost:8000/docs**
+- Backend + Swagger docs: **http://localhost:8000/api/v1/docs** (every route lives under
+  `/api/v1`; the frontend calls it through the Vite proxy at `http://localhost:5173/api/v1`)
 
 First time only: `cd backend && uv sync --extra dev`, `cd frontend && npm install`,
 and copy `backend/.env.example` → `backend/.env` (defaults work as-is for local dev —
@@ -43,7 +44,7 @@ Instead, with `backend/.env` left at its defaults (all `COGNITO_*` values blank,
 
 **🧪 Dev login (stub)**
 
-Click it (or `POST http://localhost:8000/auth/dev-login` directly if you only need an
+Click it (or `POST http://localhost:8000/api/v1/auth/dev-login` directly if you only need an
 authenticated session and don't care about the UI) to sign in as a fixed dev user —
 no form, no redirect, one request. It sets the same `HttpOnly` session cookie the real
 flow would. Only rendered in Vite dev mode and only live when the backend is genuinely

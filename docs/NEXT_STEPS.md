@@ -111,20 +111,26 @@ stateless routes**. All sub-decisions are made
 in [DECISIONS.md](DECISIONS.md) §Scope expansion).
 
 **Track 0 — API groundwork** (first: it changes paths every later track touches; see
-[MOBILE_READINESS.md](MOBILE_READINESS.md) §4 and DEPLOYMENT_TOPOLOGY_PLAN.md §One public URL):
+[MOBILE_READINESS.md](MOBILE_READINESS.md) §4 and DEPLOYMENT_TOPOLOGY_PLAN.md §One public URL).
+Done 2026-10-14 (`feat/track0_API_Groundwork`):
 
-- [ ] Serve the API at `/api/v1/...` from the app itself; the Vite proxy stops stripping
-      `/api`; `VITE_API_BASE_URL` default becomes `/api/v1`. Update `frontend/.env.example`,
-      `frontend/README.md`, `backend/.env.example` (`COGNITO_REDIRECT_URI` comment), and
-      [SETUP.md](SETUP.md) §3 together.
+- [x] Serve the API at `/api/v1/...` from the app itself (Swagger + `openapi.json` too);
+      the Vite proxy stops stripping `/api`; `VITE_API_BASE_URL` default becomes
+      `/api/v1`. Templates, READMEs and [SETUP.md](SETUP.md) §3 updated. **Owner to-do:**
+      the dev callback URL on the Cognito app client becomes
+      `http://localhost:8000/api/v1/auth/callback` (console + `backend/.env`).
 - [x] ~~Fix the snake_case/camelCase wire mismatch~~ — done: wire casing is **snake_case**
       (commit `3f98dcd`)
-- [ ] Commit the OpenAPI schema; CI fails on unreviewed contract changes
-- [ ] Health endpoint reports `deploy_target` + git SHA
-- [ ] **Runtime settings module** (SSM + env fallback, typed/validated, ~30 s cache) +
-      public `GET /api/v1/config/client`; move `max_tags_per_list` under it with the new
+- [x] Commit the OpenAPI schema (`backend/openapi.json`); a pytest check (so CI) fails
+      when it drifts — regenerate with `./tools/openapi_snapshot.sh`
+- [x] Health endpoint reports `deploy_target` + git SHA (`DEPLOY_TARGET` / `GIT_SHA`, set
+      by the image build at deploy time)
+- [x] **Runtime settings module** (`app/core/runtime_settings.py`: SSM + env fallback,
+      typed/validated, ~30 s cache, fail-safe defaults) + public
+      `GET /api/v1/config/client`; `max_tags_per_list` moved under it with the new
       default of 25 ([ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md) §Runtime
-      settings). Quotas, provider toggles, and the breaker all build on this.
+      settings). Quotas, provider toggles, and the breaker all build on this. Feature
+      switches get added with the features they gate.
 
 **Track 1 — anonymous + local lists** ([ANONYMOUS_AND_LOCAL_LISTS_PLAN.md](ANONYMOUS_AND_LOCAL_LISTS_PLAN.md)):
 
@@ -219,13 +225,11 @@ docs). All of QUESTIONS.md Round 2 is decided. **Suggested order:**
 
    Budgets alone can't stop spending. The breaker does that, at deploy time. See
    [COST_GUARDRAILS_PLAN.md](COST_GUARDRAILS_PLAN.md) §Account timeline.
-2. **Next feature: Track 0 (API groundwork).** Small, touches every path, and every
-   later track builds on it:
-   - the `/api/v1` prefix + same-origin config;
-   - the OpenAPI snapshot in CI;
-   - `deploy_target` in health;
-   - **the runtime settings module + `GET /api/v1/config/client`**.
-3. **Track 1 (anonymous + local lists)**, starting with the list-repository refactor.
+2. ~~**Track 0 (API groundwork)**~~ — done 2026-10-14 (the `/api/v1` prefix, the
+   OpenAPI snapshot check, `deploy_target` in health, the runtime settings module +
+   `GET /api/v1/config/client`). Remaining owner step: update the dev Cognito callback
+   URL (see Track 0 above).
+3. **Next feature: Track 1 (anonymous + local lists)**, starting with the list-repository refactor.
    It changes the first-visit experience, so launch waits on it.
 4. **Pre-launch hardening, app layer:** quotas + rate limits + request hygiene + CSRF
    (ABUSE_PROTECTION_PLAN.md); `users.role`, the audit log and the admin Users/Settings

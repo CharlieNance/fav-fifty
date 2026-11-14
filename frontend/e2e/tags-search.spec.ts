@@ -8,11 +8,11 @@ import { test, expect, type Page } from '@playwright/test'
 // together in a real browser.
 
 test.afterEach(async ({ page }) => {
-  const response = await page.request.get('/api/lists')
+  const response = await page.request.get('/api/v1/lists')
   if (!response.ok()) return
   for (const list of (await response.json()) as { id: string; title: string }[]) {
     if (list.title.startsWith('E2E tags ')) {
-      await page.request.delete(`/api/lists/${list.id}`)
+      await page.request.delete(`/api/v1/lists/${list.id}`)
     }
   }
 })
