@@ -4,31 +4,20 @@
  * component stays a generic, list-agnostic overlay (see docs/LISTS_CRUD_PLAN.md
  * Interaction 4) — this composable is where the list-specific request lives.
  */
-import { ref } from 'vue'
-
-import { apiFetch } from '@/api/client'
+import { useListAction } from './useListAction'
 
 export function useDeleteList() {
-  const pending = ref(false)
-  const error = ref<string | null>(null)
-
-  function reset(): void {
-    error.value = null
-  }
+  const { pending, error, reset, run } = useListAction({
+    fallback: 'Could not delete the list. Try again.',
+  })
 
   /** Deletes list `id`. Returns whether it succeeded; sets `error` on failure. */
   async function deleteList(id: string): Promise<boolean> {
-    pending.value = true
-    error.value = null
-    try {
-      await apiFetch<void>(`/lists/${id}`, { method: 'DELETE' })
+    const done = await run(async (repo) => {
+      await repo.deleteList(id)
       return true
-    } catch {
-      error.value = 'Could not delete the list. Try again.'
-      return false
-    } finally {
-      pending.value = false
-    }
+    })
+    return done ?? false
   }
 
   return { pending, error, deleteList, reset }

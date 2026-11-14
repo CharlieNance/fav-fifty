@@ -5,14 +5,15 @@
  */
 import { ref } from 'vue'
 
-import { apiFetch } from '@/api/client'
 import type { ListSummary } from './types'
+import { useListAction } from './useListAction'
 
 export type ListsStatus = 'idle' | 'loading' | 'success' | 'error'
 
 export function useLists() {
   const status = ref<ListsStatus>('idle')
   const lists = ref<ListSummary[]>([])
+  const { run } = useListAction({ fallback: 'Could not load your lists.' })
 
   // Guards against a slower, earlier request (e.g. a stale search query)
   // resolving after a faster, later one and clobbering fresher results.
@@ -21,14 +22,12 @@ export function useLists() {
   async function load(q?: string): Promise<void> {
     const thisRequest = ++requestId
     status.value = 'loading'
-    try {
-      const path = q ? `/lists?q=${encodeURIComponent(q)}` : '/lists'
-      const result = await apiFetch<ListSummary[]>(path)
-      if (thisRequest !== requestId) return
+    const result = await run((repo) => repo.getLists(q))
+    if (thisRequest !== requestId) return
+    if (result) {
       lists.value = result
       status.value = 'success'
-    } catch {
-      if (thisRequest !== requestId) return
+    } else {
       status.value = 'error'
     }
   }

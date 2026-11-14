@@ -12,24 +12,21 @@
  */
 import { ref } from 'vue'
 
-import { apiFetch } from '@/api/client'
 import type { ListItem } from './types'
+import { useListAction } from './useListAction'
 
 export type ListItemsStatus = 'idle' | 'loading' | 'success' | 'error'
 
 export function useListItems() {
   const status = ref<ListItemsStatus>('idle')
   const items = ref<ListItem[]>([])
+  const { run } = useListAction({ fallback: 'Could not load the items.' })
 
   async function load(listId: string): Promise<void> {
     status.value = 'loading'
-    try {
-      items.value = await apiFetch<ListItem[]>(`/lists/${listId}/items`)
-      status.value = 'success'
-    } catch {
-      items.value = []
-      status.value = 'error'
-    }
+    const result = await run((repo) => repo.getItems(listId))
+    items.value = result ?? []
+    status.value = result ? 'success' : 'error'
   }
 
   /** Append a just-created item (the backend always inserts at the end). */

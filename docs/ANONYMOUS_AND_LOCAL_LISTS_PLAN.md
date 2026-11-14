@@ -14,12 +14,11 @@ up later. This is **Track 1** in [NEXT_STEPS.md](NEXT_STEPS.md). **Decided in
 
 *Last checked against the code: 2026-11-14 (after Track 0 merged).*
 
-- **Nothing in Track 1 is built yet.** Track 0 (the `/api/v1` prefix, the OpenAPI
-  contract test, `GET /api/v1/config/client`) is done, so Track 1 can start.
-- **Start with PR 1: the repository refactor** (see [§Build order](#build-order-small-shippable-prs)).
-  It changes nothing users can see, it touches the most files, and every later PR
-  builds on it. Use the [call-site inventory](#call-site-inventory-pr-1) below as its
-  checklist.
+- **PR 1 (repository refactor) is done** on `feat/track1_anon_local_list`. All 11
+  call sites go through the layers described in [§Layers](#layers-as-built-in-pr-1).
+  The repository is resolved **per request**, so PR 4 can switch implementations on
+  sign-in/out without remounting anything.
+- **Next: PR 2, 3 or 6** (independent of each other, see [§Build order](#build-order-small-shippable-prs)).
 - **Already in place:**
   - `GET /api/v1/config/client` ([config.py](../backend/app/api/routes/config.py)),
     but it only serves `limits.max_tags_per_list`. PR 2 extends it.
@@ -83,10 +82,21 @@ Today every list composable and two modals call `apiFetch` directly. The core re
 puts a **repository interface** in between:
 
 ```text
-features/lists/*  ──►  ListRepository (interface)
-                          ├── ApiListRepository     (signed in → REST API, today's behaviour)
-                          └── LocalListRepository   (anonymous → device storage)
+features/lists/*  ──►  useListAction ──►  ListRepository (interface)
+                                            ├── ApiListRepository     (signed in → REST API, today's behaviour)
+                                            └── LocalListRepository   (anonymous → device storage)
 ```
+
+### Layers (as built in PR 1)
+
+| Layer | File | Role |
+| --- | --- | --- |
+| Composables and modals | `useDeleteList.ts`, `CreateListModal.vue`, … | One per operation, so each dialog has its own state. Say *what* to do and which copy to show. No try/catch, no `ApiError`. |
+| Service | [useListAction.ts](../frontend/src/features/lists/useListAction.ts) | `run(repo => …)` owns `pending` / `error` / `errorKind`, the try/catch, and picking the message (storage copy for kinds in `showDetailFor`, otherwise the fallback). |
+| Factory | [useListRepository.ts](../frontend/src/features/lists/useListRepository.ts) | Picks the repository; `setListRepository()` is the test seam. |
+| Repository | [listRepository.ts](../frontend/src/features/lists/listRepository.ts) | The `ListRepository` interface and `apiListRepository`. Translates failures into `ListError` at the boundary. |
+| Domain error | [listErrors.ts](../frontend/src/features/lists/listErrors.ts) | `ListError` with a `kind` (`not-found`, `conflict`, `invalid`, `unknown`) and optional user-facing `detail`. |
+| API client | [client.ts](../frontend/src/api/client.ts) | `apiFetch` / `ApiError`. Only the API repository uses it. |
 
 - The interface uses the **same TypeScript types** the views already use
   (`ListSummary`, `ListItem`, `ListItemDraft`). Views shouldn't know which storage
@@ -94,10 +104,11 @@ features/lists/*  ──►  ListRepository (interface)
 - The auth store chooses the implementation: logged in → API, logged out → local.
   Expose it through a small `useListRepository()` composable, so tests can inject a
   fake.
-- **Errors look the same from both.** `LocalListRepository` throws the same `ApiError`
-  (with the same status codes and `detail` messages) the API would: 404 for a missing
-  list, 409 for the 50-item cap or a duplicate item, 422 for validation. The
-  composables already branch on `ApiError`, so they keep working unchanged.
+- **Errors look the same from both.** Both throw `ListError`, never a
+  storage-specific error: `not-found` for a missing list or item, `conflict` for the
+  50-item cap or a duplicate item, `invalid` for validation, with the same `detail`
+  copy the API writes. `ApiListRepository` translates `ApiError` at its boundary;
+  `LocalListRepository` throws `ListError` directly (no faked HTTP status codes).
 - `LocalListRepository` applies **the same rules as the backend**: 50-item cap,
   case-insensitive item dedup, title/text/note/URL length limits, tag normalization.
   These rules are only a convenience, because the server checks everything again at
@@ -366,7 +377,7 @@ third implementation if the Safari wipe turns out to bite real users.
 - **Header:** a "Sign in" button instead of an avatar when anonymous. That already
   exists in some form, so check `AppHeader.vue`.
 - **Tests:** a Vitest suite for `LocalListRepository` (CRUD, cap, dedup, reorder,
-  error shapes matching `ApiError`, schema migration, corrupt-storage recovery,
+  `ListError` kinds and `detail` copy matching the API's, schema migration, corrupt-storage recovery,
   quota-exceeded error), and Playwright e2e for anonymous create → sign in (dev
   stub) → claim → lists visible from the server.
 
@@ -394,7 +405,7 @@ third implementation if the Safari wipe turns out to bite real users.
 
 | # | PR | Side | User-visible? | Status |
 | --- | --- | --- | --- | --- |
-| 1 | **Repository refactor**: `ListRepository`, `ApiListRepository`, `useListRepository()`; move all 11 call sites | Frontend | No | **Start here** |
+| 1 | **Repository refactor**: `ListRepository`, `ApiListRepository`, `useListRepository()`; move all 11 call sites | Frontend | No | Done |
 | 2 | **Shared limits**: backend constants module, new `ClientLimits` fields, frontend config store with bundled defaults | Both | No | Not started |
 | 3 | **`LocalListRepository`** plus the storage format, schema validation and migrations, with unit tests (not wired up yet) | Frontend | No | Not started |
 | 4 | **Unlock the routes for anonymous users**, `useStartList` change, repository switching, "Saved on this device" copy | Frontend | Yes | Not started |

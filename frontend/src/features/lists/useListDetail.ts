@@ -8,23 +8,23 @@
  */
 import { ref } from 'vue'
 
-import { apiFetch, ApiError } from '@/api/client'
 import type { ListSummary } from './types'
+import { useListAction } from './useListAction'
 
 export type ListDetailStatus = 'idle' | 'loading' | 'success' | 'not-found' | 'error'
 
 export function useListDetail() {
   const status = ref<ListDetailStatus>('idle')
   const list = ref<ListSummary | null>(null)
+  const { errorKind, run } = useListAction({ fallback: 'Could not load the list.' })
 
   async function load(id: string): Promise<void> {
     status.value = 'loading'
-    try {
-      list.value = await apiFetch<ListSummary>(`/lists/${id}`)
+    list.value = await run((repo) => repo.getList(id))
+    if (list.value) {
       status.value = 'success'
-    } catch (error) {
-      list.value = null
-      status.value = error instanceof ApiError && error.status === 404 ? 'not-found' : 'error'
+    } else {
+      status.value = errorKind.value === 'not-found' ? 'not-found' : 'error'
     }
   }
 

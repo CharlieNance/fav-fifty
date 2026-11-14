@@ -11,15 +11,20 @@
 import { computed, nextTick, ref, onMounted } from 'vue'
 
 import BaseButton from '@/components/BaseButton.vue'
-import { apiFetch } from '@/api/client'
 import type { ListSummary } from './types'
+import { useListAction } from './useListAction'
 
 const props = defineProps<{ list: ListSummary }>()
 const emit = defineEmits<{ saved: [list: ListSummary]; cancel: [] }>()
 
 const title = ref(props.list.title)
-const error = ref<string | null>(null)
-const saving = ref(false)
+const {
+  pending: saving,
+  error,
+  run,
+} = useListAction({
+  fallback: 'Could not save the title. Check it and try again.',
+})
 const inputRef = ref<HTMLInputElement | null>(null)
 
 const canSave = computed(() => title.value.trim().length > 0 && !saving.value)
@@ -35,18 +40,8 @@ async function save(): Promise<void> {
     return
   }
 
-  saving.value = true
-  error.value = null
-  try {
-    const updated = await apiFetch<ListSummary>(`/lists/${props.list.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ title: trimmed }),
-    })
-    emit('saved', updated)
-  } catch {
-    error.value = 'Could not save the title. Check it and try again.'
-    saving.value = false
-  }
+  const updated = await run((repo) => repo.renameList(props.list.id, trimmed))
+  if (updated) emit('saved', updated)
 }
 
 onMounted(async () => {
