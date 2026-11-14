@@ -132,10 +132,14 @@ Done 2026-10-14 (`feat/track0_API_Groundwork`):
       settings). Quotas, provider toggles, and the breaker all build on this. Feature
       switches get added with the features they gate.
 
-**Track 1 — anonymous + local lists** ([ANONYMOUS_AND_LOCAL_LISTS_PLAN.md](ANONYMOUS_AND_LOCAL_LISTS_PLAN.md)):
+**Track 1 — anonymous + local lists** ([ANONYMOUS_AND_LOCAL_LISTS_PLAN.md](ANONYMOUS_AND_LOCAL_LISTS_PLAN.md)).
+**Start here:** the plan's §Status and where to start, then PR 1 (its call-site
+inventory is the checklist). Full PR order: the plan's §Build order.
 
-- [ ] List-repository refactor (API-only, no behavior change)
-- [ ] Shared validation limits (served by `GET /api/v1/config/client`)
+- [ ] List-repository refactor (API-only, no behavior change) ← **next**
+- [ ] Shared validation limits: endpoint exists (Track 0) but serves only
+      `max_tags_per_list`; add the fixed limits as new `ClientLimits` fields + a
+      frontend config store with bundled defaults
 - [ ] `LocalListRepository` + versioned JSON storage format (snake_case) + migrations
 - [ ] Unlock list routes for anonymous visitors; "saved on this device" UI; export/import file
 - [ ] `POST /lists/import` (idempotent, atomic, reject-all on invalid, rename on title
