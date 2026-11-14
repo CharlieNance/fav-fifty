@@ -1,7 +1,7 @@
 """The committed API contract: ``backend/openapi.json``.
 
 The snapshot is the reviewable record of the v1 contract that installed mobile apps
-depend on (docs/MOBILE_READINESS.md §4). ``tests/test_openapi_snapshot.py`` fails
+depend on (docs/MOBILE_READINESS.md §4). ``tests/test_api_contract.py`` fails
 when the app's schema drifts from it, so every contract change shows up as a diff
 to this file in the PR, where it gets reviewed. Changes within v1 must be additive.
 

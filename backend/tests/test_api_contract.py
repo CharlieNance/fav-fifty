@@ -25,12 +25,12 @@ def test_every_route_is_versioned() -> None:
 
 
 def test_docs_and_schema_are_served_under_api_v1(client: TestClient) -> None:
-    assert client.get("/docs").status_code == 200
-    assert client.get("/openapi.json").json()["info"]["title"] == "Fav Fifty API"
+    assert client.get("/api/v1/docs").status_code == 200
+    assert client.get("/api/v1/openapi.json").json()["info"]["title"] == "Fav Fifty API"
 
 
-def test_openapi_snapshot_is_current() -> None:
-    """The committed backend/openapi.json must match what the app serves.
+def test_api_contract_is_current() -> None:
+    """The committed API contract (backend/openapi.json) must match what the app serves.
 
     Failing? If the API change is intended, run ./tools/openapi_snapshot.sh and
     commit the updated snapshot so the contract change is reviewed with the code.
