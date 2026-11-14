@@ -15,6 +15,11 @@ dependencies = [
     # maintained continuation of httpx) and JWT verification for the id token.
     "httpx2>=2.9.1",
     "pyjwt[crypto]>=2.9",
+    # Runtime settings in SSM Parameter Store (app/core/runtime_settings.py); only
+    # imported when RUNTIME_SETTINGS_SOURCE=ssm.
+    "boto3>=1.40",
+    # Reads RUNTIME_* overrides from backend/.env (the env runtime-settings source).
+    "python-dotenv>=1.0",
 ]
 
 # Install dev tooling with:  uv sync --extra dev   (or)   pip install -e ".[dev]"

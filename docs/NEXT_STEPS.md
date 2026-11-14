@@ -62,7 +62,7 @@ Goal: the actual product. A user manages their own lists, signed in or (since th
       [DEPLOYMENT_TOPOLOGY_PLAN.md](DEPLOYMENT_TOPOLOGY_PLAN.md): one Lightsail box
       (Docker Compose: FastAPI + Postgres 16 + TLS proxy), the SPA on S3, and one
       CloudFront distribution (flat-rate Free plan) serving the SPA *and* `/api/v1/*`.
-      Includes: upgrading the AWS account to Paid, the Cognito callback URL →
+      Includes: the Cognito callback URL →
       `https://favfifty.com/api/v1/auth/callback`, nightly `pg_dump` + snapshots + one
       test restore.
 
@@ -111,20 +111,26 @@ stateless routes**. All sub-decisions are made
 in [DECISIONS.md](DECISIONS.md) §Scope expansion).
 
 **Track 0 — API groundwork** (first: it changes paths every later track touches; see
-[MOBILE_READINESS.md](MOBILE_READINESS.md) §4 and DEPLOYMENT_TOPOLOGY_PLAN.md §One public URL):
+[MOBILE_READINESS.md](MOBILE_READINESS.md) §4 and DEPLOYMENT_TOPOLOGY_PLAN.md §One public URL).
+Done 2026-10-14 (`feat/track0_API_Groundwork`):
 
-- [ ] Serve the API at `/api/v1/...` from the app itself; the Vite proxy stops stripping
-      `/api`; `VITE_API_BASE_URL` default becomes `/api/v1`. Update `frontend/.env.example`,
-      `frontend/README.md`, `backend/.env.example` (`COGNITO_REDIRECT_URI` comment), and
-      [SETUP.md](SETUP.md) §3 together.
+- [x] Serve the API at `/api/v1/...` from the app itself (Swagger + `openapi.json` too);
+      the Vite proxy stops stripping `/api`; `VITE_API_BASE_URL` default becomes
+      `/api/v1`. Templates, READMEs and [SETUP.md](SETUP.md) §3 updated. **Owner to-do:**
+      the dev callback URL on the Cognito app client becomes
+      `http://localhost:8000/api/v1/auth/callback` (console + `backend/.env`).
 - [x] ~~Fix the snake_case/camelCase wire mismatch~~ — done: wire casing is **snake_case**
       (commit `3f98dcd`)
-- [ ] Commit the OpenAPI schema; CI fails on unreviewed contract changes
-- [ ] Health endpoint reports `deploy_target` + git SHA
-- [ ] **Runtime settings module** (SSM + env fallback, typed/validated, ~30 s cache) +
-      public `GET /api/v1/config/client`; move `max_tags_per_list` under it with the new
+- [x] Commit the OpenAPI schema (`backend/openapi.json`); a pytest check (so CI) fails
+      when it drifts — regenerate with `./tools/openapi_snapshot.sh`
+- [x] Health endpoint reports `deploy_target` + git SHA (`DEPLOY_TARGET` / `GIT_SHA`, set
+      by the image build at deploy time)
+- [x] **Runtime settings module** (`app/core/runtime_settings.py`: SSM + env fallback,
+      typed/validated, ~30 s cache, fail-safe defaults) + public
+      `GET /api/v1/config/client`; `max_tags_per_list` moved under it with the new
       default of 25 ([ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md) §Runtime
-      settings). Quotas, provider toggles, and the breaker all build on this.
+      settings). Quotas, provider toggles, and the breaker all build on this. Feature
+      switches get added with the features they gate.
 
 **Track 1 — anonymous + local lists** ([ANONYMOUS_AND_LOCAL_LISTS_PLAN.md](ANONYMOUS_AND_LOCAL_LISTS_PLAN.md)):
 
@@ -209,23 +215,21 @@ See [MOBILE_READINESS.md](MOBILE_READINESS.md). Prerequisites are mostly Track 0
 Phases 0–1 and the Phase 2 list/item/tag features are done (history in git and the plan
 docs). All of QUESTIONS.md Round 2 is decided. **Suggested order:**
 
-1. **⏰ Time-sensitive, AWS console only (no code):** the AWS account is ~4 months into
-   the credit-based **Free account plan**, which ends after 6 months (around
-   **December 2026**) or when credits run out. If it lapses, **the account closes**,
-   taking the Cognito pool and the **Route 53 zone (including Google Workspace email
-   DNS)** with it. Before then:
-   - set up Budgets ($25/$50/$100), Cost Anomaly Detection, and notifications
-     (email + AWS Console app push + Discord webhook);
-   - then **upgrade to Paid**.
+1. **AWS console only (no code):** the account is already on the **Paid** plan
+   (confirmed 2026-10-14), so there is no close-or-upgrade deadline, but real charges
+   can already happen. Finish the spend alerts:
+   - [x] Budgets: $10/$25/$50/$100 monthly cost budgets with email alerts (2026-10-14).
+   - [x] Cost Anomaly Detection (2026-10-14).
+   - [ ] Notifications beyond email: AWS Console app push + Discord webhook (can wait
+         for the breaker's SNS topic at deploy).
 
-   See [COST_GUARDRAILS_PLAN.md](COST_GUARDRAILS_PLAN.md) §Account timeline.
-2. **Next feature: Track 0 (API groundwork).** Small, touches every path, and every
-   later track builds on it:
-   - the `/api/v1` prefix + same-origin config;
-   - the OpenAPI snapshot in CI;
-   - `deploy_target` in health;
-   - **the runtime settings module + `GET /api/v1/config/client`**.
-3. **Track 1 (anonymous + local lists)**, starting with the list-repository refactor.
+   Budgets alone can't stop spending. The breaker does that, at deploy time. See
+   [COST_GUARDRAILS_PLAN.md](COST_GUARDRAILS_PLAN.md) §Account timeline.
+2. ~~**Track 0 (API groundwork)**~~ — done 2026-10-14 (the `/api/v1` prefix, the
+   OpenAPI snapshot check, `deploy_target` in health, the runtime settings module +
+   `GET /api/v1/config/client`). Remaining owner step: update the dev Cognito callback
+   URL (see Track 0 above).
+3. **Next feature: Track 1 (anonymous + local lists)**, starting with the list-repository refactor.
    It changes the first-visit experience, so launch waits on it.
 4. **Pre-launch hardening, app layer:** quotas + rate limits + request hygiene + CSRF
    (ABUSE_PROTECTION_PLAN.md); `users.role`, the audit log and the admin Users/Settings

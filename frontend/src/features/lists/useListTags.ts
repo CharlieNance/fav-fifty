@@ -1,5 +1,5 @@
 /**
- * Calls `PUT /api/lists/:id/tags` and tracks in-flight/error state for the tag
+ * Calls `PUT /api/v1/lists/:id/tags` and tracks in-flight/error state for the tag
  * management modal (Interaction 1, docs/TAGS_SEARCH_PLAN.md). Mirrors
  * `useDeleteList.ts`'s pending/error shape. A 422 means the submitted set (after
  * de-dupe) exceeds the backend's per-list tag cap — its `detail` copy is shown

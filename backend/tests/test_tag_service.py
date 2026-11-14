@@ -6,7 +6,6 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth.claims import Claims
-from app.core.config import settings
 from app.models.list import List
 from app.models.tag import Tag
 from app.models.user import User
@@ -59,7 +58,7 @@ def test_set_list_tags_creates_new_tags(db_session: Session) -> None:
     owner = _user(db_session, "owner")
     row = _list(db_session, owner)
 
-    updated = tag_service.set_list_tags(db_session, row, ["games", "sci-fi"])
+    updated = tag_service.set_list_tags(db_session, row, ["games", "sci-fi"], max_tags=25)
 
     assert sorted(_tag_names(updated)) == ["games", "sci-fi"]
 
@@ -67,9 +66,9 @@ def test_set_list_tags_creates_new_tags(db_session: Session) -> None:
 def test_set_list_tags_replaces_the_full_set(db_session: Session) -> None:
     owner = _user(db_session, "owner")
     row = _list(db_session, owner)
-    tag_service.set_list_tags(db_session, row, ["games", "sci-fi"])
+    tag_service.set_list_tags(db_session, row, ["games", "sci-fi"], max_tags=25)
 
-    updated = tag_service.set_list_tags(db_session, row, ["sci-fi", "board games"])
+    updated = tag_service.set_list_tags(db_session, row, ["sci-fi", "board games"], max_tags=25)
 
     assert sorted(_tag_names(updated)) == ["board games", "sci-fi"]
 
@@ -77,9 +76,9 @@ def test_set_list_tags_replaces_the_full_set(db_session: Session) -> None:
 def test_set_list_tags_removes_all_tags_with_an_empty_list(db_session: Session) -> None:
     owner = _user(db_session, "owner")
     row = _list(db_session, owner)
-    tag_service.set_list_tags(db_session, row, ["games"])
+    tag_service.set_list_tags(db_session, row, ["games"], max_tags=25)
 
-    updated = tag_service.set_list_tags(db_session, row, [])
+    updated = tag_service.set_list_tags(db_session, row, [], max_tags=25)
 
     assert _tag_names(updated) == []
 
@@ -88,7 +87,7 @@ def test_set_list_tags_dedupes_within_one_call(db_session: Session) -> None:
     owner = _user(db_session, "owner")
     row = _list(db_session, owner)
 
-    updated = tag_service.set_list_tags(db_session, row, ["games", "games"])
+    updated = tag_service.set_list_tags(db_session, row, ["games", "games"], max_tags=25)
 
     assert _tag_names(updated) == ["games"]
 
@@ -99,8 +98,8 @@ def test_set_list_tags_reuses_one_tag_row_across_different_lists(db_session: Ses
     mine = _list(db_session, owner, "Mine")
     theirs = _list(db_session, other, "Theirs")
 
-    tag_service.set_list_tags(db_session, mine, ["board games"])
-    tag_service.set_list_tags(db_session, theirs, ["board games"])
+    tag_service.set_list_tags(db_session, mine, ["board games"], max_tags=25)
+    tag_service.set_list_tags(db_session, theirs, ["board games"], max_tags=25)
 
     rows = list(db_session.scalars(select(Tag).where(Tag.name == "board games")))
     assert len(rows) == 1
@@ -133,31 +132,25 @@ def test_set_list_tags_retries_once_when_a_concurrent_request_wins_the_create_ra
 
     monkeypatch.setattr(tag_service, "_get_or_create_tag", flaky_once)
 
-    updated = tag_service.set_list_tags(db_session, row, ["sci-fi"])
+    updated = tag_service.set_list_tags(db_session, row, ["sci-fi"], max_tags=25)
 
     assert _tag_names(updated) == ["sci-fi"]
     rows = list(db_session.scalars(select(Tag).where(Tag.name == "sci-fi")))
     assert len(rows) == 1
 
 
-def test_set_list_tags_rejects_over_the_cap(
-    db_session: Session, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setattr(settings, "max_tags_per_list", 2)
+def test_set_list_tags_rejects_over_the_cap(db_session: Session) -> None:
     owner = _user(db_session, "owner")
     row = _list(db_session, owner)
 
     with pytest.raises(tag_service.TooManyTagsError):
-        tag_service.set_list_tags(db_session, row, ["a", "b", "c"])
+        tag_service.set_list_tags(db_session, row, ["a", "b", "c"], max_tags=2)
 
 
-def test_set_list_tags_allows_exactly_the_cap_after_deduping(
-    db_session: Session, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    monkeypatch.setattr(settings, "max_tags_per_list", 2)
+def test_set_list_tags_allows_exactly_the_cap_after_deduping(db_session: Session) -> None:
     owner = _user(db_session, "owner")
     row = _list(db_session, owner)
 
-    updated = tag_service.set_list_tags(db_session, row, ["a", "a", "b"])
+    updated = tag_service.set_list_tags(db_session, row, ["a", "a", "b"], max_tags=2)
 
     assert sorted(_tag_names(updated)) == ["a", "b"]

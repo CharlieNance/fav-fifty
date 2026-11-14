@@ -9,8 +9,14 @@ copy it to ``backend/.env`` or export real environment variables — real env va
 always win over the file.
 """
 
+from typing import Literal
+
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# local = a developer's machine or CI; the others are the production targets
+# (docs/DEPLOYMENT_TOPOLOGY_PLAN.md).
+DeployTarget = Literal["local", "lightsail", "lambda"]
 
 # Placeholder used only so the app boots in local dev without any setup. Any other
 # environment must supply a real SECRET_KEY (from Secrets Manager / SSM).
@@ -46,10 +52,18 @@ class Settings(BaseSettings):
     # and as the default landing page after a successful sign-in.
     frontend_url: str = "http://localhost:5173"
 
-    # Max tags one list can carry (PUT /api/lists/{id}/tags rejects a larger set).
-    # Left high since the user base is tiny (docs/TAGS_SEARCH_PLAN.md open question
-    # 1) — lower it here if unbounded chip lists ever become a real problem.
-    max_tags_per_list: int = 100
+    # Which deployment is answering, and the build it runs — both reported by
+    # GET /api/v1/health. Set at image build / deploy time; the defaults mean "a
+    # developer's machine".
+    deploy_target: DeployTarget = "local"
+    git_sha: str = "unknown"
+
+    # Where runtime settings (switches, limits — app/core/runtime_settings.py) are
+    # read from: "env" = RUNTIME_* env vars / .env (local dev, CI), "ssm" = SSM
+    # Parameter Store under the prefix below (AWS). Limits like the tag cap live
+    # there, not here, so they can change without a deploy.
+    runtime_settings_source: Literal["env", "ssm"] = "env"
+    runtime_settings_ssm_prefix: str = "/favfifty/settings"
 
     # ─── AWS Cognito (real Google→Cognito auth) ────────────────────────────────
     # All empty in local dev, where the dev-login stub stands in. When these are
@@ -62,9 +76,9 @@ class Settings(BaseSettings):
     cognito_domain: str = ""  # host only, e.g. favfifty.auth.us-east-1.amazoncognito.com
     cognito_region: str = "us-east-1"
 
-    # Absolute URL of our own `/auth/callback`, registered as an allowed callback on
-    # the Cognito app client. Cognito redirects the browser back here with the code.
-    cognito_redirect_uri: str = "http://localhost:8000/auth/callback"
+    # Absolute URL of our own `/api/v1/auth/callback`, registered as an allowed callback
+    # on the Cognito app client. Cognito redirects the browser back here with the code.
+    cognito_redirect_uri: str = "http://localhost:8000/api/v1/auth/callback"
 
     @property
     def cors_origins(self) -> list[str]:

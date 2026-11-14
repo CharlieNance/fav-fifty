@@ -1,5 +1,5 @@
 /**
- * Calls `DELETE /api/lists/:id` and tracks in-flight/error state for the
+ * Calls `DELETE /api/v1/lists/:id` and tracks in-flight/error state for the
  * confirmation dialog. Kept separate from ConfirmDialog.vue itself so that
  * component stays a generic, list-agnostic overlay (see docs/LISTS_CRUD_PLAN.md
  * Interaction 4) — this composable is where the list-specific request lives.

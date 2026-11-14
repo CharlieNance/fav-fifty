@@ -17,7 +17,7 @@ backend/
 │   ├── api/                # HTTP layer
 │   │   ├── deps.py         # shared Depends() — get_db, get_current_user (later)
 │   │   └── routes/         # one router module per feature
-│   │       └── health.py   # GET /health
+│   │       └── health.py   # GET /api/v1/health
 │   ├── schemas/            # Pydantic request/response models (the API contract)
 │   ├── services/           # business logic — routers delegate here
 │   ├── models/             # SQLAlchemy ORM models (DB tables) — added with Postgres
@@ -68,8 +68,14 @@ uvicorn app.main:app --reload
 
 Then visit:
 
-- [Health Check](http://localhost:8000/health) → `{"status": "ok"}`
-- [Docs](http://localhost:8000/docs) → auto-generated Swagger UI
+- [Health Check](http://localhost:8000/api/v1/health) → `{"status": "ok", "deploy_target": "local", ...}`
+- [Docs](http://localhost:8000/api/v1/docs) → auto-generated Swagger UI
+
+Every route lives under **`/api/v1`** (`app/api/router.py`), in every environment.
+Within v1, changes are additive only. The contract is committed as
+[`openapi.json`](openapi.json); `tests/test_api_contract.py` fails when the app drifts
+from it, so after an intended API change run `../tools/openapi_snapshot.sh` and commit
+the diff.
 
 ## Tests & linting
 
@@ -85,6 +91,12 @@ Config is read from environment variables via `app/core/config.py` (pydantic-set
 For local dev, copy [`.env.example`](.env.example) to `backend/.env` (git-ignored) or
 export real env vars — it documents every backend variable. Secrets never get
 committed; in AWS they come from Secrets Manager / SSM.
+
+**Runtime settings** (limits and switches that change without a deploy) are separate:
+`app/core/runtime_settings.py`. Each has a code default and bounds; overrides come from
+SSM Parameter Store in AWS (`RUNTIME_SETTINGS_SOURCE=ssm`) or `RUNTIME_*` env vars
+locally, re-read every ~30 s. Clients get the public subset from
+`GET /api/v1/config/client`.
 
 ## Database & migrations
 

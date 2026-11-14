@@ -11,7 +11,9 @@ redeploy. Owner direction (2026-10-13): this is **pre-launch** work. Decided in
 - **Q24:** the owner is the only admin; admins may read private lists.
 - **Q25:** limits are changeable at runtime.
 
-Nothing is built yet. Related: [ABUSE_PROTECTION_PLAN.md](ABUSE_PROTECTION_PLAN.md),
+Built so far: the runtime settings module + `GET /api/v1/config/client` (build order
+step 1, Track 0, 2026-10-14) — limits only; each switch lands with the feature it
+gates. Related: [ABUSE_PROTECTION_PLAN.md](ABUSE_PROTECTION_PLAN.md),
 [COST_GUARDRAILS_PLAN.md](COST_GUARDRAILS_PLAN.md).
 
 ## Scope

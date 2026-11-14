@@ -53,8 +53,9 @@ npm install        # install dependencies
 npm run dev        # dev server at http://localhost:5173
 ```
 
-Calls to `/api/*` are proxied to the FastAPI backend at `http://localhost:8000`
-(see `vite.config.ts`), so run the backend too for anything that hits the API.
+Calls to `/api/*` are proxied, unchanged, to the FastAPI backend at
+`http://localhost:8000`, which serves everything under `/api/v1` (see `vite.config.ts`),
+so run the backend too for anything that hits the API.
 
 ## Scripts
 
@@ -78,8 +79,9 @@ browser bundle — never put a secret in one.** Copy [`.env.example`](.env.examp
 `frontend/.env.local` (git-ignored); it documents the keys. Vite loads env files from
 this folder, not the repo root.
 
-- `VITE_API_BASE_URL` — base path for API calls. Defaults to `/api` (proxied in dev), so
-  it's normally left unset locally.
+- `VITE_API_BASE_URL` — base path for API calls. Defaults to `/api/v1`: the API shares
+  the site's origin everywhere (proxied in dev, routed by CloudFront in prod), so it's
+  normally left unset.
 
 ## Styling & design
 

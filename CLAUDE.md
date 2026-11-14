@@ -102,7 +102,11 @@ suspicious."
   after the response; no correctness depending on in-process caches; URLs from
   settings, never the `Host` header; app startup must not require a DB connection.
 - API paths live under `/api/v1`; changes within v1 are **additive only** (old mobile
-  apps can't be force-updated); wire casing is **snake_case**.
+  apps can't be force-updated); wire casing is **snake_case**. The contract is committed
+  as `backend/openapi.json` and a test fails when it drifts — regenerate it with
+  `./tools/openapi_snapshot.sh` and review the diff.
+- Tunable limits and switches go in `app/core/runtime_settings.py` (code default +
+  bounds), read via the `get_runtime_settings` dependency — not in `config.py`.
 
 ## Commands
 
@@ -122,7 +126,7 @@ npm run format      # Prettier write  (format:check for CI)
 
 ```bash
 uv sync --extra dev                   # create venv + install deps
-uv run uvicorn app.main:app --reload  # serve at http://localhost:8000 (/docs for Swagger)
+uv run uvicorn app.main:app --reload  # serve at http://localhost:8000 (/api/v1/docs for Swagger)
 uv run pytest                         # tests
 uv run ruff check . && uv run ruff format .   # lint + format
 uv run alembic upgrade head           # apply DB migrations
@@ -143,6 +147,7 @@ docker compose up -d db     # start Postgres   (down to stop, down -v to wipe)
 ./tools/check.sh            # run CI checks locally (ruff+pytest, lint+vitest)
 ./tools/run_dev.sh          # start db+backend+frontend together in the background, for manual/browser testing
 ./tools/stop_dev.sh         # stop the backend+frontend started by run_dev.sh
+./tools/openapi_snapshot.sh # regenerate backend/openapi.json after an intended API change
 ```
 
 **Running/driving the app** (e.g. to check a change in a real browser): see the

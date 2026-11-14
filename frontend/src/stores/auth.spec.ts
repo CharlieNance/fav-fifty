@@ -118,7 +118,7 @@ describe('auth store', () => {
 
       expect(assign).toHaveBeenCalledOnce()
       const url = new URL(assign.mock.calls[0][0] as string)
-      expect(url.pathname).toBe('/api/auth/login')
+      expect(url.pathname).toBe('/api/v1/auth/login')
       expect(url.searchParams.get('redirect')).toBe('/lists/new')
     })
 

@@ -24,18 +24,17 @@ revives it.** Numbers decided in Q21/Q22 (2026-10-13). Nothing is built yet. Rel
 
 ## Account timeline (Q22)
 
-- The owner is ~4 months into AWS's credit-based **Free account plan** (started around
-  June 2026). While on it, **the account cannot be billed at all**, but it ends after
-  6 months or when credits run out (around **December 2026**). The account must then
-  upgrade to **Paid** or it closes (resources are kept 90 days).
-- **The CloudFront flat-rate plans require a Paid account.** So the plan is:
-  1. **Before upgrading:** set up Budgets, Cost Anomaly Detection, and the
-     notification channels below. That way protection exists the moment billing can
-     happen.
-  2. **Upgrade to Paid** as part of the first deploy, ahead of the Free plan's expiry.
-     It's one-way, and remaining credits carry over to future bills.
-  3. **Immediately subscribe both distributions to the flat-rate Free plan** ($0,
-     no overages).
+- **The account is already on the Paid plan** (confirmed 2026-10-14 via
+  `aws freetier get-account-plan-state`: `PAID`, `ACTIVE`, $0 credits). An earlier
+  version of this doc assumed the credit-based Free account plan and a December 2026
+  close-or-upgrade deadline. That deadline doesn't exist. The account is billable today
+  (Route 53 already bills ~$0.50/month).
+- **The CloudFront flat-rate plans require a Paid account**, which we already have. So
+  the plan is:
+  1. **Now:** set up Budgets, Cost Anomaly Detection, and the notification channels
+     below. Real charges can already happen.
+  2. **At first deploy:** subscribe both distributions to the flat-rate Free plan
+     immediately ($0, no overages).
 
 ## Layer 1 — Cap by construction
 
@@ -138,11 +137,11 @@ Re-run it after any topology change.
 
 ## Build order
 
-1. **Now, still on the Free account plan:** Budgets ($25/$50/$100), anomaly detection,
+1. **Now (the account is already Paid):** Budgets ($25/$50/$100), anomaly detection,
    the SNS topic, email + mobile-app push + the Discord webhook.
 2. **Runtime settings** in SSM plus the app reading them (ADMIN_AND_ANALYTICS_PLAN.md).
    The breaker's Level 1 needs them.
-3. **First deploy:** upgrade to Paid, flat-rate plans, WAF, Lambda reserved
+3. **First deploy:** flat-rate plans, WAF, Lambda reserved
    concurrency, box log rotation.
 4. **Breaker Lambda + alarms + repeat reminders**, then **game day**, before
    announcing on Discord.
