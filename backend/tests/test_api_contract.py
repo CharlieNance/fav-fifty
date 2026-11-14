@@ -25,8 +25,13 @@ def test_every_route_is_versioned() -> None:
 
 
 def test_docs_and_schema_are_served_under_api_v1(client: TestClient) -> None:
-    assert client.get("/api/v1/docs").status_code == 200
-    assert client.get("/api/v1/openapi.json").json()["info"]["title"] == "Fav Fifty API"
+    # The client's base URL already ends in /api/v1.
+    # Hit the docs/schema routes at their real paths.
+    # Verify /api/v1 is in the schema paths.
+    schema = client.get("openapi.json").json()
+    assert any(path.startswith("/api/v1/") for path in schema["paths"])
+    assert client.get("docs").status_code == 200
+    assert schema["info"]["title"] == "Fav Fifty API"
 
 
 def test_api_contract_is_current() -> None:
