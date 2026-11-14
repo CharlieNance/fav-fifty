@@ -228,7 +228,7 @@ docs). All of QUESTIONS.md Round 2 is decided. **Suggested order:**
 2. ~~**Track 0 (API groundwork)**~~ — done 2026-10-14 (the `/api/v1` prefix, the
    OpenAPI snapshot check, `deploy_target` in health, the runtime settings module +
    `GET /api/v1/config/client`). Remaining owner step: update the dev Cognito callback
-   URL (see Track 0 above).
+   URL (see Track 0 above) done 2026-11-14 Cognito callback URL updated and verified working
 3. **Next feature: Track 1 (anonymous + local lists)**, starting with the list-repository refactor.
    It changes the first-visit experience, so launch waits on it.
 4. **Pre-launch hardening, app layer:** quotas + rate limits + request hygiene + CSRF
