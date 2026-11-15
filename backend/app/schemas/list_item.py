@@ -23,7 +23,7 @@ class ItemRead(BaseModel):
     updated_at: datetime
 
 
-def _validated_text(value: str) -> str:
+def validated_text(value: str) -> str:
     """Trim and enforce the same length limit as the ``list_items.text`` column."""
     trimmed = value.strip()
     if not trimmed:
@@ -33,7 +33,7 @@ def _validated_text(value: str) -> str:
     return trimmed
 
 
-def _validated_note(value: str | None) -> str | None:
+def validated_note(value: str | None) -> str | None:
     """Trim; blank becomes ``None``; cap length at a sane application-level limit.
 
     The column itself (``Text``) is unbounded — this cap just keeps notes reasonable.
@@ -48,7 +48,7 @@ def _validated_note(value: str | None) -> str | None:
     return trimmed
 
 
-def _validated_image_url(value: str | None) -> str | None:
+def validated_image_url(value: str | None) -> str | None:
     """Trim; blank becomes ``None``; else require an http(s) URL, matching the column cap.
 
     Restricting to ``http(s)://`` keeps a ``javascript:``/``data:`` URL from ever
@@ -80,17 +80,17 @@ class ItemCreate(BaseModel):
     @field_validator("text")
     @classmethod
     def _text_trimmed_and_non_empty(cls, value: str) -> str:
-        return _validated_text(value)
+        return validated_text(value)
 
     @field_validator("note")
     @classmethod
     def _note_trimmed(cls, value: str | None) -> str | None:
-        return _validated_note(value)
+        return validated_note(value)
 
     @field_validator("image_url")
     @classmethod
     def _image_url_trimmed(cls, value: str | None) -> str | None:
-        return _validated_image_url(value)
+        return validated_image_url(value)
 
 
 class ItemUpdate(BaseModel):
@@ -108,17 +108,17 @@ class ItemUpdate(BaseModel):
     @field_validator("text")
     @classmethod
     def _text_trimmed_and_non_empty(cls, value: str) -> str:
-        return _validated_text(value)
+        return validated_text(value)
 
     @field_validator("note")
     @classmethod
     def _note_trimmed(cls, value: str | None) -> str | None:
-        return _validated_note(value)
+        return validated_note(value)
 
     @field_validator("image_url")
     @classmethod
     def _image_url_trimmed(cls, value: str | None) -> str | None:
-        return _validated_image_url(value)
+        return validated_image_url(value)
 
 
 class ItemReorder(BaseModel):

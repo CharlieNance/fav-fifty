@@ -38,7 +38,7 @@ class ListRead(BaseModel):
         return [item if isinstance(item, str) else item.name for item in value]
 
 
-def _validated_title(value: str) -> str:
+def validated_title(value: str) -> str:
     """Trim and enforce the same length limit as the ``lists.title`` column.
 
     Shared by ``ListCreate`` and ``ListUpdate`` so create and rename can never
@@ -64,7 +64,7 @@ class ListCreate(BaseModel):
     @field_validator("title")
     @classmethod
     def _title_trimmed_and_non_empty(cls, value: str) -> str:
-        return _validated_title(value)
+        return validated_title(value)
 
 
 class ListUpdate(BaseModel):
@@ -75,4 +75,4 @@ class ListUpdate(BaseModel):
     @field_validator("title")
     @classmethod
     def _title_trimmed_and_non_empty(cls, value: str) -> str:
-        return _validated_title(value)
+        return validated_title(value)

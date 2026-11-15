@@ -44,7 +44,7 @@ def normalize_tag_name(name: str) -> str:
     return collapsed
 
 
-def _get_or_create_tag(db: Session, name: str) -> Tag:
+def get_or_create_tag(db: Session, name: str) -> Tag:
     """Look up an already-normalized tag name, reusing the row if it exists."""
     row = db.scalar(select(Tag).where(Tag.name == name))
     if row is None:
@@ -73,12 +73,12 @@ def set_list_tags(db: Session, list_row: List, names: list[str], max_tags: int) 
         raise TooManyTagsError
 
     # Two requests introducing the same brand-new tag name at once can both miss
-    # `_get_or_create_tag`'s lookup and race to insert it, tripping `tags.name`'s
+    # `get_or_create_tag`'s lookup and race to insert it, tripping `tags.name`'s
     # unique constraint. Retry once after a rollback so the loser just reuses the
     # row the winner committed, instead of surfacing a raw 500.
     for attempt in range(2):
         try:
-            list_row.tags = [_get_or_create_tag(db, name) for name in deduped]
+            list_row.tags = [get_or_create_tag(db, name) for name in deduped]
             db.commit()
             break
         except IntegrityError:

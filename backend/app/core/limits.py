@@ -30,3 +30,9 @@ MAX_IMAGE_URL_LENGTH = 2048
 
 # ``tags.name`` is ``String(MAX_TAG_LENGTH)``.
 MAX_TAG_LENGTH = 50
+
+# ``device_id`` and ``local_id`` in ``POST /lists/import``. The app generates UUIDs
+# (36 characters); the extra room tolerates a hand-edited document. ``lists.
+# import_key`` (``"<device_id>:<local_id>"``) is sized from this.
+MAX_LOCAL_ID_LENGTH = 64
+MAX_IMPORT_KEY_LENGTH = 2 * MAX_LOCAL_ID_LENGTH + 1

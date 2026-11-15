@@ -356,6 +356,48 @@
         }
       }
     },
+    "/api/v1/lists/import": {
+      "post": {
+        "tags": [
+          "lists"
+        ],
+        "summary": "Import Lists",
+        "description": "Upload lists kept on a device to the current user's account (401 if not\nlogged in) — the claim after sign-in. See ``list_import_service``.\n\nAll or nothing: 422 with a ``detail`` naming the list if any list breaks a rule\n(nothing is written). 413 if the upload has more than ``max_lists_per_import``\nlists or is over ``max_import_bytes``. Idempotent: a retry returns the lists the\nfirst attempt made, as ``already_imported``.",
+        "operationId": "import_lists_api_v1_lists_import_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListsImport"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListsImportResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/lists/{list_id}": {
       "get": {
         "tags": [
@@ -839,6 +881,10 @@
             "type": "integer",
             "title": "Max Tags Per List"
           },
+          "max_lists_per_import": {
+            "type": "integer",
+            "title": "Max Lists Per Import"
+          },
           "max_items_per_list": {
             "type": "integer",
             "title": "Max Items Per List"
@@ -867,6 +913,7 @@
         "type": "object",
         "required": [
           "max_tags_per_list",
+          "max_lists_per_import",
           "max_items_per_list",
           "max_title_length",
           "max_item_text_length",
@@ -917,6 +964,172 @@
           "git_sha"
         ],
         "title": "HealthRead"
+      },
+      "ImportedItem": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "image_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Url"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "ImportedItem",
+        "description": "One item, in rank order. Its ``local_id`` is ignored: items get server ids."
+      },
+      "ImportedList": {
+        "properties": {
+          "local_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Local Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags",
+            "default": []
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ImportedItem"
+            },
+            "type": "array",
+            "title": "Items",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "local_id",
+          "title"
+        ],
+        "title": "ImportedList"
+      },
+      "ImportedListRead": {
+        "properties": {
+          "local_id": {
+            "type": "string",
+            "title": "Local Id"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "created",
+              "already_imported"
+            ],
+            "title": "Outcome"
+          },
+          "list": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ListRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "renamed_from": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Renamed From"
+          }
+        },
+        "type": "object",
+        "required": [
+          "local_id",
+          "outcome",
+          "list",
+          "renamed_from"
+        ],
+        "title": "ImportedListRead",
+        "description": "What became of one uploaded list, in the order they were sent."
       },
       "ItemCreate": {
         "properties": {
@@ -1148,6 +1361,48 @@
         ],
         "title": "ListUpdate",
         "description": "Body for ``PATCH /api/lists/{list_id}`` — rename only, same rules as create."
+      },
+      "ListsImport": {
+        "properties": {
+          "device_id": {
+            "type": "string",
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^[^:]+$",
+            "title": "Device Id"
+          },
+          "lists": {
+            "items": {
+              "$ref": "#/components/schemas/ImportedList"
+            },
+            "type": "array",
+            "minItems": 1,
+            "title": "Lists"
+          }
+        },
+        "type": "object",
+        "required": [
+          "device_id",
+          "lists"
+        ],
+        "title": "ListsImport",
+        "description": "Body for ``POST /api/lists/import``. The owner is always the caller."
+      },
+      "ListsImportResult": {
+        "properties": {
+          "lists": {
+            "items": {
+              "$ref": "#/components/schemas/ImportedListRead"
+            },
+            "type": "array",
+            "title": "Lists"
+          }
+        },
+        "type": "object",
+        "required": [
+          "lists"
+        ],
+        "title": "ListsImportResult"
       },
       "TagsUpdate": {
         "properties": {

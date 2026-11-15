@@ -110,7 +110,8 @@ export function normalizeTags(names: string[], limits: ClientLimits): string[] {
  * shortened if a suffix would push it over the title limit.
  *
  * Q12's rename rule for imports (docs/QUESTIONS.md). The server import
- * (`POST /lists/import`, PR 6) must rename the same way.
+ * (`POST /lists/import`) renames the same way: keep this in step with
+ * `unique_title` in `backend/app/services/list_import_service.py`.
  */
 export function uniqueTitle(
   title: string,

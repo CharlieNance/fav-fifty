@@ -12,7 +12,7 @@ up later. This is **Track 1** in [NEXT_STEPS.md](NEXT_STEPS.md). **Decided in
 
 ## Status and where to start
 
-*Last checked against the code: 2026-11-14 (after PR 5).*
+*Last checked against the code: 2026-11-14 (after PR 6).*
 
 - **PR 1 (repository refactor) is done** on `feat/track1_anon_local_list`. All 11
   call sites go through the layers described in [§Layers](#layers-as-built-in-pr-1).
@@ -54,8 +54,13 @@ up later. This is **Track 1** in [NEXT_STEPS.md](NEXT_STEPS.md). **Decided in
   [localListTransfer.ts](../frontend/src/features/lists/localListTransfer.ts), and
   [useListTransfer.ts](../frontend/src/features/lists/useListTransfer.ts) does the
   file and storage I/O. See [§Export/import a file](#exportimport-a-file-pr-5).
-- **Next: PR 6 (`POST /api/v1/lists/import`).** It must rename title clashes the same
-  way as `uniqueTitle` in [listRules.ts](../frontend/src/features/lists/listRules.ts).
+- **PR 6 (`POST /api/v1/lists/import`) is done** on the same branch, in
+  [list_import_service.py](../backend/app/services/list_import_service.py), with tests
+  in [test_list_import.py](../backend/tests/test_list_import.py). See
+  [§New endpoint](#new-endpoint-post-apiv1listsimport) for what was built.
+- **Next: PR 7 (the claim dialog).** The frontend's `ClientLimits` type and bundled
+  defaults don't have the new `max_lists_per_import` field yet. PR 7 adds it, and
+  the API repository needs an `importLists` call.
 - **Not in PR 4, still open:** the reminder banner (2+ lists or 20+ items) and the
   "keep your lists safe" sign-in prompt. Both point at sign-in, which only keeps device
   lists once the claim dialog (PR 7) exists, so they wait for it.
@@ -395,6 +400,38 @@ Flow:
 
 ### New endpoint: `POST /api/v1/lists/import`
 
+**As built (PR 6).** Where this differs from the plan below, the code wins:
+
+- **Body:** `{ device_id, lists: [{ local_id, title, tags, created_at, updated_at,
+  items: [{ text, note, image_url, created_at, updated_at }] }] }`. Unknown fields
+  (`schema_version`, `claimed_at`, item `local_id`s, a later schema's `kind`) are
+  ignored, so the client can send the stored document as it is. `device_id` and
+  `local_id` are 1–64 characters, and `device_id` can't contain `:`.
+- **Rules run in the service, not the schema,** so a 422's `detail` is one
+  sentence naming the list, worded exactly as the frontend's file import words it
+  (e.g. `'Top Albums' has 51 items; the limit is 50.`). The validators are the same
+  functions the normal routes use (`validated_title`, `validated_text`, …).
+- **Response:** `{ lists: [{ local_id, outcome, list, renamed_from }] }`, one entry
+  per uploaded list, in order. `outcome` is `created` or `already_imported`.
+  `list` is the `ListRead`, or `null` if it was already imported and has since been
+  deleted (a deleted import stays deleted). `renamed_from` is the requested title
+  when it was renamed, and is always `null` for `already_imported`.
+- **Timestamps from the device are kept,** so the lists page sorts the same after
+  the claim. A timestamp in the future is clamped to now, `updated_at` is never
+  earlier than `created_at`, and one without an offset is read as UTC.
+- **Idempotency:** `import_key` is unique per account, not globally, so the same
+  device's lists can go to whichever account claims them. A concurrent duplicate
+  (double-click) trips the unique constraint, and the import retries once and
+  returns the winner's lists.
+- **Limits:** two runtime settings, `max_lists_per_import` (100, also served by
+  `GET /config/client`) and `max_import_bytes` (5 MiB, the same as the frontend's
+  file cap). Going over either is a 413. The byte check runs after FastAPI has read
+  the body, so it saves validation and DB work but not memory. The edge cap from
+  [DEPLOYMENT_TOPOLOGY_PLAN.md](DEPLOYMENT_TOPOLOGY_PLAN.md) is still needed.
+- **Status code 200**, not 201, because a retry creates nothing.
+
+The original plan:
+
 - **Body:** `{ device_id, lists: [...] }`, the same shape as the local document
   without `schema_version` or `claimed_at`. The client upgrades to the current schema
   before sending.
@@ -508,7 +545,7 @@ third implementation if the Safari wipe turns out to bite real users.
 | 3 | **`LocalListRepository`** plus the storage format, schema validation and migrations, with unit tests (not wired up yet) | Frontend | No | Done |
 | 4 | **Unlock the routes for anonymous users**, `useStartList` change, repository switching, "Saved on this device" copy | Frontend | Yes | Done |
 | 5 | **Export/import a file** | Frontend | Yes | Done |
-| 6 | **`POST /api/v1/lists/import`**, its migration, runtime setting and tests | Backend | No | Not started |
+| 6 | **`POST /api/v1/lists/import`**, its migration, runtime setting and tests | Backend | No | Done |
 | 7 | **Claim dialog** wired to the import, file Import for signed-in users, plus Playwright e2e | Frontend | Yes | Not started |
 | 8 | Privacy policy and docs updates | Docs | — | Not started |
 
