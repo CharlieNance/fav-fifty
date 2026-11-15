@@ -1,8 +1,8 @@
 """Fixed content limits — the one place each number is written down.
 
 Validators, services, ORM column sizes and ``GET /api/v1/config/client`` all import
-from here, so they can't drift apart (docs/ANONYMOUS_AND_LOCAL_LISTS_PLAN.md
-§Shared limits). Clients get these values from the config endpoint instead of
+from here, so they can't drift apart (docs/ARCHITECTURE.md
+§Layers). Clients get these values from the config endpoint instead of
 hard-coding them.
 
 These are deliberately **constants, not runtime settings**

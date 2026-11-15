@@ -1,6 +1,6 @@
 /**
  * Calls `DELETE /api/v1/lists/:listId/items/:itemId` and tracks in-flight/error
- * state for the confirmation dialog (Interaction 3, docs/ITEMS_CRUD_PLAN.md).
+ * state for the confirmation dialog (docs/ARCHITECTURE.md §Items).
  * Same shape as `useDeleteList`, one level down — ConfirmDialog.vue stays a
  * generic shell; this composable is where the item-specific request lives.
  */

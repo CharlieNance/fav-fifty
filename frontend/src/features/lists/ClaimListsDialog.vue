@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * "Bring your lists with you?" (docs/ANONYMOUS_AND_LOCAL_LISTS_PLAN.md §Claim on
+ * "Bring your lists with you?" (docs/ARCHITECTURE.md §Claim on
  * sign-in). Mounted once in App.vue. When someone signs in with lists still saved
  * on this device, it offers to add them to the account, every list checked to
  * start with. The work and the rules live in `useListClaimStore`.

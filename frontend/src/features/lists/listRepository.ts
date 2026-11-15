@@ -1,8 +1,8 @@
 /**
- * The storage seam for lists and items (Track 1, docs/ANONYMOUS_AND_LOCAL_LISTS_PLAN.md
- * §Key design). Every list composable and modal goes through a `ListRepository`
+ * The storage seam for lists and items (docs/ARCHITECTURE.md
+ * §Layers). Every list composable and modal goes through a `ListRepository`
  * instead of calling `apiFetch` directly, so the same views can run against
- * either the REST API (signed in) or on-device storage (anonymous, added later).
+ * either the REST API (signed in) or on-device storage (anonymous).
  *
  * Contract for implementations:
  * - Use the same types the views already use (`ListSummary`, `ListItem`,

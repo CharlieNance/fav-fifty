@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 
 import { test, expect } from '@playwright/test'
 
-// Anonymous use (docs/ANONYMOUS_AND_LOCAL_LISTS_PLAN.md, PR 4): a visitor who
+// Anonymous use (docs/ARCHITECTURE.md §Anonymous lists): a visitor who
 // never signs in builds a list that's saved in this browser's localStorage, and
 // nothing reaches the lists API. Each Playwright test gets a fresh browser
 // context, so its storage starts empty and nothing leaks into the shared DB.

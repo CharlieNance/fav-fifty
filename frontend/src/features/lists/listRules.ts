@@ -1,6 +1,6 @@
 /**
  * The backend's list/item validation rules, in TypeScript, for on-device storage
- * (docs/ANONYMOUS_AND_LOCAL_LISTS_PLAN.md §Key design). Each function copies one
+ * (docs/ARCHITECTURE.md §The device document). Each function copies one
  * backend validator, error message included:
  *
  * - `validateTitle`        ← `backend/app/schemas/list.py` `_validated_title`
@@ -109,7 +109,7 @@ export function normalizeTags(names: string[], limits: ClientLimits): string[] {
  * holds the titles in use, lower-cased (the match ignores case). The base is
  * shortened if a suffix would push it over the title limit.
  *
- * Q12's rename rule for imports (docs/QUESTIONS.md). The server import
+ * The rename rule for imports (docs/ARCHITECTURE.md §Export and import a file). The server import
  * (`POST /lists/import`) renames the same way: keep this in step with
  * `unique_title` in `backend/app/services/list_import_service.py`.
  */

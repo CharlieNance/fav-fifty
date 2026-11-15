@@ -1,7 +1,6 @@
 <script setup lang="ts">
-// The details page for one list. On top of the list-level Edit/Delete from
-// Interaction 5 of docs/LISTS_CRUD_PLAN.md, this now hosts the whole items
-// feature (docs/ITEMS_CRUD_PLAN.md): ranked rows, add/edit via ItemFormModal,
+// The details page for one list. On top of the list-level Edit/Delete, this
+// hosts the whole items feature (docs/ARCHITECTURE.md §Items): ranked rows, add/edit via ItemFormModal,
 // delete via the shared ConfirmDialog, and reorder via drag (vue-draggable-plus
 // / SortableJS) or the rows' up/down buttons — both paths call the same
 // move-one-item endpoint. Item modal state is component-local (plain refs)

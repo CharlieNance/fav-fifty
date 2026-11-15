@@ -1,12 +1,11 @@
 <script setup lang="ts">
 /**
- * The add/edit item overlay (Interactions 1 + 2, docs/ITEMS_CRUD_PLAN.md). One
+ * The add/edit item overlay (docs/ARCHITECTURE.md §Frontend patterns). One
  * component covers both modes — the form (text / note / image URL), validation,
  * and error handling are identical; only the heading, endpoint, and initial
- * values differ, all driven by whether an `item` prop is present. The plan doc
- * sketched these as two components mirroring Create/EditListModal, but unlike
- * those two (different hosting, navigation, and store wiring), these would have
- * been byte-for-byte duplicates.
+ * values differ, all driven by whether an `item` prop is present. Unlike
+ * Create/EditListModal (different hosting, navigation, and store wiring), two
+ * item modals would have been byte-for-byte duplicates.
  *
  * Client-side checks mirror the backend's (`backend/app/schemas/list_item.py`)
  * for fast feedback, but the backend stays the source of truth — its 409s

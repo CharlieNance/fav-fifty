@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 
-// Drives the whole items feature (docs/ITEMS_CRUD_PLAN.md) against the REAL
+// Drives the whole items feature (docs/ARCHITECTURE.md §Items) against the REAL
 // backend: add, edit, delete, and reorder — including a genuine SortableJS
 // drag, which jsdom can't exercise (the Vitest specs simulate the drop event
 // instead). Runs as one serial journey on one list because each step builds

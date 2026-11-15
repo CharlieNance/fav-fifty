@@ -32,8 +32,8 @@ class ListRead(BaseModel):
     def _tag_names(cls, value: "list[str | Tag]") -> list[str]:
         """Read from the ORM's ``list[Tag]`` relationship as plain tag names.
 
-        The wire shape is ``string[]`` (see docs/TAGS_SEARCH_PLAN.md §Data model
-        additions) — the frontend never needs a tag's id, only its name.
+        The wire shape is ``string[]`` (see docs/ARCHITECTURE.md
+        §Tags and search) — the frontend never needs a tag's id, only its name.
         """
         return [item if isinstance(item, str) else item.name for item in value]
 

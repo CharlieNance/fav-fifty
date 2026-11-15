@@ -1,6 +1,6 @@
 /**
  * Reloads what a lists page shows when the data behind it changes underneath it
- * (docs/ANONYMOUS_AND_LOCAL_LISTS_PLAN.md §Frontend changes):
+ * (docs/ARCHITECTURE.md §Choosing storage):
  *
  * - **Signing in or out** switches the repository (`useListRepository`). The page
  *   reloads from the new one, so lists from one storage never show in the other.

@@ -1,6 +1,6 @@
 /**
- * The on-device lists document (docs/ANONYMOUS_AND_LOCAL_LISTS_PLAN.md §Local storage
- * format): one versioned JSON document per device, under one `localStorage` key.
+ * The on-device lists document (docs/ARCHITECTURE.md §The device
+ * document): one versioned JSON document per device, under one `localStorage` key.
  *
  * Three jobs live here, and nothing about lists or items as the views see them:
  *

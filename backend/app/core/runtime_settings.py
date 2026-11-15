@@ -56,7 +56,7 @@ class Limits(BaseModel):
     model_config = ConfigDict(frozen=True, extra="ignore")
 
     max_tags_per_list: int = Field(default=25, ge=1, le=200)
-    # ``POST /lists/import`` (docs/ANONYMOUS_AND_LOCAL_LISTS_PLAN.md §Claim). Over
+    # ``POST /lists/import`` (docs/ARCHITECTURE.md). Over
     # either is a 413. The byte cap matches the frontend's import-file cap; the edge
     # should enforce one too, since the app only sees the body once it's read.
     max_lists_per_import: int = Field(default=100, ge=1, le=1000)

@@ -2,7 +2,7 @@
 
 The body is the on-device document (frontend ``localListDocument.ts``) without
 ``schema_version`` and ``claimed_at``, so the client sends it with no mapping
-(docs/ANONYMOUS_AND_LOCAL_LISTS_PLAN.md §Claim on sign-in).
+(docs/ARCHITECTURE.md §Claim on sign-in).
 
 These schemas check **structure only**. The content rules (title, tags, item
 fields, the item cap, duplicate items) run in ``list_import_service``, so a

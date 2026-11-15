@@ -1,6 +1,6 @@
 # Cost Guardrails — "Go Down Before a Big Bill"
 
-Planning doc. Fav Fifty will **never make money** (owner, QUESTIONS.md Q15: no ads, no
+Planning doc. Fav Fifty will **never make money** (owner, Q15: no ads, no
 charges, open source forever), so a surprise $1,000 month would be catastrophic.
 **Owner rule: if cost-driving traffic goes wild, the site degrades and then goes
 offline rather than running up the bill, and it comes back only when the owner

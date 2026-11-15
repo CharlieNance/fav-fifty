@@ -1,6 +1,6 @@
 /**
  * Export and import of the on-device lists as a `.json` file
- * (docs/ANONYMOUS_AND_LOCAL_LISTS_PLAN.md §Export/import a file). It's the only
+ * (docs/ARCHITECTURE.md §Export and import a file). It's the only
  * backup an anonymous visitor has, and the way to move lists between browsers
  * without an account.
  *

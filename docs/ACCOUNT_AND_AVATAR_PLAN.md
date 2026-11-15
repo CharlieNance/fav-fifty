@@ -179,7 +179,7 @@ nothing.
 
 ### Email sign-up
 
-- **This reverses a recorded decision.** DECISIONS.md, QUESTIONS.md, and CLAUDE.md
+- **This reverses a recorded decision.** DECISIONS.md and CLAUDE.md
   ("Never introduce email/password auth") all say social-only. Update those first,
   as their own change, when you're ready.
 - Cognito's native user pool handles it (verification codes, password reset), so we
@@ -266,7 +266,7 @@ where it is.
 
 1. OK with **Option A** (store the URL, not the image) until user uploads exist?
 2. ~~Is the **$99/yr Apple Developer fee** acceptable, or does Apple wait?~~ Answered
-   (QUESTIONS.md Q18): acceptable, but Apple comes **last**, with the iOS app.
+   (Q18): acceptable, but Apple comes **last**, with the iOS app.
 3. When email sign-up comes: **initials only, or opt-in Gravatar?**
 4. **Account linking:** same email across providers means one account, or keep them
    separate?

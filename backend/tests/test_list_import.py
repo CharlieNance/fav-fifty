@@ -1,6 +1,6 @@
 """``POST /lists/import`` — uploading a device's lists to an account (the claim).
 
-docs/ANONYMOUS_AND_LOCAL_LISTS_PLAN.md §Claim on sign-in. Most tests use
+docs/ARCHITECTURE.md §POST /api/v1/lists/import. Most tests use
 ``fresh_user_client`` so "the account's lists" starts empty, whatever the dev-login
 user owns in the local database.
 """

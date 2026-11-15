@@ -1,5 +1,5 @@
 /**
- * Claim on sign-in (docs/ANONYMOUS_AND_LOCAL_LISTS_PLAN.md §Claim on sign-in): when
+ * Claim on sign-in (docs/ARCHITECTURE.md §Claim on sign-in): when
  * someone signs in with lists still saved on this device, offer to add them to the
  * account. `ClaimListsDialog.vue` is the UI; this store holds the state and does
  * the work.

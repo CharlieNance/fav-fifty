@@ -1,9 +1,8 @@
 <script setup lang="ts">
 /**
- * Manage-tags overlay (Interaction 1, docs/TAGS_SEARCH_PLAN.md) — a small modal
- * with explicit Save/Cancel (open question 2's decision, for consistency with
- * EditListModal) rather than autosave-per-change. Tags are edited as chips
- * (open question 5's decision): type a name and press Enter (or Add) to turn
+ * Manage-tags overlay (docs/ARCHITECTURE.md §Frontend patterns) — a small modal
+ * with explicit Save/Cancel (for consistency with
+ * EditListModal) rather than autosave-per-change. Tags are edited as chips: type a name and press Enter (or Add) to turn
  * it into a chip, click a chip's × to drop it. The whole edited set is only
  * sent to the server once, on Save — Cancel discards every change made here.
  */

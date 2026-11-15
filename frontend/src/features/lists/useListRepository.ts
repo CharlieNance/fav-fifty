@@ -1,7 +1,7 @@
 /**
  * Returns the `ListRepository` the lists feature should use right now: the API
  * for a signed-in user, on-device storage for everyone else
- * (docs/ANONYMOUS_AND_LOCAL_LISTS_PLAN.md §Key design).
+ * (docs/ARCHITECTURE.md §Choosing storage).
  *
  * It's resolved on every call (`useListAction` asks per request), so signing in or
  * out switches storage for the next request without remounting anything. The

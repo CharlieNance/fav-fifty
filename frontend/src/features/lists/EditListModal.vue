@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /**
- * Rename-a-list overlay (Interaction 3, docs/LISTS_CRUD_PLAN.md). Unlike
+ * Rename-a-list overlay (docs/ARCHITECTURE.md §Frontend patterns). Unlike
  * CreateListModal, this isn't hosted globally — it needs an existing list's data
  * to prefill, so whichever page has that list in hand (the index row today,
- * the details page in Interaction 5) mounts it directly, keyed off the shared
+ * the details page) mounts it directly, keyed off the shared
  * `useListModalsStore.editingListId`. Save/Cancel report back via emits, not the
  * store, so the page stays the single source of truth for "what does this list's
  * title look like right now."

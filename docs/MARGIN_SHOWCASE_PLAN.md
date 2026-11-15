@@ -4,7 +4,7 @@ Planning doc for a decorative effect: on wide screens, **columns of album covers
 movie posters and show art slowly scroll** up and down the left and right margins, so
 the page doesn't feel empty around the centred content column. Part of the 2026-10
 scope expansion ([NEXT_STEPS.md](NEXT_STEPS.md)). Nothing is built yet. The look and
-the image proxy were **decided in [QUESTIONS.md](QUESTIONS.md) Q17 (2026-10-13)** and
+the image proxy were **decided in [DECISIONS.md](DECISIONS.md) Q17 (2026-10-13)** and
 recorded in [DESIGN.md](DESIGN.md).
 
 ## Scope

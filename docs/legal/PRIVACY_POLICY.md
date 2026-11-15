@@ -1,23 +1,51 @@
 # Privacy Policy
 
-_Last updated: 2026-10-13_
+_Last updated: 2026-11-14_
 
 Fav Fifty ("the app", "we") is a small personal project, not a company. This policy
 explains what we collect and why, in plain language. It is not a substitute for legal
 advice, but it's an accurate description of how the app actually works.
 
-## What we collect
+## Using Fav Fifty without an account
+
+You don't need an account to make lists. If you don't sign in:
+
+- **Your lists are saved only in your browser, on your device** (in its local storage).
+  They are **never sent to us**, and we can't see them, back them up, or recover them.
+- **They can be lost.** Clearing your browser's data for the site deletes them, and some
+  browsers (Safari in particular) may delete them if you don't visit for a while. The
+  app's **Export** button saves a copy as a file you keep.
+- **Importing a file** reads it in your browser and adds its lists to your device. The
+  file isn't uploaded anywhere unless you're signed in (see below).
+
+The app also keeps a couple of small notes in your browser so it doesn't nag you:
+when you last dismissed the "keep your lists safe" reminder, and, for the current
+browser session only, that you chose "Not now" on the offer to add your lists to your
+account. These aren't cookies, aren't used for tracking, and aren't sent to us.
+
+## Adding your on-device lists to an account
+
+When you sign in with lists saved on your device, the app asks whether to add them to
+your account. **Nothing is uploaded unless you choose to.** If you do (or if you import
+a file while signed in), those lists are sent to us and become part of your account,
+covered by the rest of this policy. With each one we store a **random identifier the
+app made up for your browser**, so a retry after a dropped connection can't add the same
+list twice. It isn't linked to your device's hardware or to anything outside Fav Fifty.
+Lists you upload are then removed from the device.
+
+## What we collect when you sign in
 
 - **An account identifier, name, and profile picture.** When you sign in with Google,
   our authentication provider (AWS Cognito) gives us a stable ID for your account, your
   display name, and your profile picture.
 - **Your email address.** Google also shares your email address at sign-in. Our
   authentication provider (AWS Cognito) retains it as part of your account there, and
-  our own application database stores it too — as a safety net so we can still find
+  our own application database stores it too, as a safety net so we can still find
   and reconnect your account if we ever have to recreate our Cognito user pool. We
   don't use it to contact you and it isn't shown to other users.
-- **The content you create.** Lists, list items, notes, images (currently as links you
-  provide, not uploads), and tags you add.
+- **The content you save to your account.** Lists, list items, notes, images (currently
+  as links you provide, not uploads), and tags, including any lists you add from your
+  device or a file.
 - **Basic technical data.** Standard server logs (e.g. request timestamps, error info)
   used only to operate and debug the service, and a login timestamp on your account.
 - **A session cookie.** Used only to keep you signed in. It is not used for advertising
@@ -28,7 +56,7 @@ advice, but it's an accurate description of how the app actually works.
 Beyond what's listed above, we don't collect your phone number, precise location,
 payment information, or advertising/tracking data.
 
-**This may change as the app grows** — for example, we might later use your email (or
+**This may change as the app grows.** For example, we might later use your email (or
 add a phone number) for optional features like notifications. Any such change would be
 opt-in and this policy would be updated first.
 
@@ -40,25 +68,30 @@ sell or share your data with third parties, and we don't use it for advertising.
 
 ## Who can see your data
 
-**Your lists are not private from us.** Fav Fifty is run by one person, who has access to
-the database and may read stored content, including lists that aren't published, when
-it's needed to debug a problem or investigate an account (for example, a report of
-abuse). Access through the app's admin tools (being built) is logged.
+**Lists saved to your account are not private from us.** Fav Fifty is run by one person,
+who has access to the database and may read stored content, including lists that aren't
+published, when it's needed to debug a problem or investigate an account (for example, a
+report of abuse). Access through the app's admin tools (being built) is logged. Lists
+kept only on your device never reach us, so we can't see those.
 
 What we will **never** do with your data: sell it, share it with advertisers, use it for
 anything other than running Fav Fifty, or publish content you haven't chosen to publish.
 
 ## Where it's stored
 
-Your lists, items, tags, account identifier, display name, avatar, and email address are
-stored in a database we operate on AWS, in the United States. Your email address also
-lives in AWS Cognito (our authentication provider). Authentication itself is handled by
-Google and AWS Cognito — we never see or store your Google password.
+Lists saved to your account, their items and tags, your account identifier, display
+name, avatar, and email address are stored in a database we operate on AWS, in the
+United States. Your email address also lives in AWS Cognito (our authentication
+provider). Authentication itself is handled by Google and AWS Cognito; we never see or
+store your Google password. Lists you haven't added to an account stay in your browser.
 
 ## Your choices
 
-You can ask us to delete your account and associated content at any time by contacting
-us (below). Deleting your account removes your lists, items, and tags.
+- You can use Fav Fifty without an account at all.
+- You can delete on-device lists in the app, or all at once by clearing your browser's
+  data for the site.
+- You can ask us to delete your account and associated content at any time by
+  contacting us (below). Deleting your account removes your lists, items, and tags.
 
 ## Children
 
@@ -68,11 +101,16 @@ Fav Fifty is not directed at, and is not knowingly used by, children under 13.
 
 We take reasonable steps to protect your data (e.g. encrypted connections, hashed/signed
 session cookies), but as with any online service, we can't guarantee absolute security.
+Anyone with access to your device and browser can see lists saved on it.
 
 ## Changes to this policy
 
 If this policy changes in a meaningful way, we'll update the date above and, where
 practical, note what changed.
+
+- **2026-11-14:** using the app without an account, lists saved on your device, and
+  adding them to an account.
+- **2026-10-13:** the operator's access to stored content.
 
 ## Contact
 

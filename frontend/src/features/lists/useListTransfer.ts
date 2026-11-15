@@ -1,6 +1,6 @@
 /**
  * The Export / Import buttons on the lists page
- * (docs/ANONYMOUS_AND_LOCAL_LISTS_PLAN.md §Export/import a file). The rules live in
+ * (docs/ARCHITECTURE.md §Export and import a file). The rules live in
  * `localListTransfer.ts`; this does the I/O around them: reading the lists, saving
  * a file, reading a picked file, and saying how it went with a toast.
  *

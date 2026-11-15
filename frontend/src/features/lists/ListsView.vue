@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Interaction 1 + 2 + 3 + 4 (docs/LISTS_CRUD_PLAN.md): the index of the
+// The lists page (docs/ARCHITECTURE.md §Frontend patterns): the index of the
 // visitor's own lists (their account's, or this device's when anonymous — see
 // useListRepository), plus the entry points for creating, renaming, and
 // deleting one. Create is a modal (CreateListModal, hosted globally in App.vue)
@@ -71,7 +71,7 @@ onMounted(reload)
 // Sign-in/out switches storage, and another tab can change this device's lists.
 useListsRefresh(reload)
 
-// Export/import a file (docs/ANONYMOUS_AND_LOCAL_LISTS_PLAN.md, PR 5): an
+// Export/import a file (docs/ARCHITECTURE.md §Export and import a file): an
 // anonymous visitor's only backup, and a way to move lists between browsers or
 // send them to a friend. Both work for everyone: signed in, an import goes to the
 // account in one all-or-nothing request (see useListTransfer).

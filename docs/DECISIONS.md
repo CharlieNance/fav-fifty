@@ -1,9 +1,15 @@
 # Decisions
 
-The resolved choices that shape the build. This is the quick-reference summary; the
-full deliberation and trade-offs live in [QUESTIONS.md](QUESTIONS.md).
+The resolved choices that shape the build. How the built parts work is in
+[ARCHITECTURE.md](ARCHITECTURE.md).
 
-_Last updated: 2026-10-13_
+Tags like **Q12** name the question each decision answered. The full deliberation
+(options, trade-offs, the owner's notes) was in `docs/QUESTIONS.md`, removed on
+2026-11-14 once everything in it was decided. Read it with
+`git show 0973e7e:docs/QUESTIONS.md`. **New open questions:** ask the owner, then
+record the answer here.
+
+_Last updated: 2026-11-14_
 
 ## Stack & infrastructure
 
@@ -47,8 +53,8 @@ its own isn't new information; it's already been weighed here.
 
 ## Scope expansion & pre-launch hardening (decided 2026-10-13)
 
-A pre-launch pivot, deliberated in [QUESTIONS.md](QUESTIONS.md) Round 2 (Q11–Q25). Each
-item links to the plan that owns the details.
+A pre-launch pivot, deliberated as Q11–Q25. Each item links to the plan that owns the
+details.
 
 ### Product
 
@@ -59,8 +65,8 @@ item links to the plan that owns the details.
   - any invalid list **rejects the whole import** with a message saying why;
   - a successful import **clears the local copy**.
 
-  Supersedes the "logged-out *Start a list* routes to login" decision in
-  [DESIGN.md](DESIGN.md). Plan: [ANONYMOUS_AND_LOCAL_LISTS_PLAN.md](ANONYMOUS_AND_LOCAL_LISTS_PLAN.md).
+  **Built (2026-11-14).** How it works: [ARCHITECTURE.md §Anonymous
+  lists](ARCHITECTURE.md#anonymous-lists-on-device-storage).
 - **List kind** (Q13): a fixed, small enum on `lists.kind` ("What's this list of?"),
   separate from tags. It picks the catalog to search. It isn't the deferred category
   system.
@@ -240,15 +246,14 @@ callback URL becomes `https://favfifty.com/api/v1/auth/callback`.
 
 **Update (2026-09-22) — where a sign-in lands:** `/lists`, not the homepage. Someone who
 just signed in came to use the app, while the homepage is still a pitch to a stranger. A
-`?redirect=` (set when the auth guard bounces you off a protected route, or by the "Start
-a list" CTA) always wins; the default only applies when there isn't one. It's spelled
+`?redirect=` (set when the auth guard bounces you off a protected route) always wins; the default only applies when there isn't one. It's spelled
 twice — `DEFAULT_POST_LOGIN_PATH` in `backend/app/auth/oauth.py` for the Cognito
 round-trip and in `frontend/src/features/auth/postLogin.ts` for the dev-login stub, which
 never touches the backend redirect — so keep the two in sync.
 
 ## Product data model (Phase 1–2)
 
-Decisions from QUESTIONS.md §10, to guide the schema:
+Decided 2026-06-28 (Q10), to guide the schema:
 
 - **Lists**
   - A user can have **multiple lists**.
@@ -279,7 +284,8 @@ Decisions from QUESTIONS.md §10, to guide the schema:
     existing rows get it filled in on their next login (`get_or_create_user`
     populates it on create and refreshes it on every login from `Claims.email`);
     not exposed via `UserRead`/`GET /me` to keep the public API surface minimal.
-- `lists` — id, user_id (FK), title, description, status (`draft` | `published`), created_at, updated_at
+- `lists` — id, user_id (FK), title, description, status (`draft` | `published`), created_at, updated_at,
+  deleted_at (soft delete), import_key (`"<device_id>:<local_id>"`, unique per user, for idempotent imports)
 - `list_items` — id, list_id (FK), position (rank), text, note (nullable), image_url (nullable)
 - `tags` — id, name (unique, normalized)
 - `list_tags` — list_id (FK), tag_id (FK) — many-to-many
@@ -293,8 +299,6 @@ feature that needs it:
 
 - `lists.kind` (enum-ish string), `list_items.catalog_source` / `catalog_id` /
   `catalog_kind`: [CATALOG_SEARCH_PLAN.md](CATALOG_SEARCH_PLAN.md).
-- `lists.import_key` (or an import-record table) for idempotent imports:
-  [ANONYMOUS_AND_LOCAL_LISTS_PLAN.md](ANONYMOUS_AND_LOCAL_LISTS_PLAN.md).
 - `users.role` (`user` | `admin`), `admin_audit_log`, `analytics_events`,
   `analytics_daily`, per-minute request counters:
   [ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md).

@@ -1,7 +1,7 @@
 """List import service — uploading a device's lists to an account in one go.
 
 Backs ``POST /api/v1/lists/import``, used by the claim dialog after sign-in
-(docs/ANONYMOUS_AND_LOCAL_LISTS_PLAN.md §Claim on sign-in). Q12 decided the rules:
+(docs/ARCHITECTURE.md §Claim on sign-in). The rules:
 
 * **Same rules as a normal create.** Every list and item goes through the same
   validators and service rules as the one-at-a-time routes: title, tags (and the

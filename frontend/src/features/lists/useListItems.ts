@@ -1,5 +1,5 @@
 /**
- * Fetches and holds the ranked items for one list (docs/ITEMS_CRUD_PLAN.md).
+ * Fetches and holds the ranked items for one list (docs/ARCHITECTURE.md §Items).
  * Mirrors `useListDetail`'s shape: fetch/state logic lives here so it's
  * unit-testable without mounting the view. The view owns exactly one instance,
  * and every mutation flow (create/edit/delete/reorder) reports back into it via

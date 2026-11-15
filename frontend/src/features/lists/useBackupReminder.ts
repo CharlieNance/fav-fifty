@@ -1,5 +1,5 @@
 /**
- * The backup reminder (docs/ANONYMOUS_AND_LOCAL_LISTS_PLAN.md §Where it's stored):
+ * The backup reminder (docs/ARCHITECTURE.md §Keeping device lists safe):
  * a gentle banner for anonymous visitors who have put enough into this device
  * that losing it would hurt. Device lists vanish when browser data is cleared,
  * and Safari deletes them after a week without a visit, so it points at the two

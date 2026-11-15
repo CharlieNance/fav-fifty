@@ -1,76 +1,69 @@
 # Next Steps & Roadmap
 
-This is the living plan for building Fav Fifty. Work top-to-bottom; each step is
-meant to be small and shippable. Resolve the relevant items in
-[QUESTIONS.md](QUESTIONS.md) before starting the steps that depend on them.
+The living plan for building Fav Fifty. Each step is meant to be small and shippable.
+Decisions live in [DECISIONS.md](DECISIONS.md); how the built parts work is in
+[ARCHITECTURE.md](ARCHITECTURE.md).
+
+_Last updated: 2026-11-14_
 
 ---
 
-## Phase 0 — Foundation (done)
+## Where to start next
 
-Goal: a clean repo and clear decisions before any app code.
+1. **Pre-launch hardening, app layer:**
+   - quotas, rate limits, request hygiene and CSRF
+     ([ABUSE_PROTECTION_PLAN.md](ABUSE_PROTECTION_PLAN.md));
+   - `users.role`, the audit log and the admin Users/Settings pages
+     ([ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md)).
+2. **Remaining Phase 2:** publish/unpublish, list-title dedup, the light/dark toggle.
+3. **First deploy** (Terraform: box, S3, CloudFront + WAF on the flat-rate plan,
+   backups) → **breaker + game day**.
+4. **Tracks 2–3** (catalog lookup, margin showcase) and dashboards/analytics, just
+   before or just after launch (owner's call). Catalog moves to Lambda with its AWS
+   protections when it ships.
+5. **Launch** = steps 1–3 done, plus at least the admin lock/unlock and Settings pages,
+   a real contact email in the [privacy policy](legal/PRIVACY_POLICY.md) and
+   [terms](legal/TERMS_OF_SERVICE.md), and both hosted at public URLs.
 
-- [x] Create `README.md`, `.gitignore`, `.claudeignore`, `CLAUDE.md`, per-app `.env.example` templates
-- [x] Create planning docs (`NEXT_STEPS.md`, `QUESTIONS.md`, `CONSIDERATIONS.md`)
-- [x] Answer the open decisions → recorded in [DECISIONS.md](DECISIONS.md)
-- [x] Choose a license and add `LICENSE` (MIT)
-- [x] Make the initial git commit and push to GitHub (verify no secrets are tracked)
-- [x] **External setup** — follow [SETUP.md](SETUP.md):
-  - [x] Create Google OAuth Web Application client ID + secret
-  - [x] Set up AWS account (root MFA, IAM user/group, MFA) + billing budget/alarm
-  - [x] Create Route 53 hosted zone; copy Google email MX/SPF records; point Squarespace nameservers at it
-  - [x] Cognito user pool + Google IdP + hosted domain + app client — set up and verified end-to-end (2026-07-31)
+Small owner to-do (AWS console): push notifications beyond email for the budgets (AWS
+Console app, Discord webhook). It can wait for the breaker's SNS topic at deploy. See
+[COST_GUARDRAILS_PLAN.md](COST_GUARDRAILS_PLAN.md) §Account timeline.
 
-## Phase 1 — Walking skeleton (thin end-to-end slice) (done)
+## Done so far
 
-Goal: prove the whole stack connects, with auth, before building features.
-
-- [x] Scaffold `backend/` — FastAPI app, health check endpoint, config from env, pytest set up
-- [x] Scaffold `frontend/` — Vue 3 + Vite + TS app, Pinia, Vue Router, Tailwind, Vitest, ESLint/Prettier set up (2026-07-09)
-- [x] Local dev: docker-compose Postgres for the backend to run against (`docker compose up -d db`)
-- [x] Database schema v1 + migrations tool (Alembic): `users`, `lists`, `list_items`, `tags`, `list_tags` (see [DECISIONS.md](DECISIONS.md) §Data model)
-- [x] Auth seam (backend): claims contract + dev-login stub + session cookie + get-or-create + revocation, with tests (`feat/auth-seam`).
-- [x] Real Google→Cognito login (backend, `feat/auth-page`): `CognitoIdentityProvider` (JWT/JWKS verification) + `/auth/login` & `/auth/callback` (authorization-code + PKCE + state + nonce), with tests. **Live** — Cognito console setup done and "Continue with Google" verified working end-to-end (2026-07-31).
-- [x] Protected `GET /me` endpoint + frontend logged-in state: login page (real Google button + dev-login stub), header logout, session-aware store/guard (`feat/auth-page`).
-- [x] CI: backend (ruff + pytest against a real Postgres) and frontend (eslint + prettier + vue-tsc/build + vitest) on every PR and push to main (`.github/workflows/ci.yml`)
-- [x] Add `email` column to `users` (Alembic migration) — safety net for relinking
-      accounts if the Cognito user pool is ever recreated; see [DECISIONS.md](DECISIONS.md)
-      §Product data model. `get_or_create_user` and the privacy policy updated (2026-08-01).
+- **Phase 0, foundation:** repo, docs, decisions, MIT license, Google OAuth client,
+  AWS account with MFA and budgets ($10/$25/$50/$100 + Cost Anomaly Detection), Route 53
+  zone, Cognito user pool.
+- **Phase 1, walking skeleton:** FastAPI + Postgres + Alembic, Vue 3 + Vite, CI on every
+  push, real Google sign-in through Cognito (live 2026-07-31), `GET /me`.
+- **Phase 2 so far:** list CRUD with soft delete; items with the 50-item cap, dedup and
+  drag-to-reorder; tags and title/tag search; Playwright end-to-end tests.
+- **Track 0, API groundwork (2026-10-14):** everything under `/api/v1`, the committed
+  `openapi.json` with a drift test, `deploy_target` + git SHA in health, runtime
+  settings + `GET /api/v1/config/client`. Dev Cognito callback URL updated (2026-11-14).
+- **Track 1, anonymous + on-device lists (2026-11-14):** lists without an account,
+  export/import a file, the backup reminder, `POST /lists/import`, the claim dialog
+  on sign-in, and the privacy policy and terms updated to match. See
+  [ARCHITECTURE.md §Anonymous lists](ARCHITECTURE.md#anonymous-lists-on-device-storage).
 
 ## Phase 2 — Core feature: personal lists (MVP)
 
-Goal: the actual product. A user manages their own lists, signed in or (since the
-2026-10 scope expansion) anonymously on-device.
-
-- [x] CRUD API for lists (create, read, update, delete) — scoped to the owner (2026-08-08)
-- [x] CRUD/reorder API for the items within a list (up to 50, ranked/ordered; each item has text + optional note + optional image URL) (2026-08-08)
-- [x] Free-form tags on lists (multiple per list), plus search by title/tag — see
-      [TAGS_SEARCH_PLAN.md](TAGS_SEARCH_PLAN.md); (2026-08-23)
-- [ ] publish/unpublish (draft vs public)
-- [x] Frontend: create a list, add/edit/remove/reorder items, delete a list — done
-      (2026-08-08, items UI per [ITEMS_CRUD_PLAN.md](ITEMS_CRUD_PLAN.md) §Frontend
-      implementation notes); manage-tags UI shipped with the tags slice (2026-08-23)
-- [ ] Validation & limits (title length, item count cap of 50, tag handling, no
-      duplicate list titles per user or duplicate item names within a list — see
-      [LISTS_CRUD_PLAN.md](LISTS_CRUD_PLAN.md) §Validation) — done for items
-      (cap + dedup enforced backend and surfaced in the UI); list-title dedup still open
-- [x] Tests for all of the above — backend pytest, frontend Vitest, plus a Playwright
-      end-to-end journey (`frontend/e2e/list-items.spec.ts`) covering the full
-      add/edit/reorder(drag)/delete flow in a real browser
-- [ ] **Light/dark toggle** — required before go-live ([DESIGN.md](DESIGN.md))
+- [ ] Publish/unpublish (draft vs public)
+- [ ] No duplicate list titles per user (items are already deduplicated)
+- [ ] **Light/dark toggle**, required before go-live ([DESIGN.md](DESIGN.md))
 - [ ] First deploy to AWS, behind `favfifty.com`, per
       [DEPLOYMENT_TOPOLOGY_PLAN.md](DEPLOYMENT_TOPOLOGY_PLAN.md): one Lightsail box
       (Docker Compose: FastAPI + Postgres 16 + TLS proxy), the SPA on S3, and one
-      CloudFront distribution (flat-rate Free plan) serving the SPA *and* `/api/v1/*`.
+      CloudFront distribution (flat-rate Free plan) serving the SPA _and_ `/api/v1/*`.
       Includes: the Cognito callback URL →
       `https://favfifty.com/api/v1/auth/callback`, nightly `pg_dump` + snapshots + one
       test restore.
 
-### Pre-launch hardening (pulled forward from the backlog, owner call 2026-10-13)
+### Pre-launch hardening (owner call 2026-10-13)
 
 Anonymous access means strangers can reach the backend, and this project can never
-absorb a surprise bill, so these **block launch**. All decided (QUESTIONS.md Q16,
-Q21–Q25).
+absorb a surprise bill, so these **block launch**. All decided (Q16, Q21–Q25 in
+[DECISIONS.md](DECISIONS.md)).
 
 - [ ] **Cost guardrails** ([COST_GUARDRAILS_PLAN.md](COST_GUARDRAILS_PLAN.md)):
   - services capped by construction (CloudFront flat-rate plans, the fixed-price box,
@@ -101,62 +94,23 @@ Q21–Q25).
 
 **🎯 "Phase one complete" target.** Everything below is incremental.
 
-## Phase 2.5 — Scope expansion (pre-launch, decided 2026-10-13)
+## Phase 2.5 — Scope expansion (decided 2026-10-13)
 
-Owner pivot before launch: **anonymous use** with **on-device lists that upload on
-sign-in**, **find-as-you-type catalog lookup** through the Python backend, a
-**scrolling-art margin showcase**, an API ready for **iOS/Android**, and **Lambda for
-stateless routes**. All sub-decisions are made
-([QUESTIONS.md §Round 2](QUESTIONS.md#round-2--scope-expansion-2026-10-13), summarized
-in [DECISIONS.md](DECISIONS.md) §Scope expansion).
-
-**Track 0 — API groundwork** (first: it changes paths every later track touches; see
-[MOBILE_READINESS.md](MOBILE_READINESS.md) §4 and DEPLOYMENT_TOPOLOGY_PLAN.md §One public URL).
-Done 2026-10-14 (`feat/track0_API_Groundwork`):
-
-- [x] Serve the API at `/api/v1/...` from the app itself (Swagger + `openapi.json` too);
-      the Vite proxy stops stripping `/api`; `VITE_API_BASE_URL` default becomes
-      `/api/v1`. Templates, READMEs and [SETUP.md](SETUP.md) §3 updated. **Owner to-do:**
-      the dev callback URL on the Cognito app client becomes
-      `http://localhost:8000/api/v1/auth/callback` (console + `backend/.env`).
-- [x] ~~Fix the snake_case/camelCase wire mismatch~~ — done: wire casing is **snake_case**
-      (commit `3f98dcd`)
-- [x] Commit the OpenAPI schema (`backend/openapi.json`); a pytest check (so CI) fails
-      when it drifts — regenerate with `./tools/openapi_snapshot.sh`
-- [x] Health endpoint reports `deploy_target` + git SHA (`DEPLOY_TARGET` / `GIT_SHA`, set
-      by the image build at deploy time)
-- [x] **Runtime settings module** (`app/core/runtime_settings.py`: SSM + env fallback,
-      typed/validated, ~30 s cache, fail-safe defaults) + public
-      `GET /api/v1/config/client`; `max_tags_per_list` moved under it with the new
-      default of 25 ([ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md) §Runtime
-      settings). Quotas, provider toggles, and the breaker all build on this. Feature
-      switches get added with the features they gate.
-
-**Track 1 — anonymous + local lists** ([ANONYMOUS_AND_LOCAL_LISTS_PLAN.md](ANONYMOUS_AND_LOCAL_LISTS_PLAN.md)).
-**Start here:** the plan's §Status and where to start, then PR 1 (its call-site
-inventory is the checklist). Full PR order: the plan's §Build order.
-
-- [ ] List-repository refactor (API-only, no behavior change) ← **next**
-- [ ] Shared validation limits: endpoint exists (Track 0) but serves only
-      `max_tags_per_list`; add the fixed limits as new `ClientLimits` fields + a
-      frontend config store with bundled defaults
-- [ ] `LocalListRepository` + versioned JSON storage format (snake_case) + migrations
-- [ ] Unlock list routes for anonymous visitors; "saved on this device" UI; export/import file
-- [ ] `POST /lists/import` (idempotent, atomic, reject-all on invalid, rename on title
-      conflict) + migration; claim dialog after sign-in; clear local copy on success
-- [ ] Privacy policy update (on-device storage)
+Tracks 0 and 1 are done (above). Tracks 2 and 3 are independent of each other.
 
 **Track 2 — catalog lookup** ([CATALOG_SEARCH_PLAN.md](CATALOG_SEARCH_PLAN.md)):
 
 - [ ] Catalog seam: contract, modular provider registry (runtime enable/disable), fake
       provider, `GET /catalog/search`
 - [ ] Migration: nullable `catalog_*` refs on `list_items`, `kind` enum on `lists`
+      (plus a `v1→v2` migration of the on-device document)
 - [ ] Item-form type-ahead combobox + list-kind picker
 - [ ] First-wave providers: Wikipedia → Deezer/iTunes → TMDB (+ attribution) → Photon,
       with the per-provider circuit breaker
 - [ ] AWS protections: catalog on Lambda (reserved concurrency ~3), WAF rule, edge
       caching, `img.favfifty.com` image proxy
 - [ ] Second-wave providers: IGDB, BoardGameGeek, AniList, podcasts, books
+- [ ] Privacy policy: search text is relayed to third-party catalogs
 
 **Track 3 — margin showcase** ([MARGIN_SHOWCASE_PLAN.md](MARGIN_SHOWCASE_PLAN.md)):
 
@@ -164,8 +118,6 @@ inventory is the checklist). Full PR order: the plan's §Build order.
 - [ ] Animation, reduced-motion, visibility pause, user off-toggle
 - [ ] Real sources (TMDB trending, album charts) via the image proxy, after Track 2's
       TMDB key lands; route to Lambda with the catalog
-
-Tracks 1–3 are independent of each other once Track 0 is in.
 
 ## Phase 3 — Sharing & comments
 
@@ -185,7 +137,7 @@ Tracks 1–3 are independent of each other once Track 0 is in.
 
 See [MOBILE_READINESS.md](MOBILE_READINESS.md). Prerequisites are mostly Track 0 above.
 
-- [ ] Choose app technology (QUESTIONS.md Q18: deferred; try Capacitor first)
+- [ ] Choose app technology (Q18: deferred; try Capacitor first)
 - [ ] Bearer-token auth alongside the cookie (system-browser OAuth → one-time code → token)
 - [ ] Android first; **iOS last**, with **Sign in with Apple** (App Store guideline
       4.8). Apple Developer Program, $99/yr (accepted)
@@ -195,53 +147,17 @@ See [MOBILE_READINESS.md](MOBILE_READINESS.md). Prerequisites are mostly Track 0
 
 ## Later / backlog
 
-- Search across lists and items — title/tag search for a user's own lists is being
-  pulled into the Phase 2 tags slice above ([TAGS_SEARCH_PLAN.md](TAGS_SEARCH_PLAN.md));
-  searching *within* a list's items, or cross-user search, stays here
+- Account page + avatars ([ACCOUNT_AND_AVATAR_PLAN.md](ACCOUNT_AND_AVATAR_PLAN.md);
+  the avatar bug fix shipped, the rest isn't built)
+- Email sign-in: options drafted, **not decided**
+  ([EMAIL_SIGNIN_OPTIONS.md](EMAIL_SIGNIN_OPTIONS.md))
+- Search _within_ a list's items, or across users (title/tag search of your own lists
+  is done)
 - Notifications (someone commented on / voted for your list)
-- Reporting & moderation tools for *public* content (report button, review queue) —
-  arrives with Phase 3; the admin portal and account locking moved pre-launch (Phase 2
-  §Pre-launch hardening)
+- Reporting & moderation tools for _public_ content (report button, review queue),
+  arriving with Phase 3
 - Image storage in S3: copy catalog images from redirecting sources and user-pasted image
   URLs into our own bucket (privacy), before public lists ship
-- Full Lambda (DB-backed routes off the box) — deferred; needs a managed DB
+- Full Lambda (DB-backed routes off the box), deferred; needs a managed DB
   ([DEPLOYMENT_TOPOLOGY_PLAN.md](DEPLOYMENT_TOPOLOGY_PLAN.md) §Future)
-- Keep data on-device even when signed in, with bulk sync (owner idea, QUESTIONS.md Q12)
-- ~~Rate limiting and anti-abuse hardening~~ — moved pre-launch (2026-10-13),
-  [ABUSE_PROTECTION_PLAN.md](ABUSE_PROTECTION_PLAN.md)
-- ~~Analytics (privacy-respecting)~~ — moved pre-launch (2026-10-13),
-  [ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md)
-
----
-
-## Where to start next (updated 2026-10-13)
-
-Phases 0–1 and the Phase 2 list/item/tag features are done (history in git and the plan
-docs). All of QUESTIONS.md Round 2 is decided. **Suggested order:**
-
-1. **AWS console only (no code):** the account is already on the **Paid** plan
-   (confirmed 2026-10-14), so there is no close-or-upgrade deadline, but real charges
-   can already happen. Finish the spend alerts:
-   - [x] Budgets: $10/$25/$50/$100 monthly cost budgets with email alerts (2026-10-14).
-   - [x] Cost Anomaly Detection (2026-10-14).
-   - [ ] Notifications beyond email: AWS Console app push + Discord webhook (can wait
-         for the breaker's SNS topic at deploy).
-
-   Budgets alone can't stop spending. The breaker does that, at deploy time. See
-   [COST_GUARDRAILS_PLAN.md](COST_GUARDRAILS_PLAN.md) §Account timeline.
-2. ~~**Track 0 (API groundwork)**~~ — done 2026-10-14 (the `/api/v1` prefix, the
-   OpenAPI snapshot check, `deploy_target` in health, the runtime settings module +
-   `GET /api/v1/config/client`). Remaining owner step: update the dev Cognito callback
-   URL (see Track 0 above) done 2026-11-14 Cognito callback URL updated and verified working
-3. **Next feature: Track 1 (anonymous + local lists)**, starting with the list-repository refactor.
-   It changes the first-visit experience, so launch waits on it.
-4. **Pre-launch hardening, app layer:** quotas + rate limits + request hygiene + CSRF
-   (ABUSE_PROTECTION_PLAN.md); `users.role`, the audit log and the admin Users/Settings
-   pages (ADMIN_AND_ANALYTICS_PLAN.md).
-5. **Remaining Phase 2:** publish/unpublish, list-title dedup, the light/dark toggle.
-6. **First deploy** (Terraform: box, S3, CloudFront + WAF on the flat-rate plan,
-   backups) → **breaker + game day**.
-7. **Tracks 2–3** (catalog lookup, margin showcase) and dashboards/analytics, just before
-   or just after launch (owner's call). Catalog moves to Lambda with its AWS
-   protections when it ships.
-8. **Launch** = steps 1–6 done, plus at least the admin lock/unlock and Settings pages.
+- Keep data on-device even when signed in, with bulk sync (owner idea, Q12)

@@ -1,6 +1,6 @@
 /**
  * Calls `PATCH /api/v1/lists/:listId/items/:itemId` (full replace of text/note/
- * image_url — Interaction 2, docs/ITEMS_CRUD_PLAN.md) and tracks in-flight/
+ * image_url — docs/ARCHITECTURE.md §Items) and tracks in-flight/
  * error state for the edit-item modal. Like `useCreateItem`, a 409 (text
  * collides with a DIFFERENT item) surfaces the backend's own copy.
  */

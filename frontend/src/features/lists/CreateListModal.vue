@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Create-a-list overlay (Interaction 2, docs/LISTS_CRUD_PLAN.md). Hosted once,
+ * Create-a-list overlay (docs/ARCHITECTURE.md §Frontend patterns). Hosted once,
  * globally (App.vue), and opened via the shared `useListModalsStore` so "Start a
  * list" (header, homepage) and the index's "New list" button all reach the same
  * modal without a dedicated route. Save is the one deliberate navigation in this

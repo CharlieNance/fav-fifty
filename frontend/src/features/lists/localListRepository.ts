@@ -1,7 +1,7 @@
 /**
  * Anonymous storage: a `ListRepository` that keeps everything on this device
- * (docs/ANONYMOUS_AND_LOCAL_LISTS_PLAN.md §Key design). Not wired up yet; PR 4
- * picks it in `useListRepository()` when nobody is signed in.
+ * (docs/ARCHITECTURE.md §Anonymous lists). `useListRepository()` picks it
+ * when nobody is signed in.
  *
  * It behaves like `apiListRepository` as far as the views can tell:
  * - Same rules as the backend (listRules.ts): trimming, lengths, the item cap,

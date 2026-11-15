@@ -16,7 +16,8 @@ extensibility, scalability.**
   protection.
 - **OAuth done right.** Use the provider/Cognito SDKs; validate `state` (CSRF) and `nonce`,
   verify ID token signatures and audience, and store as little PII as possible (provider
-  user id + display name + avatar URL — avoid storing emails if you don't need them).
+  user id + display name + avatar URL, plus email, kept deliberately as a relinking
+  safety net; see [DECISIONS.md](DECISIONS.md) §Initial schema).
 - **Sessions/tokens.** Prefer secure, `HttpOnly`, `SameSite` cookies for the browser
   session over storing tokens in `localStorage` (XSS-resistant). Short-lived access,
   rotating refresh.
@@ -53,8 +54,8 @@ extensibility, scalability.**
 
 ## Cost (this makes no money — keep it near-zero)
 
-- **Set an AWS Budget + billing alarm first thing** (e.g. alert at \$5/\$10/\$20) so a
-  misconfiguration can't quietly cost real money.
+- **AWS Budgets are set** (\$10/\$25/\$50/\$100 + Cost Anomaly Detection, 2026-10-14)
+  so a misconfiguration can't quietly cost real money.
 - **"Go down before a big bill" (owner, 2026-10-13).** Budgets alone can't do this —
   billing data lags hours to a day and AWS has no spend cap. The plan is three layers:
   services capped by construction (CloudFront flat-rate plan = no overages), usage-alarm
@@ -97,15 +98,16 @@ extensibility, scalability.**
   pure functions for business logic kept separate from I/O.
 - **Backend:** pytest, with unit tests for logic and a few integration tests hitting a real
   (ephemeral) Postgres. Factories/fixtures for data.
-- **Frontend:** Vitest for unit/component tests; consider Playwright for a couple of
-  end-to-end smoke tests later.
+- **Frontend:** Vitest for unit/component tests; Playwright (`frontend/e2e/`) for a few
+  real-browser journeys against the real backend.
 - **CI green = mergeable.** Run tests on every push (GitHub Actions) before anything else.
 - Seed/fixture scripts so you can spin up realistic local data quickly.
 
 ## Extensibility
 
 - **Clear boundaries:** keep API contracts (Pydantic schemas / OpenAPI) explicit so the
-  frontend and backend evolve independently. Vue consumes the generated OpenAPI types.
+  frontend and backend evolve independently. The contract is committed as
+  `backend/openapi.json`, and a test fails when it drifts.
 - **Migrations from the start** (Alembic). Never edit the DB by hand; every schema change
   is a versioned migration.
 - **Model for the roadmap, not just MVP.** Even if comments/votes come later, a relational
@@ -145,13 +147,14 @@ extensibility, scalability.**
   - TMDB is free for **non-commercial** use only, requires a visible attribution
     notice + logo, and caps caching at 6 months.
   - OpenStreetMap data (Photon) requires "© OpenStreetMap contributors".
-  - Fav Fifty is **never monetized** (QUESTIONS.md Q15), so non-commercial terms are
+  - Fav Fifty is **never monetized** (Q15), so non-commercial terms are
     fine. A voluntary donation link is generally compatible; re-read TMDB's terms
     before adding one.
 - **Privacy policy:**
   - **Updated 2026-10-13:** operator access to stored content (Q24).
+  - **Updated 2026-11-14:** use without an account, on-device lists, export/import, and
+    what the claim uploads (including the random `device_id` kept with each list).
   - **Still owed when each piece ships:**
-    - anonymous lists stay on the device until imported;
     - search text is relayed by our server to third-party catalogs (images come
       through our own proxy, so providers don't see visitors);
     - Cloudflare Web Analytics;

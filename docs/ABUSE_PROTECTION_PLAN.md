@@ -1,12 +1,12 @@
 # Abuse Protection & Hardening — Implementation Plan
 
 Planning doc. Opening the site to **anonymous visitors**
-([ANONYMOUS_AND_LOCAL_LISTS_PLAN.md](ANONYMOUS_AND_LOCAL_LISTS_PLAN.md)) means
+([ARCHITECTURE.md §Anonymous lists](ARCHITECTURE.md#anonymous-lists-on-device-storage)) means
 strangers can reach the backend without signing in. Even if most traffic comes from
 the Discord community, the owner doesn't know everyone, and a public link travels.
 "Rate limiting and anti-abuse hardening" therefore moves from the backlog to
 **pre-launch** (owner, 2026-10-13). Nothing is built yet. Decided in
-[QUESTIONS.md](QUESTIONS.md): **Q16** (catalog and showcase limits are enforced by AWS,
+[DECISIONS.md](DECISIONS.md): **Q16** (catalog and showcase limits are enforced by AWS,
 not app code) and **Q25** (quota defaults, changeable at runtime). Related: [COST_GUARDRAILS_PLAN.md](COST_GUARDRAILS_PLAN.md)
 (the last line of defence for cost), [ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md)
 (the lock/block UI), and [CONSIDERATIONS.md](CONSIDERATIONS.md) §Security.
@@ -93,8 +93,8 @@ lists per request.
   `tag_service`. Moved there in Track 0 (2026-10-14); the other quotas join it.
 - Enforced in the service layer like the item cap, with friendly 409/422 messages.
   The same values go to clients via `GET /api/v1/config/client`, so the anonymous
-  mode's local validation stays in step (ANONYMOUS_AND_LOCAL_LISTS_PLAN.md §Key
-  design).
+  mode's local validation stays in step ([ARCHITECTURE.md](ARCHITECTURE.md)
+  §Layers).
 - Combined with the 50-item cap, they bound worst-case storage per account to a few
   MB.
 - The **50-item cap stays fixed in code.** It's the product's identity, not a tunable.

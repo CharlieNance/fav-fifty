@@ -2,7 +2,7 @@
 rules.
 
 Kept as its own service rather than folded into ``list_service`` (see
-docs/TAGS_SEARCH_PLAN.md open question 3): no tag operation is in scope today that
+docs/ARCHITECTURE.md §Tags and search): no tag operation is in scope today that
 isn't "as part of a list," but keeping tag logic contained here means it can grow
 (search filtering, eventually a curated category system) without list_service
 absorbing that complexity.
@@ -66,7 +66,7 @@ def set_list_tags(db: Session, list_row: List, names: list[str], max_tags: int) 
     ``Tag`` row by name instead of creating a duplicate, so two lists — even two
     different owners' lists — that both use "board games" share one row; a list that
     stops using a tag simply drops out of that row's ``lists`` relationship, and the
-    orphaned ``Tag`` row is left in place (see docs/TAGS_SEARCH_PLAN.md).
+    orphaned ``Tag`` row is left in place (see docs/ARCHITECTURE.md §Tags and search).
     """
     deduped = list(dict.fromkeys(names))
     if len(deduped) > max_tags:

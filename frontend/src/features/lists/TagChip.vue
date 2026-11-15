@@ -4,8 +4,8 @@
  * header, later the list index), or with a remove control inside the tag
  * management modal. Deliberately styled unlike anything else in the app (a
  * tinted accent outline, not a solid button or a list row) so a tag never
- * reads as a ranked item or a clickable action (docs/TAGS_SEARCH_PLAN.md open
- * question 5).
+ * reads as a ranked item or a clickable action (docs/ARCHITECTURE.md
+ * §Frontend patterns).
  */
 import { XMarkIcon } from '@heroicons/vue/24/outline'
 

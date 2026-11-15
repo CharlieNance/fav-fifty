@@ -5,8 +5,7 @@ import { useListModalsStore } from './useListModals'
  *
  * It opens the create modal right where the visitor is, signed in or not:
  * anonymous visitors build lists on this device
- * (docs/ANONYMOUS_AND_LOCAL_LISTS_PLAN.md). This supersedes the 2026-07-14
- * decision in docs/DESIGN.md that sent logged-out visitors to login first.
+ * (docs/ARCHITECTURE.md §Anonymous lists).
  */
 export function useStartList() {
   const modals = useListModalsStore()
