@@ -23,7 +23,35 @@ up later. This is **Track 1** in [NEXT_STEPS.md](NEXT_STEPS.md). **Decided in
   The frontend reads them from the `clientConfig` store
   ([clientConfig.ts](../frontend/src/stores/clientConfig.ts)), which starts with bundled
   defaults and loads the server's values in the background from `main.ts`.
-- **Next: PR 3 or 6** (independent of each other, see [§Build order](#build-order-small-shippable-prs)).
+- **PR 3 (`LocalListRepository`) is done** on the same branch, with unit tests, but
+  isn't wired up yet. It's split into three modules:
+  - [listRules.ts](../frontend/src/features/lists/listRules.ts): the backend's
+    validators, error copy included, reading the limits from the `clientConfig`
+    store. Lengths count code points, as Python and Postgres do.
+  - [localListDocument.ts](../frontend/src/features/lists/localListDocument.ts):
+    the format, the migrations, the untrusted-data parser and `localStorage` I/O.
+  - [localListRepository.ts](../frontend/src/features/lists/localListRepository.ts):
+    `createLocalListRepository()`.
+- **Next: PR 4 or 6.** PR 4 is unblocked now; PR 6 never depended on anything (see
+  [§Build order](#build-order-small-shippable-prs)).
+- **Decisions made while building PR 3:**
+  - **A new `ListErrorKind`, `storage`,** for blocked storage, a full quota, or a
+    document saved by a newer app version. Its `detail` is always user-facing copy,
+    so PR 4 can show the "can't save here" state from it.
+  - **No in-memory cache:** every call reads storage, changes it and writes it back
+    in one synchronous step. A second tab can't overwrite fresher data with a stale
+    copy, so PR 4's `storage` listener only has to refresh what's on screen.
+  - **An unreadable document is set aside, not overwritten.** It's copied to
+    `favfifty:v1:unreadable:<time>` and removed. A **newer-version** document is left
+    alone, and every call says "reload the page".
+  - **The parser repairs structure but not limits.** Missing ids, duplicate ids, bad
+    timestamps, and non-http(s) image URLs are dropped or fixed. A 60-item or
+    over-long list is kept as it is, since the user's data stays theirs, and the
+    import rejects it with a reason (Q12).
+  - **`updated_at` matches the server:** only a rename bumps a list's `updated_at`.
+    Item changes and tag changes don't, so the order of the lists page is the same
+    whether you're signed in or not.
+  - **No Zod:** the parser is a hand-written guard, so there's no new dependency.
 - **Already in place:**
   - `GET /api/v1/config/client` ([config.py](../backend/app/api/routes/config.py))
     serves every content limit (PR 2).
@@ -100,7 +128,7 @@ features/lists/*  ──►  useListAction ──►  ListRepository (interface)
 | Service | [useListAction.ts](../frontend/src/features/lists/useListAction.ts) | `run(repo => …)` owns `pending` / `error` / `errorKind`, the try/catch, and picking the message (storage copy for kinds in `showDetailFor`, otherwise the fallback). |
 | Factory | [useListRepository.ts](../frontend/src/features/lists/useListRepository.ts) | Picks the repository; `setListRepository()` is the test seam. |
 | Repository | [listRepository.ts](../frontend/src/features/lists/listRepository.ts) | The `ListRepository` interface and `apiListRepository`. Translates failures into `ListError` at the boundary. |
-| Domain error | [listErrors.ts](../frontend/src/features/lists/listErrors.ts) | `ListError` with a `kind` (`not-found`, `conflict`, `invalid`, `unknown`) and optional user-facing `detail`. |
+| Domain error | [listErrors.ts](../frontend/src/features/lists/listErrors.ts) | `ListError` with a `kind` (`not-found`, `conflict`, `invalid`, `storage` (on-device only, added in PR 3), `unknown`) and optional user-facing `detail`. |
 | API client | [client.ts](../frontend/src/api/client.ts) | `apiFetch` / `ApiError`. Only the API repository uses it. |
 
 - The interface uses the **same TypeScript types** the views already use
@@ -412,7 +440,7 @@ third implementation if the Safari wipe turns out to bite real users.
 | --- | --- | --- | --- | --- |
 | 1 | **Repository refactor**: `ListRepository`, `ApiListRepository`, `useListRepository()`; move all 11 call sites | Frontend | No | Done |
 | 2 | **Shared limits**: backend constants module, new `ClientLimits` fields, frontend config store with bundled defaults | Both | No | Done |
-| 3 | **`LocalListRepository`** plus the storage format, schema validation and migrations, with unit tests (not wired up yet) | Frontend | No | Not started |
+| 3 | **`LocalListRepository`** plus the storage format, schema validation and migrations, with unit tests (not wired up yet) | Frontend | No | Done |
 | 4 | **Unlock the routes for anonymous users**, `useStartList` change, repository switching, "Saved on this device" copy | Frontend | Yes | Not started |
 | 5 | **Export/import a file** | Frontend | Yes | Not started |
 | 6 | **`POST /api/v1/lists/import`**, its migration, runtime setting and tests | Backend | No | Not started |

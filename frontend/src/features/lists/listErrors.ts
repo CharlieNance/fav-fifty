@@ -15,6 +15,12 @@ export type ListErrorKind =
   | 'conflict'
   /** The input failed validation (too long, too many tags, …). */
   | 'invalid'
+  /**
+   * On-device storage only: the browser won't let us read or write (private mode,
+   * blocked site data, quota full, or data saved by a newer version of the app).
+   * `detail` always says which, in user-facing copy.
+   */
+  | 'storage'
   /** Anything else: network failure, server error, signed out mid-session. */
   | 'unknown'
 
