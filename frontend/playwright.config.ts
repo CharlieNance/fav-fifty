@@ -36,7 +36,16 @@ export default defineConfig({
     // read them with the playwright-trace skill or `npx playwright show-trace`.
     trace: 'on-first-retry',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  // Every spec runs in each. All three are Chromium, so CI installs one browser.
+  projects: [
+    // Playwright emulates a light `prefers-color-scheme` unless told otherwise,
+    // and the app follows the system theme (stores/theme.ts) — so this is light.
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    // The same, in the dark theme: catches anything hidden or unreadable there.
+    { name: 'chromium-dark', use: { ...devices['Desktop Chrome'], colorScheme: 'dark' } },
+    // Phone-sized, with touch (docs/MOBILE_READINESS.md).
+    { name: 'mobile', use: { ...devices['Pixel 7'] } },
+  ],
   globalSetup: './e2e/global-setup.ts',
   webServer: [
     {

@@ -283,5 +283,7 @@ Rules in `localListTransfer.ts`, I/O in `useListTransfer.ts`. Both work signed i
 - **Playwright** (`frontend/e2e/`) covers items with a real drag, tags and search,
   anonymous use, and the claim. A Sortable drag needs press → small move → stepped
   glide → release; `dragTo()` is too abrupt. Specs import `test`/`expect` from
-  `e2e/fixtures.ts`, not `@playwright/test`. CI runs them too (`e2e` job, retries
+  `e2e/fixtures.ts`, not `@playwright/test`. Every spec runs three times: desktop
+  light (`chromium`), desktop dark (`chromium-dark`) and phone-sized (`mobile`,
+  Pixel 7), all Chromium. CI runs them too (`e2e` job, retries
   and an uploaded report + traces on failure).
