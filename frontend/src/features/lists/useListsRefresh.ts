@@ -4,6 +4,8 @@
  *
  * - **Signing in or out** switches the repository (`useListRepository`). The page
  *   reloads from the new one, so lists from one storage never show in the other.
+ * - **Lists were claimed** into the account from the dialog after sign-in
+ *   (`useListClaimStore`). The account has new lists to show.
  * - **Another tab changed this device's lists.** The browser fires a `storage`
  *   event in every *other* tab. The local repository has no cache to go stale (each
  *   call reads storage), so reloading what's on screen is all a tab has to do.
@@ -14,12 +16,20 @@ import { onMounted, onUnmounted, watch } from 'vue'
 
 import { useAuthStore } from '@/stores/auth'
 import { STORAGE_KEY } from './localListDocument'
+import { useListClaimStore } from './useListClaim'
 
 export function useListsRefresh(reload: () => void): void {
   const auth = useAuthStore()
 
+  const claim = useListClaimStore()
+
   watch(
     () => auth.isAuthenticated,
+    () => reload(),
+  )
+
+  watch(
+    () => claim.claimCount,
     () => reload(),
   )
 

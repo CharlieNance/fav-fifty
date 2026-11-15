@@ -122,6 +122,24 @@ describe('LoginView', () => {
     expect(wrapper.find('[role="alert"]').text()).toContain('Dev login failed')
   })
 
+  it('defaults to sign-in wording', async () => {
+    const { wrapper } = await mountAt()
+
+    expect(wrapper.get('h1').text()).toBe('Welcome back')
+  })
+
+  it('uses create-account wording in signup mode, with the same Google flow', async () => {
+    const auth = useAuthStore()
+    const spy = vi.spyOn(auth, 'loginWithGoogle').mockImplementation(() => {})
+    const router = testRouter()
+    await router.push('/lists')
+    const wrapper = mount(LoginView, { props: { mode: 'signup' }, global: { plugins: [router] } })
+
+    expect(wrapper.get('h1').text()).toBe('Create your free account')
+    await button(wrapper, 'Continue with Google')!.trigger('click')
+    expect(spy).toHaveBeenCalledOnce()
+  })
+
   it('shows no error on a normal visit', async () => {
     const { wrapper } = await mountAt()
 

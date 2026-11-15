@@ -12,8 +12,11 @@ import {
   IMPORT_EMPTY_DETAIL,
   IMPORT_NEWER_VERSION_DETAIL,
   IMPORT_UNREADABLE_DETAIL,
+  claimSummaryMessage,
   importSummaryMessage,
   mergeImportedLists,
+  summarizeAccountImport,
+  tooManyListsDetail,
   parseImportFile,
   type ParsedImport,
   serializeExport,
@@ -287,5 +290,52 @@ describe('importSummaryMessage', () => {
       "Imported 2 lists. 'A' is now 'A (2)', since you already had one by that name. " +
         "4 entries in the file couldn't be read and were skipped.",
     )
+  })
+})
+
+describe('summarizeAccountImport', () => {
+  const list = (title: string) => ({
+    id: `server-${title}`,
+    title,
+    status: 'draft',
+    tags: [],
+    item_count: 0,
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-01T00:00:00Z',
+  })
+
+  it('counts every list, and reports the renames the server made', () => {
+    expect(
+      summarizeAccountImport(
+        {
+          lists: [
+            { local_id: 'a', outcome: 'created', list: list('A (2)'), renamed_from: 'A' },
+            { local_id: 'b', outcome: 'created', list: list('B'), renamed_from: null },
+            // An earlier attempt made it, and it has since been deleted.
+            { local_id: 'c', outcome: 'already_imported', list: null, renamed_from: null },
+          ],
+        },
+        1,
+      ),
+    ).toEqual({ imported: 3, renamed: [{ from: 'A', to: 'A (2)' }], skipped: 1 })
+  })
+})
+
+describe('claimSummaryMessage', () => {
+  it('says how many lists were added, and any renames', () => {
+    expect(claimSummaryMessage({ imported: 1, renamed: [], skipped: 0 })).toBe(
+      'Added 1 list to your account.',
+    )
+    expect(
+      claimSummaryMessage({ imported: 3, renamed: [{ from: 'A', to: 'A (2)' }], skipped: 0 }),
+    ).toBe(
+      "Added 3 lists to your account. 'A' is now 'A (2)', since you already had one by that name.",
+    )
+  })
+})
+
+describe('tooManyListsDetail', () => {
+  it("uses the server's wording", () => {
+    expect(tooManyListsDetail(100)).toBe('You can upload at most 100 lists at a time.')
   })
 })

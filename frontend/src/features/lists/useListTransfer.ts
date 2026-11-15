@@ -7,28 +7,34 @@
  * - **Export works for everyone.** It reads through the active repository, so a
  *   signed-in user exports their account's lists and an anonymous visitor the
  *   device's. Either file imports anywhere.
- * - **Import is anonymous-only for now** and writes to device storage directly.
- *   Importing into an account needs the atomic, idempotent `POST /lists/import`
- *   (PR 6). Creating lists and items one request at a time could leave half a
- *   file imported, and Q12 says an import is all or nothing.
+ * - **Import works for everyone too.** Anonymous, it merges into device storage.
+ *   Signed in, it goes to the account through `POST /lists/import` in one
+ *   all-or-nothing request (Q12), never one list at a time, which could leave half
+ *   a file imported. Either way the file is checked here first, with the same rules
+ *   and the same messages, and title clashes are renamed `"Title (2)"`.
  */
 import { ref } from 'vue'
 
+import { useAuthStore } from '@/stores/auth'
 import { useClientConfigStore } from '@/stores/clientConfig'
 import { useToastStore } from '@/stores/toasts'
-import { toListError } from './listErrors'
-import type { ListRepository } from './listRepository'
+import { ListError, toListError } from './listErrors'
+import { type AccountImport, apiListRepository, type ListRepository } from './listRepository'
 import { createDocumentStore, type DocumentStore, emptyDocument } from './localListDocument'
 import { requestPersistentStorage } from './localListRepository'
 import {
   collectExport,
   exportFileName,
   IMPORT_TOO_LARGE_DETAIL,
+  type ImportSummary,
   importSummaryMessage,
   MAX_IMPORT_FILE_BYTES,
   mergeImportedLists,
+  type ParsedImport,
   parseImportFile,
   serializeExport,
+  summarizeAccountImport,
+  tooManyListsDetail,
 } from './localListTransfer'
 import { useListRepository } from './useListRepository'
 
@@ -42,8 +48,12 @@ export const IMPORT_FAILED_MESSAGE = "Couldn't import that file. Try again."
 export interface ListTransferOptions {
   /** Where an export reads from. Defaults to the active repository, resolved per export. */
   repository?: () => ListRepository
-  /** Where an import writes to. Defaults to this device's storage. */
+  /** Where an anonymous import writes to. Defaults to this device's storage. */
   store?: DocumentStore
+  /** Whether an import goes to the account. Defaults to the auth store's `isAuthenticated`. */
+  isSignedIn?: () => boolean
+  /** Where a signed-in import goes. Defaults to the API. */
+  account?: AccountImport
   now?: () => string
   newId?: () => string
   /** Hands the file to the browser. Defaults to a download through a temporary link. */
@@ -70,6 +80,9 @@ export function useListTransfer(options: ListTransferOptions = {}) {
   const repository = options.repository ?? useListRepository
   const store = options.store ?? createDocumentStore({ now, newId })
   const saveFile = options.saveFile ?? downloadFile
+  const account = options.account ?? apiListRepository
+  const auth = useAuthStore()
+  const isSignedIn = options.isSignedIn ?? (() => auth.isAuthenticated)
   const toasts = useToastStore()
   const config = useClientConfigStore()
   const exporting = ref(false)
@@ -99,7 +112,31 @@ export function useListTransfer(options: ListTransferOptions = {}) {
     }
   }
 
-  /** Add the lists in `file` to this device. Resolves to true if anything was added. */
+  /** Add `parsed` to this device's storage. */
+  function importToDevice(parsed: ParsedImport): ImportSummary {
+    // Read, merge, write in one synchronous step, like every repository call.
+    const doc = store.load() ?? emptyDocument(newId())
+    const summary = mergeImportedLists(doc, parsed, { newId, limits: config.limits })
+    store.save(doc)
+    requestPersistentStorage()
+    return summary
+  }
+
+  /** Add `parsed` to the signed-in user's account, in one request. */
+  async function importToAccount(parsed: ParsedImport): Promise<ImportSummary> {
+    const max = config.limits.max_lists_per_import
+    if (parsed.lists.length > max) throw new ListError('invalid', tooManyListsDetail(max))
+    // A fresh device id per import, so the server keys these lists apart from any
+    // earlier import of the same file: a file import adds, as it does on a device,
+    // even if the lists it made last time have since been deleted.
+    const result = await account.importLists({ device_id: newId(), lists: parsed.lists })
+    return summarizeAccountImport(result, parsed.skipped)
+  }
+
+  /**
+   * Add the lists in `file` to the account (signed in) or this device. Resolves to
+   * true if anything was added.
+   */
   async function importFile(file: File): Promise<boolean> {
     importing.value = true
     try {
@@ -108,13 +145,8 @@ export function useListTransfer(options: ListTransferOptions = {}) {
         return false
       }
       const parsed = parseImportFile(await file.text(), { limits: config.limits, now, newId })
+      const summary = isSignedIn() ? await importToAccount(parsed) : importToDevice(parsed)
 
-      // Read, merge, write in one synchronous step, like every repository call.
-      const doc = store.load() ?? emptyDocument(newId())
-      const summary = mergeImportedLists(doc, parsed, { newId, limits: config.limits })
-      store.save(doc)
-
-      requestPersistentStorage()
       // Something in the file was left out, so it's worth a second look: a warning.
       toasts.show(importSummaryMessage(summary), {
         variant: summary.skipped > 0 ? 'warning' : 'success',

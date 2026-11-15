@@ -7,6 +7,7 @@ describe('toListError', () => {
   it.each([
     [404, 'not-found'],
     [409, 'conflict'],
+    [413, 'invalid'],
     [422, 'invalid'],
     [500, 'unknown'],
     [401, 'unknown'],

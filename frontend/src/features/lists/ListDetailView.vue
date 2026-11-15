@@ -15,6 +15,7 @@ import { VueDraggable } from 'vue-draggable-plus'
 import BaseButton from '@/components/BaseButton.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import { useClientConfigStore } from '@/stores/clientConfig'
+import BackupReminder from './BackupReminder.vue'
 import EditListModal from './EditListModal.vue'
 import ItemFormModal from './ItemFormModal.vue'
 import ListItemRow from './ListItemRow.vue'
@@ -239,6 +240,9 @@ function nudge(item: ListItem, direction: -1 | 1): void {
           <TagChip :label="tag" />
         </li>
       </ul>
+
+      <!-- Anonymous, with enough on this device to be worth keeping. -->
+      <BackupReminder />
 
       <!-- ——— Items ——— -->
 

@@ -21,6 +21,7 @@ import BaseButton from '@/components/BaseButton.vue'
 import { useAuthStore } from '@/stores/auth'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import IconButton from '@/components/IconButton.vue'
+import BackupReminder from './BackupReminder.vue'
 import EditListModal from './EditListModal.vue'
 import ItemCountBadge from './ItemCountBadge.vue'
 import TagChip from './TagChip.vue'
@@ -72,8 +73,8 @@ useListsRefresh(reload)
 
 // Export/import a file (docs/ANONYMOUS_AND_LOCAL_LISTS_PLAN.md, PR 5): an
 // anonymous visitor's only backup, and a way to move lists between browsers or
-// send them to a friend. Everyone can export; importing into an account waits for
-// the server's bulk import (PR 6), so Import is anonymous-only for now.
+// send them to a friend. Both work for everyone: signed in, an import goes to the
+// account in one all-or-nothing request (see useListTransfer).
 const { exporting, importing, exportLists, importFile } = useListTransfer()
 const importInput = ref<HTMLInputElement | null>(null)
 
@@ -116,10 +117,21 @@ async function confirmDelete(list: ListSummary): Promise<void> {
     </div>
 
     <!-- Anonymous lists live only in this browser (Safari can even clear them
-         after a week without a visit), so say so plainly. -->
+         after a week without a visit), so say so plainly, and offer the way to
+         keep them: signing in, after which the claim dialog brings them along.
+         Plain /login or /signup (the same Google flow), which lands on /lists,
+         where that dialog opens. -->
     <div class="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
       <p v-if="!auth.isAuthenticated" class="text-sm text-muted">
         Saved on this device only. Clearing your browser data deletes them.
+        <RouterLink to="/login" class="font-medium text-ink underline hover:text-accent"
+          >Sign in</RouterLink
+        >
+        or
+        <RouterLink to="/signup" class="font-medium text-ink underline hover:text-accent"
+          >create a FREE account</RouterLink
+        >
+        to keep them safe.
       </p>
       <div class="ml-auto flex gap-2">
         <BaseButton variant="secondary" size="sm" :disabled="exporting" @click="exportLists()">
@@ -127,7 +139,6 @@ async function confirmDelete(list: ListSummary): Promise<void> {
           {{ exporting ? 'Exporting…' : 'Export' }}
         </BaseButton>
         <BaseButton
-          v-if="!auth.isAuthenticated"
           variant="secondary"
           size="sm"
           :disabled="importing"
@@ -137,7 +148,6 @@ async function confirmDelete(list: ListSummary): Promise<void> {
           {{ importing ? 'Importing…' : 'Import' }}
         </BaseButton>
         <input
-          v-if="!auth.isAuthenticated"
           ref="importInput"
           type="file"
           accept=".json,application/json"
@@ -147,6 +157,8 @@ async function confirmDelete(list: ListSummary): Promise<void> {
         />
       </div>
     </div>
+
+    <BackupReminder />
 
     <div class="relative mt-6">
       <label for="list-search" class="sr-only">Search your lists by title or tag</label>

@@ -12,7 +12,7 @@ up later. This is **Track 1** in [NEXT_STEPS.md](NEXT_STEPS.md). **Decided in
 
 ## Status and where to start
 
-*Last checked against the code: 2026-11-14 (after PR 6).*
+*Last checked against the code: 2026-11-14 (after PR 7).*
 
 - **PR 1 (repository refactor) is done** on `feat/track1_anon_local_list`. All 11
   call sites go through the layers described in [§Layers](#layers-as-built-in-pr-1).
@@ -58,12 +58,37 @@ up later. This is **Track 1** in [NEXT_STEPS.md](NEXT_STEPS.md). **Decided in
   [list_import_service.py](../backend/app/services/list_import_service.py), with tests
   in [test_list_import.py](../backend/tests/test_list_import.py). See
   [§New endpoint](#new-endpoint-post-apiv1listsimport) for what was built.
-- **Next: PR 7 (the claim dialog).** The frontend's `ClientLimits` type and bundled
-  defaults don't have the new `max_lists_per_import` field yet. PR 7 adds it, and
-  the API repository needs an `importLists` call.
-- **Not in PR 4, still open:** the reminder banner (2+ lists or 20+ items) and the
-  "keep your lists safe" sign-in prompt. Both point at sign-in, which only keeps device
-  lists once the claim dialog (PR 7) exists, so they wait for it.
+- **PR 7 (the claim dialog) is done** on the same branch. See
+  [§Claim on sign-in](#claim-on-sign-in-upload-local-lists) for what was built:
+  - [ClaimListsDialog.vue](../frontend/src/features/lists/ClaimListsDialog.vue)
+    (mounted in `App.vue`) and its store,
+    [useListClaim.ts](../frontend/src/features/lists/useListClaim.ts).
+  - `apiListRepository.importLists` calls `POST /lists/import`. It's on the API
+    repository only (`AccountImport`), not on `ListRepository`, because device
+    storage has nothing to upload to.
+  - `max_lists_per_import` is in the frontend's `ClientLimits` (default 100).
+  - **File Import works for signed-in users** and goes through the same endpoint.
+  - A 413 is now `ListError('invalid')`, so its `detail` is shown.
+  - Playwright covers anonymous create → sign in → claim → lists in the account,
+    and a signed-in file import.
+- **Next: PR 8 (privacy policy and docs).**
+- **The reminder banner and the sign-in prompt are done too**, on the same branch:
+  - [BackupReminder.vue](../frontend/src/features/lists/BackupReminder.vue)
+    shows anonymous visitors a "Keep your lists safe" banner on the lists page and
+    each list's page, once the device has **2+ lists or 20+ items**. It has two
+    actions, "Sign in to keep them" and "Export a backup". Dismissing it hides it for
+    **14 days** (`favfifty:backup-reminder-dismissed` in `localStorage`). The rules
+    are in [useBackupReminder.ts](../frontend/src/features/lists/useBackupReminder.ts),
+    as constants rather than runtime settings, because they're UI copy decisions,
+    not limits.
+  - The lists page's "Saved on this device only" note always ends with a **"Sign in
+    to keep them safe"** link for anonymous visitors.
+  - Both go to a plain `/login`, never back to the current page. Sign-in then lands
+    on `/lists`, where the claim dialog opens. A device list's own URL would be
+    "not found" in the account.
+  - The banner updates as soon as this tab saves: `localListsRevision` in
+    `localListDocument.ts` goes up on every save. It also updates on other tabs'
+    `storage` events.
 - **Decisions made while building PR 3:**
   - **A new `ListErrorKind`, `storage`,** for blocked storage, a full quota, or a
     document saved by a newer app version. Its `detail` is always user-facing copy,
@@ -323,11 +348,12 @@ As built.
   user exports their account's lists (one request per list, made one at a time) and
   an anonymous visitor the device's. That covers taking an account's lists to a
   machine you can't sign in on, or sending them to a friend.
-- **Import is anonymous-only, until PR 6.** Importing into an account needs
-  `POST /lists/import`. Creating lists and items one request at a time could leave
-  half a file imported, which breaks Q12's all-or-nothing rule, and a retry could
-  duplicate lists. **PR 7 should show Import to signed-in users too**, on the same
-  endpoint as the claim dialog.
+- **Import is for everyone (since PR 7).** Signed in, the file goes to the account
+  through `POST /lists/import` in one all-or-nothing request, never one list at a
+  time, which could leave half a file imported (Q12). The file is checked on the
+  client first with the same rules and messages, including `max_lists_per_import`.
+  Each import sends a **fresh `device_id`**, so importing the same file twice adds
+  it twice, as on a device, instead of being treated as a retry.
 - **The file uses the on-device document format** (pretty-printed,
   `fav-fifty-lists-YYYY-MM-DD.json`), with **fresh ids and a fresh `device_id`**, so
   an account's server ids never end up in a file that gets shared. An import goes
@@ -397,6 +423,25 @@ Flow:
 3. The client sends the selected lists to a new endpoint in **one request**.
 4. On success the device document gets `claimed_at` set and the imported local lists
    are cleared (Q12). The user lands on `/lists` with the imported lists.
+
+**As built (PR 7):**
+
+- **When it's offered:** whenever a user id appears in the auth store (a sign-in,
+  or a page loaded while signed in) and this device has lists. Every list is
+  checked to start with, newest first, with its item count.
+- **"Not now"** is remembered in `sessionStorage` (`favfifty:claim-dismissed`,
+  the user's id), so reloading the page doesn't ask again. Signing out clears it, so
+  the next sign-in asks again. So does a new browser session.
+- **The upload** sends the device's own `device_id` and the stored lists as they
+  are. Over `max_lists_per_import` checked, the Add button is disabled with a note.
+- **A rejection** (422, or the 413s) keeps the dialog open with the server's
+  message, so the user can uncheck the list it names. A network or server error
+  shows generic "try again" copy. Nothing on the device changes.
+- **On success** the uploaded lists are removed from the device and `claimed_at`
+  is set. If that write fails, the lists stay on the device and are offered again.
+  The import is idempotent, so offering them again can't duplicate them. Then the
+  user lands on `/lists`, a toast says how many were added and any renames, and
+  pages already showing lists reload (`useListsRefresh` watches `claimCount`).
 
 ### New endpoint: `POST /api/v1/lists/import`
 
@@ -546,7 +591,7 @@ third implementation if the Safari wipe turns out to bite real users.
 | 4 | **Unlock the routes for anonymous users**, `useStartList` change, repository switching, "Saved on this device" copy | Frontend | Yes | Done |
 | 5 | **Export/import a file** | Frontend | Yes | Done |
 | 6 | **`POST /api/v1/lists/import`**, its migration, runtime setting and tests | Backend | No | Done |
-| 7 | **Claim dialog** wired to the import, file Import for signed-in users, plus Playwright e2e | Frontend | Yes | Not started |
+| 7 | **Claim dialog** wired to the import, file Import for signed-in users, plus Playwright e2e | Frontend | Yes | Done |
 | 8 | Privacy policy and docs updates | Docs | — | Not started |
 
 PRs 2, 3 and 6 don't depend on each other once PR 1 is in, so they can be done in any

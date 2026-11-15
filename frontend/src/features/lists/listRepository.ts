@@ -15,7 +15,8 @@
  */
 import { apiFetch } from '@/api/client'
 import { toListError } from './listErrors'
-import type { ListItem, ListItemDraft, ListSummary } from './types'
+import type { LocalList } from './localListDocument'
+import type { ListItem, ListItemDraft, ListsImportResult, ListSummary } from './types'
 
 export interface ListRepository {
   // lists
@@ -40,6 +41,32 @@ export interface ListRepository {
   moveItem(listId: string, itemId: string, position: number): Promise<ListItem[]>
 }
 
+/**
+ * The body of `POST /lists/import`: lists in the on-device format, sent as stored.
+ * The server ignores fields it doesn't know (item `local_id`s, a later schema's
+ * additions), and keys each list on `"<device_id>:<local_id>"` so a retry can't
+ * duplicate it.
+ */
+export interface ListsUpload {
+  device_id: string
+  lists: LocalList[]
+}
+
+/**
+ * Uploading lists to an account. Only the API has it: it isn't part of
+ * `ListRepository`, because on-device storage has nothing to upload to (a file
+ * import on the device merges into storage directly, see `useListTransfer`).
+ */
+export interface AccountImport {
+  /**
+   * Add `upload.lists` to the signed-in user's account in one all-or-nothing,
+   * idempotent request. Fails with `ListError('invalid')` naming the list that
+   * breaks a rule (nothing is written), or with the server's copy for too many
+   * lists or too large an upload.
+   */
+  importLists(upload: ListsUpload): Promise<ListsImportResult>
+}
+
 /** `apiFetch`, with any failure translated to a `ListError` at the repository boundary. */
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   try {
@@ -50,7 +77,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 /** Signed-in storage: a thin wrapper over the `/api/v1/lists` REST endpoints. */
-export const apiListRepository: ListRepository = {
+export const apiListRepository: ListRepository & AccountImport = {
   getLists(q) {
     const path = q ? `/lists?q=${encodeURIComponent(q)}` : '/lists'
     return request<ListSummary[]>(path)
@@ -111,6 +138,13 @@ export const apiListRepository: ListRepository = {
     return request<ListItem[]>(`/lists/${listId}/items/${itemId}/position`, {
       method: 'PATCH',
       body: JSON.stringify({ position }),
+    })
+  },
+
+  importLists(upload) {
+    return request<ListsImportResult>('/lists/import', {
+      method: 'POST',
+      body: JSON.stringify(upload),
     })
   },
 }

@@ -3,16 +3,22 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useClientConfigStore } from '@/stores/clientConfig'
 import { useToastStore } from '@/stores/toasts'
+import { ListError } from './listErrors'
 import {
   createDocumentStore,
   type DocumentStore,
+  type LocalList,
   STORAGE_FULL_DETAIL,
   STORAGE_KEY,
 } from './localListDocument'
-import type { ListRepository } from './listRepository'
+import type { AccountImport, ListRepository } from './listRepository'
 import { createLocalListRepository } from './localListRepository'
 import { memoryStorage } from './localListTestUtils'
-import { IMPORT_TOO_LARGE_DETAIL, MAX_IMPORT_FILE_BYTES } from './localListTransfer'
+import {
+  IMPORT_TOO_LARGE_DETAIL,
+  MAX_IMPORT_FILE_BYTES,
+  tooManyListsDetail,
+} from './localListTransfer'
 import { EXPORT_EMPTY_MESSAGE, EXPORT_FAILED_MESSAGE, useListTransfer } from './useListTransfer'
 
 let storage: Storage
@@ -220,5 +226,89 @@ describe('importFile with damaged entries', () => {
         variant: 'warning',
       },
     ])
+  })
+})
+
+describe('importFile while signed in', () => {
+  function accountTransfer(importLists: AccountImport['importLists']) {
+    let id = 0
+    return useListTransfer({
+      repository: deviceRepository,
+      store,
+      now,
+      newId: () => `upload-${++id}`,
+      saveFile,
+      isSignedIn: () => true,
+      account: { importLists },
+    })
+  }
+
+  function created(localId: string, title: string, renamedFrom: string | null = null) {
+    return {
+      local_id: localId,
+      outcome: 'created' as const,
+      renamed_from: renamedFrom,
+      list: {
+        id: `server-${localId}`,
+        title,
+        status: 'draft',
+        tags: [],
+        item_count: 1,
+        created_at: now(),
+        updated_at: now(),
+      },
+    }
+  }
+
+  it('uploads the whole file to the account in one request, not to the device', async () => {
+    await seed('Albums', 'Songs')
+    await transfer().exportLists()
+    const exported = JSON.parse(savedContents())
+    storage = memoryStorage()
+    store = createDocumentStore({ storage: () => storage, now })
+
+    const importLists = vi.fn<AccountImport['importLists']>().mockResolvedValue({
+      lists: [created('a', 'Albums (2)', 'Albums'), created('b', 'Songs')],
+    })
+    expect(await accountTransfer(importLists).importFile(jsonFile(savedContents()))).toBe(true)
+
+    expect(importLists).toHaveBeenCalledTimes(1)
+    const [upload] = importLists.mock.calls[0]!
+    // A fresh id, not the file's, so the file's lists are keyed apart from any
+    // earlier import of the same file.
+    expect(upload.device_id).toMatch(/^upload-/)
+    expect(upload.device_id).not.toBe(exported.device_id)
+    expect(upload.lists.map((l) => l.title)).toEqual(exported.lists.map((l: LocalList) => l.title))
+    expect(storage.getItem(STORAGE_KEY)).toBeNull()
+    expect(toasts()).toEqual([
+      {
+        message: expect.stringContaining("Imported 2 lists. 'Albums' is now 'Albums (2)'"),
+        variant: 'success',
+      },
+    ])
+  })
+
+  it("shows the server's reason when it rejects the file", async () => {
+    await seed('Albums')
+    await transfer().exportLists()
+    const importLists = vi
+      .fn<AccountImport['importLists']>()
+      .mockRejectedValue(new ListError('invalid', "'Albums' has 51 items; the limit is 50."))
+
+    expect(await accountTransfer(importLists).importFile(jsonFile(savedContents()))).toBe(false)
+    expect(toasts()).toEqual([
+      { message: "'Albums' has 51 items; the limit is 50.", variant: 'error' },
+    ])
+  })
+
+  it('refuses a file with more lists than one upload may carry, without sending it', async () => {
+    await seed('A', 'B', 'C')
+    await transfer().exportLists()
+    useClientConfigStore().limits.max_lists_per_import = 2
+    const importLists = vi.fn<AccountImport['importLists']>()
+
+    expect(await accountTransfer(importLists).importFile(jsonFile(savedContents()))).toBe(false)
+    expect(importLists).not.toHaveBeenCalled()
+    expect(toasts()).toEqual([{ message: tooManyListsDetail(2), variant: 'error' }])
   })
 })

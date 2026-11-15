@@ -14,6 +14,8 @@
  * 3. **Storage I/O.** `createDocumentStore` wraps `localStorage`, turning every
  *    browser failure (blocked, private mode, quota) into a `ListError('storage')`.
  */
+import { readonly, ref } from 'vue'
+
 import { ListError } from './listErrors'
 import { isHttpUrl } from './listRules'
 
@@ -258,6 +260,15 @@ export const STORAGE_FULL_DETAIL =
 export const STORAGE_NEWER_VERSION_DETAIL =
   'Your lists on this device were saved by a newer version of Fav Fifty. Reload the page to see them.'
 
+const revision = ref(0)
+
+/**
+ * Goes up each time this tab saves the document. Anything that summarizes the
+ * device's lists outside a repository call (the backup reminder) watches it,
+ * since a `storage` event only reaches *other* tabs.
+ */
+export const localListsRevision = readonly(revision)
+
 export interface DocumentStore {
   /** The stored document, or `null` if there isn't one (or it was unreadable and set aside). */
   load(): LocalListsDocument | null
@@ -352,6 +363,7 @@ export function createDocumentStore(options: DocumentStoreOptions = {}): Documen
         const detail = isQuotaError(error) ? STORAGE_FULL_DETAIL : STORAGE_UNAVAILABLE_DETAIL
         throw new ListError('storage', detail, { cause: error })
       }
+      revision.value++
     },
   }
 }

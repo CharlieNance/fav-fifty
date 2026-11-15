@@ -13,7 +13,7 @@ export type ListErrorKind =
   | 'not-found'
   /** A rule the user can fix: duplicate item text, or the list is already at 50. */
   | 'conflict'
-  /** The input failed validation (too long, too many tags, …). */
+  /** The input failed validation (too long, too many tags, too much to upload at once, …). */
   | 'invalid'
   /**
    * On-device storage only: the browser won't let us read or write (private mode,
@@ -40,6 +40,9 @@ export class ListError extends Error {
 const KIND_BY_STATUS: Record<number, ListErrorKind> = {
   404: 'not-found',
   409: 'conflict',
+  // Only `POST /lists/import` sends one: too many lists, or too large a body.
+  // The user fixes it by sending less, so it's a validation failure.
+  413: 'invalid',
   422: 'invalid',
 }
 

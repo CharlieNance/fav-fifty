@@ -4,11 +4,18 @@
 // second button uses the dev-login stub so the app is usable before Cognito exists.
 // `?redirect=` is where we send the user after a successful sign-in; without one
 // they go to DEFAULT_POST_LOGIN_PATH.
+//
+// `/signup` renders this same view with `mode: 'signup'`: with social-only login,
+// creating an account and signing in are the same Google round-trip (the backend
+// creates the user the first time), so only the wording changes.
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
 import { DEFAULT_POST_LOGIN_PATH } from './postLogin'
+
+const props = withDefaults(defineProps<{ mode?: 'signin' | 'signup' }>(), { mode: 'signin' })
+const isSignup = computed(() => props.mode === 'signup')
 
 const route = useRoute()
 const router = useRouter()
@@ -62,8 +69,16 @@ async function signInAsDev(): Promise<void> {
 <template>
   <section class="mx-auto grid min-h-[60vh] max-w-md place-items-center px-6 text-center">
     <div>
-      <h1 class="font-display text-3xl font-extrabold text-ink">Welcome back</h1>
-      <p class="mt-3 text-muted">Sign in to build and save your lists.</p>
+      <template v-if="isSignup">
+        <h1 class="font-display text-3xl font-extrabold text-ink">Create your free account</h1>
+        <p class="mt-3 text-muted">
+          Use your Google account to keep your lists safe. No password to remember.
+        </p>
+      </template>
+      <template v-else>
+        <h1 class="font-display text-3xl font-extrabold text-ink">Welcome back</h1>
+        <p class="mt-3 text-muted">Sign in to build and save your lists.</p>
+      </template>
 
       <div class="mt-8 space-y-3">
         <button

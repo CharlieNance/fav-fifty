@@ -37,3 +37,26 @@ export interface ListItemDraft {
   note: string | null
   image_url: string | null
 }
+
+/**
+ * What became of one uploaded list in `POST /api/v1/lists/import` — mirrors the
+ * backend's `ImportedListRead` (`backend/app/schemas/list_import.py`).
+ */
+export interface ImportedListOutcome {
+  /** The `local_id` the list was uploaded with. */
+  local_id: string
+  /**
+   * `created` by this request, or `already_imported` by an earlier one (e.g. a
+   * retry after a dropped response), in which case nothing was changed.
+   */
+  outcome: 'created' | 'already_imported'
+  /** The list in the account; `null` if it was already imported and has since been deleted. */
+  list: ListSummary | null
+  /** The title the upload asked for, when it clashed and was renamed; else `null`. */
+  renamed_from: string | null
+}
+
+/** The response of `POST /api/v1/lists/import`: one outcome per uploaded list, in order. */
+export interface ListsImportResult {
+  lists: ImportedListOutcome[]
+}

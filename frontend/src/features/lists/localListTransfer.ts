@@ -26,6 +26,7 @@
 import type { ClientLimits } from '@/stores/clientConfig'
 import { ListError } from './listErrors'
 import type { ListRepository } from './listRepository'
+import type { ListsImportResult } from './types'
 import {
   charLength,
   normalizeTags,
@@ -231,19 +232,46 @@ export function mergeImportedLists(
   return { imported: lists.length, renamed, skipped }
 }
 
+/**
+ * The server's wording for an upload over `max_lists_per_import`, so the claim
+ * dialog and a file import can say it before sending anything.
+ */
+export function tooManyListsDetail(max: number): string {
+  return `You can upload at most ${max} lists at a time.`
+}
+
+/**
+ * The `ImportSummary` for an upload to an account (`POST /lists/import`), so it
+ * reads the same as a device import. A list the server already had (a retry) still
+ * counts as imported: it's in the account either way.
+ */
+export function summarizeAccountImport(result: ListsImportResult, skipped = 0): ImportSummary {
+  const renamed: ImportSummary['renamed'] = []
+  for (const { list, renamed_from } of result.lists) {
+    if (list && renamed_from !== null) renamed.push({ from: renamed_from, to: list.title })
+  }
+  return { imported: result.lists.length, renamed, skipped }
+}
+
+function listCount(n: number): string {
+  return n === 1 ? '1 list' : `${n} lists`
+}
+
+/** The sentence saying which lists were renamed on the way in, if any. */
+function renamedSentence(renamed: ImportSummary['renamed']): string[] {
+  if (renamed.length === 1) {
+    const [{ from, to }] = renamed as [{ from: string; to: string }]
+    return [`${label(from)} is now ${label(to)}, since you already had one by that name.`]
+  }
+  if (renamed.length > 1) {
+    return [`${renamed.length} were renamed, since you already had lists with those titles.`]
+  }
+  return []
+}
+
 /** The toast after a successful import, e.g. "Imported 2 lists. 'Albums' is now 'Albums (2)'." */
 export function importSummaryMessage(summary: ImportSummary): string {
-  const count = summary.imported === 1 ? '1 list' : `${summary.imported} lists`
-  const parts = [`Imported ${count}.`]
-
-  if (summary.renamed.length === 1) {
-    const [{ from, to }] = summary.renamed as [{ from: string; to: string }]
-    parts.push(`${label(from)} is now ${label(to)}, since you already had one by that name.`)
-  } else if (summary.renamed.length > 1) {
-    parts.push(
-      `${summary.renamed.length} were renamed, since you already had lists with those titles.`,
-    )
-  }
+  const parts = [`Imported ${listCount(summary.imported)}.`, ...renamedSentence(summary.renamed)]
 
   if (summary.skipped === 1) {
     parts.push("1 entry in the file couldn't be read and was skipped.")
@@ -252,4 +280,12 @@ export function importSummaryMessage(summary: ImportSummary): string {
   }
 
   return parts.join(' ')
+}
+
+/** The toast after the claim dialog's upload, e.g. "Added 2 lists to your account." */
+export function claimSummaryMessage(summary: ImportSummary): string {
+  return [
+    `Added ${listCount(summary.imported)} to your account.`,
+    ...renamedSentence(summary.renamed),
+  ].join(' ')
 }

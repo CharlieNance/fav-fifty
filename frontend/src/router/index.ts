@@ -20,6 +20,14 @@ const routes: RouteRecordRaw[] = [
     name: 'login',
     component: () => import('@/features/auth/LoginView.vue'),
   },
+  // Same Google flow as /login (the backend creates the account on first
+  // sign-in, social-only, no password); only the wording differs.
+  {
+    path: '/signup',
+    name: 'signup',
+    component: () => import('@/features/auth/LoginView.vue'),
+    props: { mode: 'signup' },
+  },
   // Open to everyone: signed-in users see their account's lists, anonymous
   // visitors the ones saved on this device (useListRepository picks which).
   {

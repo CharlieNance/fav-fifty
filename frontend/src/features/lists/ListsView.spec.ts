@@ -394,11 +394,25 @@ describe('ListsView for anonymous visitors and storage changes', () => {
     expect(wrapper.text()).toContain('Saved on this device only')
   })
 
+  it('offers an anonymous visitor sign-in or a free account to keep their lists', async () => {
+    const wrapper = await mountAtLists(testRouter())
+    await flushPromises()
+    expect(wrapper.text()).toContain('Sign in or create a FREE account to keep them safe')
+    const href = (text: string) =>
+      wrapper
+        .findAll('a')
+        .find((a) => a.text() === text)
+        ?.attributes('href')
+    expect(href('Sign in')).toBe('/login')
+    expect(href('create a FREE account')).toBe('/signup')
+  })
+
   it("doesn't show the device note to a signed-in user", async () => {
     signIn()
     const wrapper = await mountAtLists(testRouter())
     await flushPromises()
     expect(wrapper.text()).not.toContain('Saved on this device only')
+    expect(wrapper.text()).not.toContain('create a FREE account')
   })
 
   it("shows why the device can't load lists when storage is blocked", async () => {
@@ -433,18 +447,17 @@ describe('ListsView for anonymous visitors and storage changes', () => {
     expect(getLists).toHaveBeenCalledTimes(2)
   })
 
-  it('offers Export to everyone, and Import only to an anonymous visitor', async () => {
+  it('offers Export and Import to everyone', async () => {
     const wrapper = await mountAtLists(testRouter())
     await flushPromises()
     const labels = () => wrapper.findAll('button').map((b) => b.text())
     expect(labels()).toEqual(expect.arrayContaining(['Export', 'Import']))
 
-    // Importing into an account waits for the server's bulk import (PR 6).
+    // Signed in, an import goes to the account through POST /lists/import.
     signIn()
     await flushPromises()
-    expect(labels()).toContain('Export')
-    expect(labels()).not.toContain('Import')
-    expect(wrapper.find('[data-testid="import-file"]').exists()).toBe(false)
+    expect(labels()).toEqual(expect.arrayContaining(['Export', 'Import']))
+    expect(wrapper.find('[data-testid="import-file"]').exists()).toBe(true)
   })
 
   it('reloads the lists after importing a file', async () => {

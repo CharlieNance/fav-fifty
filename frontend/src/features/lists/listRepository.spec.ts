@@ -74,6 +74,27 @@ describe('apiListRepository', () => {
     expect(apiFetchMock).toHaveBeenCalledWith(...expectedArgs)
   })
 
+  it('importLists posts the lists as stored, in one request', async () => {
+    const upload = {
+      device_id: 'device-1',
+      lists: [
+        {
+          local_id: 'local-1',
+          title: 'Albums',
+          tags: [],
+          created_at: '2026-01-01T00:00:00Z',
+          updated_at: '2026-01-01T00:00:00Z',
+          items: [],
+        },
+      ],
+    }
+    await apiListRepository.importLists(upload)
+    expect(apiFetchMock).toHaveBeenCalledExactlyOnceWith('/lists/import', {
+      method: 'POST',
+      body: JSON.stringify(upload),
+    })
+  })
+
   it('translates ApiError into a ListError at the boundary', async () => {
     const apiError = new ApiError(409, 'Conflict', 'This list already has 50 items.')
     apiFetchMock.mockRejectedValueOnce(apiError)
