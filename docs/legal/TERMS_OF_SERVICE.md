@@ -1,6 +1,6 @@
 # Terms of Service
 
-_Last updated: 2026-11-14_
+Last updated: 2026-11-14
 
 Fav Fifty is a small, independently-run personal project. By using the app, with or
 without an account, you agree to these terms.

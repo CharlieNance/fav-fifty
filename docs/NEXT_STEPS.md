@@ -4,7 +4,7 @@ The living plan for building Fav Fifty. Each step is meant to be small and shipp
 Decisions live in [DECISIONS.md](DECISIONS.md); how the built parts work is in
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
-_Last updated: 2026-11-14_
+Last updated: 2026-11-14
 
 ---
 

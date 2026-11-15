@@ -9,7 +9,7 @@ Tags like **Q12** name the question each decision answered. The full deliberatio
 `git show 0973e7e:docs/QUESTIONS.md`. **New open questions:** ask the owner, then
 record the answer here.
 
-_Last updated: 2026-11-14_
+Last updated: 2026-11-14
 
 ## Stack & infrastructure
 

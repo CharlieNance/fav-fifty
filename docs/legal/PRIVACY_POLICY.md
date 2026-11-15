@@ -1,6 +1,6 @@
 # Privacy Policy
 
-_Last updated: 2026-11-14_
+Last updated: 2026-11-14
 
 Fav Fifty ("the app", "we") is a small personal project, not a company. This policy
 explains what we collect and why, in plain language. It is not a substitute for legal
