@@ -7,7 +7,7 @@
     class="mt-auto flex flex-col items-center justify-between gap-3 border-t border-border px-4 py-6 text-sm text-muted sm:flex-row sm:px-8"
   >
     <p>fav·fifty — make the list, defend the list.</p>
-    <nav class="flex gap-5">
+    <nav aria-label="Footer" class="flex gap-5">
       <a href="#" aria-disabled="true" @click.prevent class="transition-colors hover:text-ink"
         >About</a
       >

@@ -60,6 +60,16 @@ const {
 } = useListSearch((q) => void load(q || undefined))
 const isSearching = computed(() => searchQuery.value.trim().length > 0)
 
+// Typing in the search box swaps the rows silently; say how many matched so a
+// screen reader user knows the search did something (WCAG 4.1.3). Empty while
+// not searching, so clearing the box doesn't announce anything.
+const searchAnnouncement = computed(() => {
+  if (!isSearching.value || status.value !== 'success') return ''
+  const n = lists.value.length
+  if (n === 0) return 'No lists found.'
+  return n === 1 ? '1 list matches.' : `${n} lists match.`
+})
+
 onUnmounted(disposeSearch)
 
 /** Load (or reload) the lists, keeping whatever search is in the box. */
@@ -171,7 +181,7 @@ async function confirmDelete(list: ListSummary): Promise<void> {
         v-model="searchQuery"
         type="search"
         placeholder="Search by title or tag…"
-        class="w-full rounded-lg border border-border bg-transparent py-2 pl-9 pr-9 text-ink focus-visible:outline-2 focus-visible:outline-accent"
+        class="w-full rounded-lg border border-control bg-transparent py-2 pl-9 pr-9 text-ink focus-visible:outline-2 focus-visible:outline-accent"
       />
       <button
         v-if="isSearching"
@@ -184,7 +194,9 @@ async function confirmDelete(list: ListSummary): Promise<void> {
       </button>
     </div>
 
-    <p v-if="status === 'loading'" class="mt-6 text-muted">Loading your lists…</p>
+    <p class="sr-only" role="status" aria-live="polite">{{ searchAnnouncement }}</p>
+
+    <p v-if="status === 'loading'" class="mt-6 text-muted" role="status">Loading your lists…</p>
 
     <p v-else-if="status === 'error' && loadErrorKind === 'storage'" class="mt-6 text-muted">
       {{ loadError }}

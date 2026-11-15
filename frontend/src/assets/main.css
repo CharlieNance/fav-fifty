@@ -22,7 +22,8 @@
   Everything downstream references the SEMANTIC token names below (bg-canvas,
   text-ink, text-accent, ...) and never a raw color. That means:
     - re-theming the whole app = editing this one block, and
-    - adding a light theme later = an additive `@variant`/media flip, not a rewrite.
+      - the light theme is just a second set of values for the same names (the
+      `:root[data-theme='light']` block below), not a second set of classes.
 
   In Tailwind v4, each `--color-*` here generates matching utilities
   (e.g. `--color-canvas` -> bg-canvas / text-canvas / border-canvas), and each
@@ -34,6 +35,12 @@
   --color-surface: oklch(21% 0.016 50); /* cards, panels           */
   --color-elevated: oklch(25% 0.018 50); /* raised / hover surfaces */
   --color-border: oklch(29% 0.018 50); /* hairlines, dividers     */
+  /* Form-field outlines. Unlike a decorative hairline, an input's edge is how
+     you find the control, so WCAG 1.4.11 wants it at 3:1 against every surface
+     a field sits on (dialogs are `elevated`) — `border` is far too faint. */
+  --color-control: oklch(55% 0.02 50);
+  /* The dimmed layer behind a dialog. */
+  --color-scrim: oklch(10% 0.01 50 / 0.6);
 
   /* Text */
   --color-ink: oklch(92% 0.012 50); /* primary text            */
@@ -121,9 +128,88 @@
   }
 }
 
-/* Base document styling driven entirely by the tokens above. */
-html {
+/*
+  Light theme (docs/DESIGN.md §Light theme). Same token NAMES, light values —
+  every utility reads `var(--color-*)`, so redefining the variables re-themes
+  the whole app with no per-component `dark:`/`light:` classes.
+
+  Which theme is active is the `data-theme` attribute on <html>, set before
+  first paint by `public/theme-init.js` (no flash of the wrong theme) and kept
+  up to date by `stores/theme.ts`. Dark is the default when nothing has set it.
+
+  A warm cream page (hue ~70) with the coral accent deepened so it still reads
+  as text: every pairing below is held to WCAG AA, and `theme.spec.ts` measures
+  them from this file so a tweak that drops one under fails the build.
+  Unlayered on purpose, so it wins over the layered `@theme` defaults.
+*/
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --color-canvas: oklch(96.5% 0.012 70);
+  --color-surface: oklch(98.5% 0.008 70);
+  --color-elevated: oklch(99.5% 0.004 70);
+  --color-border: oklch(88% 0.016 60);
+  --color-control: oklch(62% 0.02 55);
+  --color-scrim: oklch(25% 0.02 50 / 0.4);
+
+  --color-ink: oklch(24% 0.02 50);
+  --color-muted: oklch(47% 0.025 50);
+
+  --color-accent: oklch(53% 0.18 36);
+  --color-accent-hover: oklch(48% 0.17 36);
+  --color-accent-ink: oklch(99% 0.008 40);
+
+  /* Status and gold fills are theme-independent (filled chips, see above). */
+
+  --glow-start: oklch(90% 0.06 45 / 0.55);
+  --glow-end: oklch(91% 0.05 15 / 0.5);
+  --panel-edge: oklch(88% 0.016 60 / 0.8);
+  --panel-top: oklch(99% 0.006 70);
+  --panel-bottom: oklch(97.5% 0.01 70);
+  --panel-shadow: rgb(80 50 30 / 0.12);
+  --lift-shadow: rgb(80 50 30 / 0.18);
+}
+
+/* Base document styling driven entirely by the tokens above. The glow / panel
+   / shadow values are plain custom properties rather than `@theme` tokens:
+   they're only read by the CSS in this file, never as utilities. */
+:root {
   color-scheme: dark;
+
+  --glow-start: oklch(27% 0.055 40 / 0.6);
+  --glow-end: oklch(25% 0.05 15 / 0.55);
+  --panel-edge: oklch(29% 0.018 50 / 0.6);
+  --panel-top: oklch(20% 0.016 50);
+  --panel-bottom: oklch(17.5% 0.014 50);
+  --panel-shadow: rgb(0 0 0 / 0.35);
+  --lift-shadow: rgb(0 0 0 / 0.45);
+}
+
+@layer base {
+  /* One focus ring for everything focusable, so no link or button ever falls
+     back to the browser default (or nothing). `:where()` keeps it at zero
+     specificity: a component's own `focus-visible:` utilities still win.
+     `tabindex="-1"` targets (a page's <h1>, <main>) are only ever focused by
+     script, to move the screen reader along, so they don't get a ring. */
+  :where(
+    a[href],
+    button,
+    input,
+    select,
+    textarea,
+    summary,
+    [tabindex]:not([tabindex='-1'])
+  ):focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  /* Placeholder text is still text (WCAG 1.4.3). The browser default is a
+     washed-out half-opacity that fails on both themes. */
+  ::placeholder {
+    color: var(--color-muted);
+    opacity: 1;
+  }
 }
 
 /* The page background: canvas plus two soft, low-chroma glows — coral (the
@@ -136,8 +222,8 @@ body {
   min-height: 100vh;
   background-color: var(--color-canvas);
   background-image:
-    radial-gradient(70rem 45rem at 0% 0%, oklch(27% 0.055 40 / 0.6), transparent 70%),
-    radial-gradient(70rem 45rem at 100% 100%, oklch(25% 0.05 15 / 0.55), transparent 70%);
+    radial-gradient(70rem 45rem at 0% 0%, var(--glow-start), transparent 70%),
+    radial-gradient(70rem 45rem at 100% 100%, var(--glow-end), transparent 70%);
   background-attachment: fixed;
   color: var(--color-ink);
   font-family: var(--font-body);
@@ -151,10 +237,10 @@ body {
    calm. Applied from `sm:` up — on a phone there are no gutters to contrast
    with, so the panel would only cost width. */
 @utility page-panel {
-  border: 1px solid oklch(29% 0.018 50 / 0.6);
+  border: 1px solid var(--panel-edge);
   border-radius: 2rem;
-  background-image: linear-gradient(to bottom, oklch(20% 0.016 50), oklch(17.5% 0.014 50));
-  box-shadow: 0 24px 60px rgb(0 0 0 / 0.35);
+  background-image: linear-gradient(to bottom, var(--panel-top), var(--panel-bottom));
+  box-shadow: 0 24px 60px var(--panel-shadow);
 }
 
 /* SortableJS state classes, wired up via vuedraggable's `ghost-class` /
@@ -169,7 +255,7 @@ body {
 
 .drag-chosen {
   background-color: var(--color-elevated);
-  box-shadow: 0 12px 28px rgb(0 0 0 / 0.4);
+  box-shadow: 0 12px 28px var(--lift-shadow);
 }
 
 /* The moving clone while dragging (forceFallback mode): reads as a physically
@@ -177,6 +263,6 @@ body {
 .drag-dragging {
   opacity: 0.95;
   transform: rotate(1.5deg) scale(1.02);
-  box-shadow: 0 16px 36px rgb(0 0 0 / 0.5);
+  box-shadow: 0 16px 36px var(--lift-shadow);
   cursor: grabbing;
 }

@@ -33,7 +33,10 @@ export default defineConfig({
         // Use 127.0.0.1, not localhost: Node 17+ resolves `localhost` to IPv6
         // (::1) first, but uvicorn listens on IPv4 only by default, so a
         // `localhost` target gets ECONNREFUSED. Pinning IPv4 avoids that.
-        target: 'http://127.0.0.1:8000',
+        // API_PROXY_TARGET lets Playwright point its own Vite at its own
+        // backend (see playwright.config.ts). Not VITE_-prefixed: it's
+        // dev-server config, never shipped to the browser.
+        target: process.env.API_PROXY_TARGET ?? 'http://127.0.0.1:8000',
         changeOrigin: true,
       },
     },

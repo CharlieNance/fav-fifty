@@ -42,12 +42,12 @@ const isLast = (): boolean => props.item.position >= props.itemCount
   <li
     class="group flex items-center gap-3 px-3 py-3 transition-colors duration-150 first:rounded-t-xl last:rounded-b-xl even:bg-surface/40 hover:bg-elevated/60 sm:gap-4"
   >
-    <!-- Rank numeral — display face, accent color, wide enough for "50" -->
+    <!-- Rank numeral — display face, accent color, wide enough for "50".
+         Read out as "Number 3" so the rank isn't lost to a screen reader. -->
     <span
       class="w-8 shrink-0 text-right font-display text-2xl font-extrabold text-accent tabular-nums"
-      aria-hidden="true"
     >
-      {{ item.position }}
+      <span class="sr-only">Number </span>{{ item.position }}
     </span>
 
     <img
@@ -72,12 +72,14 @@ const isLast = (): boolean => props.item.position >= props.itemCount
       <IconButton
         :icon="ChevronUpIcon"
         :label="`Move ${item.text} up`"
+        data-action="move-up"
         :disabled="movePending || isFirst()"
         @click="emit('move-up')"
       />
       <IconButton
         :icon="ChevronDownIcon"
         :label="`Move ${item.text} down`"
+        data-action="move-down"
         :disabled="movePending || isLast()"
         @click="emit('move-down')"
       />

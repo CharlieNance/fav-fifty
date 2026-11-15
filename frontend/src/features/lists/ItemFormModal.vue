@@ -14,6 +14,7 @@
 import { computed, nextTick, onMounted, ref } from 'vue'
 
 import BaseButton from '@/components/BaseButton.vue'
+import BaseDialog from '@/components/BaseDialog.vue'
 import { useClientConfigStore } from '@/stores/clientConfig'
 import type { ListItem, ListItemDraft } from './types'
 import { useCreateItem } from './useCreateItem'
@@ -86,74 +87,63 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div
-    class="fixed inset-0 z-50 grid place-items-center bg-canvas/50 px-4"
-    @click.self="cancel"
-    @keydown.escape="cancel"
-  >
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="item-form-heading"
-      class="w-full max-w-md rounded-2xl border border-border bg-elevated p-6 shadow-xl motion-safe:animate-rise-in"
-    >
-      <h2 id="item-form-heading" class="font-display text-xl font-bold text-ink">
-        {{ isEdit ? 'Edit item' : 'Add an item' }}
-      </h2>
+  <BaseDialog labelledby="item-form-heading" panel-class="max-w-md" @close="cancel">
+    <h2 id="item-form-heading" class="font-display text-xl font-bold text-ink">
+      {{ isEdit ? 'Edit item' : 'Add an item' }}
+    </h2>
 
-      <form class="mt-4 space-y-4" @submit.prevent="save">
-        <div>
-          <label for="item-text" class="mb-1 block text-sm font-medium text-muted">Name</label>
-          <input
-            id="item-text"
-            ref="textInputRef"
-            v-model="text"
-            type="text"
-            placeholder="e.g. The Empire Strikes Back"
-            :maxlength="config.limits.max_item_text_length"
-            class="w-full rounded-lg border border-border bg-transparent px-4 py-2 text-ink transition-colors focus-visible:outline-2 focus-visible:outline-accent"
-          />
-        </div>
+    <form class="mt-4 space-y-4" @submit.prevent="save">
+      <div>
+        <label for="item-text" class="mb-1 block text-sm font-medium text-muted">Name</label>
+        <input
+          id="item-text"
+          ref="textInputRef"
+          v-model="text"
+          type="text"
+          placeholder="e.g. The Empire Strikes Back"
+          :maxlength="config.limits.max_item_text_length"
+          class="w-full rounded-lg border border-control bg-transparent px-4 py-2 text-ink transition-colors focus-visible:outline-2 focus-visible:outline-accent"
+        />
+      </div>
 
-        <div>
-          <label for="item-note" class="mb-1 block text-sm font-medium text-muted">
-            Note <span class="font-normal">(optional)</span>
-          </label>
-          <textarea
-            id="item-note"
-            v-model="note"
-            rows="2"
-            placeholder="Why it deserves the spot…"
-            :maxlength="config.limits.max_note_length"
-            class="w-full resize-y rounded-lg border border-border bg-transparent px-4 py-2 text-ink transition-colors focus-visible:outline-2 focus-visible:outline-accent"
-          ></textarea>
-        </div>
+      <div>
+        <label for="item-note" class="mb-1 block text-sm font-medium text-muted">
+          Note <span class="font-normal">(optional)</span>
+        </label>
+        <textarea
+          id="item-note"
+          v-model="note"
+          rows="2"
+          placeholder="Why it deserves the spot…"
+          :maxlength="config.limits.max_note_length"
+          class="w-full resize-y rounded-lg border border-control bg-transparent px-4 py-2 text-ink transition-colors focus-visible:outline-2 focus-visible:outline-accent"
+        ></textarea>
+      </div>
 
-        <div>
-          <label for="item-image-url" class="mb-1 block text-sm font-medium text-muted">
-            Image URL <span class="font-normal">(optional)</span>
-          </label>
-          <input
-            id="item-image-url"
-            v-model="imageUrl"
-            type="url"
-            placeholder="https://…"
-            :maxlength="config.limits.max_image_url_length"
-            class="w-full rounded-lg border border-border bg-transparent px-4 py-2 text-ink transition-colors focus-visible:outline-2 focus-visible:outline-accent"
-          />
-        </div>
+      <div>
+        <label for="item-image-url" class="mb-1 block text-sm font-medium text-muted">
+          Image URL <span class="font-normal">(optional)</span>
+        </label>
+        <input
+          id="item-image-url"
+          v-model="imageUrl"
+          type="url"
+          placeholder="https://…"
+          :maxlength="config.limits.max_image_url_length"
+          class="w-full rounded-lg border border-control bg-transparent px-4 py-2 text-ink transition-colors focus-visible:outline-2 focus-visible:outline-accent"
+        />
+      </div>
 
-        <p v-if="error" role="alert" class="text-sm text-accent">{{ error }}</p>
+      <p v-if="error" role="alert" class="text-sm text-accent">{{ error }}</p>
 
-        <div class="flex justify-end gap-3 pt-2">
-          <BaseButton variant="secondary" size="sm" type="button" @click="cancel">
-            Cancel
-          </BaseButton>
-          <BaseButton size="sm" type="submit" :disabled="!canSave">
-            {{ pending ? 'Saving…' : isEdit ? 'Save' : 'Add item' }}
-          </BaseButton>
-        </div>
-      </form>
-    </div>
-  </div>
+      <div class="flex justify-end gap-3 pt-2">
+        <BaseButton variant="secondary" size="sm" type="button" @click="cancel">
+          Cancel
+        </BaseButton>
+        <BaseButton size="sm" type="submit" :disabled="!canSave">
+          {{ pending ? 'Saving…' : isEdit ? 'Save' : 'Add item' }}
+        </BaseButton>
+      </div>
+    </form>
+  </BaseDialog>
 </template>

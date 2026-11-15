@@ -8,6 +8,7 @@
  * as props so this stays a dumb, easily-testable shell around the decision.
  */
 import BaseButton from './BaseButton.vue'
+import BaseDialog from './BaseDialog.vue'
 
 withDefaults(
   defineProps<{
@@ -45,32 +46,25 @@ function confirm(): void {
 </script>
 
 <template>
-  <div
-    class="fixed inset-0 z-50 grid place-items-center bg-canvas/50 px-4"
-    @click.self="cancel"
-    @keydown.escape="cancel"
+  <BaseDialog
+    labelledby="confirm-dialog-heading"
+    describedby="confirm-dialog-message"
+    @close="cancel"
   >
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="confirm-dialog-heading"
-      class="w-full max-w-sm rounded-2xl border border-border bg-elevated p-6 shadow-xl motion-safe:animate-rise-in"
-    >
-      <h2 id="confirm-dialog-heading" class="font-display text-xl font-bold text-ink">
-        {{ title }}
-      </h2>
-      <p class="mt-2 text-sm text-muted">{{ message }}</p>
+    <h2 id="confirm-dialog-heading" class="font-display text-xl font-bold text-ink">
+      {{ title }}
+    </h2>
+    <p id="confirm-dialog-message" class="mt-2 text-sm text-muted">{{ message }}</p>
 
-      <p v-if="error" role="alert" class="mt-2 text-sm text-accent">{{ error }}</p>
+    <p v-if="error" role="alert" class="mt-2 text-sm text-accent">{{ error }}</p>
 
-      <div class="mt-6 flex justify-end gap-3">
-        <BaseButton variant="secondary" size="sm" type="button" :disabled="pending" @click="cancel">
-          {{ cancelLabel }}
-        </BaseButton>
-        <BaseButton size="sm" type="button" :disabled="pending" @click="confirm">
-          {{ pending ? pendingLabel : confirmLabel }}
-        </BaseButton>
-      </div>
+    <div class="mt-6 flex justify-end gap-3">
+      <BaseButton variant="secondary" size="sm" type="button" :disabled="pending" @click="cancel">
+        {{ cancelLabel }}
+      </BaseButton>
+      <BaseButton size="sm" type="button" :disabled="pending" @click="confirm">
+        {{ pending ? pendingLabel : confirmLabel }}
+      </BaseButton>
     </div>
-  </div>
+  </BaseDialog>
 </template>

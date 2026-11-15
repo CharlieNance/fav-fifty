@@ -35,7 +35,10 @@ test('build a list without signing in, and find it again after a reload', async 
   await expect(page.getByRole('heading', { name: title })).toBeVisible()
   await expect(page.locator('main li').filter({ hasText: 'Alpha' })).toBeVisible()
 
-  await page.getByRole('link', { name: 'My lists' }).click()
+  await page
+    .getByRole('navigation', { name: 'Main' })
+    .getByRole('link', { name: 'My lists' })
+    .click()
   await expect(page.getByText('Saved on this device only')).toBeVisible()
   await expect(page.getByRole('link', { name: title })).toBeVisible()
 
@@ -67,7 +70,10 @@ test("signing in shows the account's lists, and signing out brings the device's 
   // Logging out goes home; wait for it, or it can override the click below.
   await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible()
   await expect(page).toHaveURL(/\/$/)
-  await page.getByRole('link', { name: 'My lists' }).click()
+  await page
+    .getByRole('navigation', { name: 'Main' })
+    .getByRole('link', { name: 'My lists' })
+    .click()
   await expect(page.getByText('Saved on this device only')).toBeVisible()
   await expect(page.getByRole('link', { name: title })).toBeVisible()
 })
@@ -80,7 +86,10 @@ test('export lists to a file, then import them into another browser', async ({ p
   await page.getByRole('button', { name: 'Save' }).click()
   await expect(page.getByRole('heading', { name: title })).toBeVisible()
 
-  await page.getByRole('link', { name: 'My lists' }).click()
+  await page
+    .getByRole('navigation', { name: 'Main' })
+    .getByRole('link', { name: 'My lists' })
+    .click()
   const downloading = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Export' }).click()
   const download = await downloading
@@ -117,7 +126,10 @@ test("a signed-in user can export their account's lists for a browser that isn't
   await page.getByRole('button', { name: 'Save' }).click()
   await expect(page.getByRole('heading', { name: title })).toBeVisible()
 
-  await page.getByRole('link', { name: 'My lists' }).click()
+  await page
+    .getByRole('navigation', { name: 'Main' })
+    .getByRole('link', { name: 'My lists' })
+    .click()
   const downloading = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Export' }).click()
   const file = await (await downloading).path()
@@ -139,7 +151,10 @@ test("signing in offers to bring the device's lists into the account", async ({ 
   const leftBehind = `Left behind ${stamp}`
   await page.goto('/lists')
   for (const title of [leftBehind, kept]) {
-    await page.getByRole('link', { name: 'My lists' }).click()
+    await page
+      .getByRole('navigation', { name: 'Main' })
+      .getByRole('link', { name: 'My lists' })
+      .click()
     await page.getByRole('button', { name: 'New list' }).click()
     await page.getByPlaceholder(/favorite albums/i).fill(title)
     await page.getByRole('button', { name: 'Save' }).click()
@@ -175,7 +190,10 @@ test("signing in offers to bring the device's lists into the account", async ({ 
   // Logging out goes home; wait for it, or it can override the click below.
   await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible()
   await expect(page).toHaveURL(/\/$/)
-  await page.getByRole('link', { name: 'My lists' }).click()
+  await page
+    .getByRole('navigation', { name: 'Main' })
+    .getByRole('link', { name: 'My lists' })
+    .click()
   await expect(page.getByRole('link', { name: leftBehind })).toBeVisible()
   await expect(page.getByRole('link', { name: kept })).toBeHidden()
 })
@@ -194,7 +212,10 @@ test("a signed-in user's file import goes to the account", async ({ page, browse
     await otherPage.getByPlaceholder(/favorite albums/i).fill(title)
     await otherPage.getByRole('button', { name: 'Save' }).click()
     await expect(otherPage.getByRole('heading', { name: title })).toBeVisible()
-    await otherPage.getByRole('link', { name: 'My lists' }).click()
+    await otherPage
+      .getByRole('navigation', { name: 'Main' })
+      .getByRole('link', { name: 'My lists' })
+      .click()
     const downloading = otherPage.waitForEvent('download')
     await otherPage.getByRole('button', { name: 'Export' }).click()
     contents = await readFile(await (await downloading).path())
@@ -230,7 +251,10 @@ test('with two lists on the device, a reminder offers to keep them safe', async 
   const reminder = page.getByTestId('backup-reminder')
 
   for (const [n, title] of titles.entries()) {
-    await page.getByRole('link', { name: 'My lists' }).click()
+    await page
+      .getByRole('navigation', { name: 'Main' })
+      .getByRole('link', { name: 'My lists' })
+      .click()
     // One list isn't worth a reminder yet; the always-on sign-in link is enough.
     if (n === 1) {
       await expect(reminder).toBeHidden()
@@ -255,7 +279,10 @@ test('with two lists on the device, a reminder offers to keep them safe', async 
 
   // The lists page's create-account link leads (via the same Google flow as
   // sign-in) to the claim dialog.
-  await page.getByRole('link', { name: 'My lists' }).click()
+  await page
+    .getByRole('navigation', { name: 'Main' })
+    .getByRole('link', { name: 'My lists' })
+    .click()
   await page.getByRole('link', { name: 'create a FREE account' }).click()
   await expect(page.getByRole('heading', { name: 'Create your free account' })).toBeVisible()
   await page.getByRole('button', { name: /dev login/i }).click()

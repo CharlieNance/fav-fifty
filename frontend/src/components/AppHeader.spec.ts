@@ -6,6 +6,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import AppHeader from './AppHeader.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useListModalsStore } from '@/features/lists/useListModals'
+import { useThemeStore } from '@/stores/theme'
 import { useToastStore } from '@/stores/toasts'
 
 const stub = { template: '<div />' }
@@ -51,9 +52,12 @@ describe('AppHeader', () => {
     const auth = useAuthStore()
     auth.user = { id: 'u1', display_name: 'Shaggy', avatar_url: 'https://example.com/s.png' }
 
-    const img = mountHeader(testRouter()).find('img')
+    const wrapper = mountHeader(testRouter())
+    const img = wrapper.find('img')
     expect(img.attributes('src')).toBe('https://example.com/s.png')
-    expect(img.attributes('alt')).toBe('Shaggy')
+    // Decorative: the name is in the text right beside it, so it isn't read twice.
+    expect(img.attributes('alt')).toBe('')
+    expect(wrapper.text()).toContain('Shaggy')
     expect(img.attributes('referrerpolicy')).toBe('no-referrer')
   })
 
@@ -135,5 +139,19 @@ describe('AppHeader', () => {
 
     expect(useListModalsStore().isCreateOpen).toBe(true)
     expect(router.currentRoute.value.name).not.toBe('login')
+  })
+
+  it('the theme toggle flips the theme and names the action it will take', async () => {
+    localStorage.clear()
+    const wrapper = mountHeader(testRouter())
+    const toggle = () => wrapper.get('button[aria-label^="Switch to"]')
+
+    expect(useThemeStore().theme).toBe('dark')
+    expect(toggle().attributes('aria-label')).toBe('Switch to light theme')
+
+    await toggle().trigger('click')
+
+    expect(useThemeStore().theme).toBe('light')
+    expect(toggle().attributes('aria-label')).toBe('Switch to dark theme')
   })
 })

@@ -6,9 +6,19 @@ import {
 } from 'vue-router'
 
 import { useAuthStore } from '@/stores/auth'
+import { setPageTitle } from './pageTitle'
+
+declare module 'vue-router' {
+  interface RouteMeta {
+    /** Tab title (see pageTitle.ts); omitted = just the site name. */
+    title?: string
+    requiresAuth?: boolean
+  }
+}
 
 // Views are lazy-loaded (`() => import(...)`) so each page becomes its own
-// bundle chunk — the pattern to copy as pages are added.
+// bundle chunk — the pattern to copy as pages are added. Give each a
+// `meta.title` too.
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
@@ -19,6 +29,7 @@ const routes: RouteRecordRaw[] = [
     path: '/login',
     name: 'login',
     component: () => import('@/features/auth/LoginView.vue'),
+    meta: { title: 'Sign in' },
   },
   // Same Google flow as /login (the backend creates the account on first
   // sign-in, social-only, no password); only the wording differs.
@@ -27,6 +38,7 @@ const routes: RouteRecordRaw[] = [
     name: 'signup',
     component: () => import('@/features/auth/LoginView.vue'),
     props: { mode: 'signup' },
+    meta: { title: 'Create your account' },
   },
   // Open to everyone: signed-in users see their account's lists, anonymous
   // visitors the ones saved on this device (useListRepository picks which).
@@ -34,11 +46,14 @@ const routes: RouteRecordRaw[] = [
     path: '/lists',
     name: 'lists',
     component: () => import('@/features/lists/ListsView.vue'),
+    meta: { title: 'My lists' },
   },
   {
     path: '/lists/:id',
     name: 'list-detail',
     component: () => import('@/features/lists/ListDetailView.vue'),
+    // Replaced by the list's own title once it loads (ListDetailView).
+    meta: { title: 'List' },
   },
 ]
 
@@ -70,6 +85,10 @@ router.beforeEach(async (to) => {
   }
 
   return true
+})
+
+router.afterEach((to) => {
+  setPageTitle(to.meta.title)
 })
 
 function isRouteRequiresAuth(

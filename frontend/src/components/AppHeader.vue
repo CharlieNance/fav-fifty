@@ -11,6 +11,7 @@ import { ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 
 import BaseButton from '@/components/BaseButton.vue'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 import { useLogout } from '@/features/auth/useLogout'
 import { useStartList } from '@/features/lists/useStartList'
 import { useAuthStore } from '@/stores/auth'
@@ -50,12 +51,14 @@ watch(
       </span>
     </RouterLink>
 
-    <!-- Auth-aware controls -->
-    <nav class="flex items-center gap-3 sm:gap-4">
+    <!-- Auth-aware controls. `aria-current="page"` (set by RouterLink on the
+         exact route) is what screen readers announce as "current page"; the
+         same attribute drives the visible state, so the two can't disagree. -->
+    <nav aria-label="Main" class="flex items-center gap-2 sm:gap-4">
       <!-- Everyone has lists: the account's, or this device's when anonymous. -->
       <RouterLink
         to="/lists"
-        class="text-sm font-medium text-muted transition-colors hover:text-ink"
+        class="rounded text-sm font-medium whitespace-nowrap text-muted transition-colors hover:text-ink aria-[current=page]:text-ink aria-[current=page]:underline aria-[current=page]:decoration-accent aria-[current=page]:decoration-2 aria-[current=page]:underline-offset-8"
       >
         My lists
       </RouterLink>
@@ -65,7 +68,7 @@ watch(
           <img
             v-if="user?.avatar_url && !avatarFailed"
             :src="user.avatar_url"
-            :alt="user.display_name"
+            alt=""
             referrerpolicy="no-referrer"
             class="h-8 w-8 rounded-full object-cover"
             @error="avatarFailed = true"
@@ -77,13 +80,15 @@ watch(
           >
             {{ initial() }}
           </span>
-          <span class="hidden text-sm font-medium text-ink sm:inline">{{
+          <!-- The signed-in name: visible from sm:, always read out (the
+             avatar beside it is decorative, so it isn't read twice). -->
+          <span class="sr-only text-sm font-medium text-ink sm:not-sr-only">{{
             user?.display_name
           }}</span>
         </div>
         <button
           type="button"
-          class="cursor-pointer text-sm font-medium text-muted transition-colors hover:text-ink"
+          class="cursor-pointer rounded text-sm font-medium whitespace-nowrap text-muted transition-colors hover:text-ink"
           @click="logout()"
         >
           Log out
@@ -93,12 +98,14 @@ watch(
       <RouterLink
         v-else
         to="/login"
-        class="text-sm font-medium text-muted transition-colors hover:text-ink"
+        class="rounded text-sm font-medium whitespace-nowrap text-muted transition-colors hover:text-ink aria-[current=page]:text-ink"
       >
         Log in
       </RouterLink>
 
-      <BaseButton size="sm" @click="startList">Start a list</BaseButton>
+      <ThemeToggle />
+
+      <BaseButton size="sm" class="whitespace-nowrap" @click="startList">Start a list</BaseButton>
     </nav>
   </header>
 </template>

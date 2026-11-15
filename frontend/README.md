@@ -66,7 +66,7 @@ npm run build         # type-check (vue-tsc) + production build to dist/
 npm run preview       # serve the production build locally
 npm run test          # run the test suite once (Vitest)
 npm run test:watch    # watch mode
-npm run test:e2e      # Playwright (Git Bash on Windows)
+npm run test:e2e      # Playwright (Git Bash on Windows); own fresh servers on :5190/:8090
 npm run type-check    # vue-tsc type-check only
 npm run lint          # ESLint
 npm run lint:fix      # ESLint with autofix
