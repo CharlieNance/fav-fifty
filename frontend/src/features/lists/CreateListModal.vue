@@ -25,6 +25,8 @@ const {
   run,
 } = useListAction({
   fallback: 'Could not create the list. Check the title and try again.',
+  // The lists-per-user quota ("Delete one to make room").
+  showDetailFor: ['conflict'],
 })
 const inputRef = ref<HTMLInputElement | null>(null)
 

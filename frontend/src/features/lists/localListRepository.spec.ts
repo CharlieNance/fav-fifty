@@ -96,6 +96,17 @@ describe('lists', () => {
     expect(stored().device_id).toBe('id-1')
   })
 
+  it('refuses a list past the lists-per-user quota with the backend copy', async () => {
+    limits.max_lists_per_user = 2
+    await repo.createList('A')
+    await repo.createList('B')
+
+    expect(await rejection(repo.createList('C'), 'conflict')).toBe(
+      'You can have at most 2 lists. Delete one to make room.',
+    )
+    expect((await repo.getLists()).map((l) => l.title).sort()).toEqual(['A', 'B'])
+  })
+
   it('rejects an invalid title with the backend copy and writes nothing', async () => {
     expect(await rejection(repo.createList('  '), 'invalid')).toBe('Title is required.')
     expect(stored()).toBeNull()

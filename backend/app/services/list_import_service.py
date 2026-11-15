@@ -13,6 +13,9 @@ Backs ``POST /api/v1/lists/import``, used by the claim dialog after sign-in
 * **Idempotent.** Each list is stored with ``import_key = "<device_id>:<local_id>"``,
   unique per account. A retry (e.g. after a dropped response) finds the lists the
   first attempt made and returns them instead of making them again.
+* **The lists-per-user quota counts.** The account's live lists plus the lists this
+  upload would create must fit ``max_lists_per_user``, or the whole upload is
+  rejected. Lists an earlier attempt already made don't count twice.
 * **Title clashes are renamed** ``"Title (2)"``, against the account's live lists
   and earlier lists in the same upload. ``unique_title`` matches the frontend's
   ``uniqueTitle`` (``frontend/src/features/lists/listRules.ts``), which the
@@ -38,7 +41,7 @@ from app.models.tag import Tag
 from app.schemas.list import validated_title
 from app.schemas.list_import import ImportedList, ListsImport
 from app.schemas.list_item import validated_image_url, validated_note, validated_text
-from app.services import tag_service
+from app.services import list_service, tag_service
 
 # Longest list title shown in a rejection message before it's shortened with "…".
 _LABEL_MAX_CHARS = 40
@@ -186,9 +189,14 @@ def validate_import(request: ListsImport, max_tags: int, now: datetime) -> list[
 
 
 def _write(
-    db: Session, user_id: uuid.UUID, device_id: str, lists: list[_ValidList]
+    db: Session, user_id: uuid.UUID, device_id: str, lists: list[_ValidList], max_lists: int
 ) -> list[ImportOutcome]:
-    """Add every list not already imported. Flushes; the caller commits."""
+    """Add every list not already imported. Flushes; the caller commits.
+
+    Raises ``ImportRejectedError`` before writing anything if the new lists would
+    take the account past ``max_lists``.
+    """
+    live_count = list_service.lock_user_and_count_lists(db, user_id)
     keys = [f"{device_id}:{valid.local_id}" for valid in lists]
     # Deleted lists count too: a list imported and then deleted stays deleted.
     existing = {
@@ -203,6 +211,12 @@ def _write(
             select(List.title).where(List.user_id == user_id, List.deleted_at.is_(None))
         )
     }
+    new_count = sum(1 for key in keys if key not in existing)
+    if live_count + new_count > max_lists:
+        raise ImportRejectedError(
+            f"You have {live_count} lists, and this would add {new_count}. The limit is "
+            f"{max_lists}, so delete some lists first or upload fewer."
+        )
     tags: dict[str, Tag] = {}
 
     outcomes: list[ImportOutcome] = []
@@ -251,11 +265,13 @@ def import_lists(
     user_id: uuid.UUID,
     request: ListsImport,
     max_tags: int,
+    max_lists: int,
     now: datetime | None = None,
 ) -> list[ImportOutcome]:
     """Validate and import ``request``'s lists for ``user_id``, all or nothing.
 
-    Raises ``ImportRejectedError`` (nothing written) if any list breaks a rule.
+    Raises ``ImportRejectedError`` (nothing written) if any list breaks a rule, or
+    the upload would take the account past ``max_lists`` live lists.
     Returns one outcome per uploaded list, in order.
     """
     valid = validate_import(request, max_tags, now or datetime.now(UTC))
@@ -267,9 +283,12 @@ def import_lists(
     # second attempt sees what the winner committed and returns those lists.
     for attempt in range(2):
         try:
-            outcomes = _write(db, user_id, request.device_id, valid)
+            outcomes = _write(db, user_id, request.device_id, valid, max_lists)
             db.commit()
             break
+        except ImportRejectedError:
+            db.rollback()  # Releases the user-row lock; nothing was written.
+            raise
         except IntegrityError:
             db.rollback()
             if attempt == 1:

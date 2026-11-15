@@ -6,12 +6,15 @@ import { test, expect, type Page } from '@playwright/test'
 // Vitest specs already; this is the one pass confirming the pieces click
 // together in a real browser.
 
-test.afterEach(async ({ page }) => {
+test.afterEach(async ({ page, baseURL }) => {
   const response = await page.request.get('/api/v1/lists')
   if (!response.ok()) return
   for (const list of (await response.json()) as { id: string; title: string }[]) {
     if (list.title.startsWith('E2E tags ')) {
-      await page.request.delete(`/api/v1/lists/${list.id}`)
+      // The API refuses a cookie write without our Origin (CSRF check).
+      await page.request.delete(`/api/v1/lists/${list.id}`, {
+        headers: { Origin: baseURL ?? '' },
+      })
     }
   }
 })

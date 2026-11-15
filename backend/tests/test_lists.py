@@ -205,6 +205,39 @@ def test_create_list_creates_a_row_owned_by_the_caller(
     assert row.deleted_at is None
 
 
+def test_create_list_is_refused_at_the_lists_per_user_quota(
+    fresh_user_client: TestClient,
+    fresh_user: User,
+    db_session: Session,
+    set_runtime_settings: Callable[[RuntimeSettings], None],
+) -> None:
+    set_runtime_settings(RuntimeSettings(limits=Limits(max_lists_per_user=2)))
+    _list(db_session, fresh_user, "One")
+    _list(db_session, fresh_user, "Two")
+
+    response = fresh_user_client.post("/lists", json={"title": "Three"})
+
+    assert response.status_code == 409
+    assert response.json()["detail"] == "You can have at most 2 lists. Delete one to make room."
+    assert len(fresh_user_client.get("/lists").json()) == 2
+
+
+def test_deleted_lists_dont_count_against_the_quota(
+    fresh_user_client: TestClient,
+    fresh_user: User,
+    db_session: Session,
+    set_runtime_settings: Callable[[RuntimeSettings], None],
+) -> None:
+    set_runtime_settings(RuntimeSettings(limits=Limits(max_lists_per_user=1)))
+    _list(db_session, fresh_user, "Gone", deleted_at=datetime.now(UTC))
+
+    assert fresh_user_client.post("/lists", json={"title": "Fresh"}).status_code == 201
+
+
+def test_search_text_is_capped(auth_client: TestClient) -> None:
+    assert auth_client.get("/lists", params={"q": "x" * 201}).status_code == 422
+
+
 @pytest.mark.parametrize("title", ["", "   ", "x" * 201])
 def test_create_list_rejects_invalid_title(auth_client: TestClient, title: str) -> None:
     assert auth_client.post("/lists", json={"title": title}).status_code == 422

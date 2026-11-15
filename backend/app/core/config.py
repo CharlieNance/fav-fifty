@@ -65,6 +65,18 @@ class Settings(BaseSettings):
     runtime_settings_source: Literal["env", "ssm"] = "env"
     runtime_settings_ssm_prefix: str = "/favfifty/settings"
 
+    # Postgres cancels any app query running longer than this, so one pathological
+    # query (e.g. an ILIKE search) can't pin the box's CPU. 0 turns it off.
+    db_statement_timeout_ms: int = 5000
+
+    # The secret CloudFront adds to every request it forwards to the origin, as the
+    # ``X-Origin-Verify`` header (docs/DEPLOYMENT_TOPOLOGY_PLAN.md §Security). When
+    # set, the app rejects requests without it (so nobody can bypass CloudFront and
+    # its WAF by calling the box directly) and trusts ``CloudFront-Viewer-Address``
+    # for the client IP. Empty locally: no check, and the socket peer is the client.
+    # A real secret: Secrets Manager / SSM, never committed.
+    origin_verify_secret: str = ""
+
     # ─── AWS Cognito (real Google→Cognito auth) ────────────────────────────────
     # All empty in local dev, where the dev-login stub stands in. When these are
     # set, the real OAuth routes activate and Cognito becomes the identity provider
@@ -146,6 +158,28 @@ class Settings(BaseSettings):
             raise ValueError(
                 f"SECRET_KEY must be set to a real secret when APP_ENV={self.app_env!r} "
                 "(the development placeholder is not allowed outside development)."
+            )
+        return self
+
+    @model_validator(mode="after")
+    def _deployed_targets_are_hardened(self) -> "Settings":
+        """Refuse to boot a deployed app with development behavior.
+
+        ``app_env`` defaults to ``development``, which turns on the dev-login stub
+        (anyone becomes the dev user) and non-Secure cookies. A deploy that forgot
+        ``APP_ENV`` would otherwise ship both silently, so a real deploy target must
+        say it isn't development. The box is only safe behind CloudFront, so it also
+        needs the origin secret.
+        """
+        if self.deploy_target != "local" and self.is_development:
+            raise ValueError(
+                f"APP_ENV must not be 'development' when DEPLOY_TARGET={self.deploy_target!r} "
+                "(development enables the dev-login stub)."
+            )
+        if self.deploy_target == "lightsail" and not self.origin_verify_secret:
+            raise ValueError(
+                "ORIGIN_VERIFY_SECRET must be set when DEPLOY_TARGET='lightsail', so only "
+                "CloudFront can reach the API."
             )
         return self
 

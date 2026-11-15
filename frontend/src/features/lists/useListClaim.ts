@@ -79,6 +79,7 @@ function claimErrorMessage(listError: ListError): string {
     case 'invalid':
       return listError.detail ?? IMPORT_REJECTED_DETAIL
     case 'storage':
+    case 'rate-limited':
       return listError.detail ?? CLAIM_FAILED_MESSAGE
     default:
       return CLAIM_FAILED_MESSAGE

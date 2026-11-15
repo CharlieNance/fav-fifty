@@ -79,6 +79,13 @@ describe('useListAction', () => {
     expect(error.value).toBe('Your browser isn’t letting us save.')
   })
 
+  it("always shows a rate limit's own copy, listed or not", async () => {
+    const { run, error, errorKind } = useListAction({ fallback: 'Could not do it.' })
+    await run(() => Promise.reject(new ApiError(429, 'failed', 'Slow down a sec.')))
+    expect(errorKind.value).toBe('rate-limited')
+    expect(error.value).toBe('Slow down a sec.')
+  })
+
   it('falls back when a listed kind has no detail', async () => {
     const { run, error } = useListAction({
       fallback: 'Could not do it.',

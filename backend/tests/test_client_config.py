@@ -18,6 +18,7 @@ def test_client_config_is_public_and_serves_the_defaults(client: TestClient) -> 
     assert response.json() == {
         "limits": {
             "max_tags_per_list": 25,
+            "max_lists_per_user": 100,
             "max_lists_per_import": 100,
             "max_import_bytes": 5 * 1024 * 1024,
             "max_items_per_list": 50,

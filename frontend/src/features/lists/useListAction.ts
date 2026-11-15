@@ -14,8 +14,8 @@
  *
  * On failure `error` is the storage layer's own copy when the error's kind is
  * listed in `showDetailFor` (and it wrote some), otherwise `fallback`. A `storage`
- * error always shows its own copy, since it's the only explanation of why the
- * device won't save. `errorKind` lets callers branch on the reason (e.g. a
+ * or `rate-limited` error always shows its own copy, since it's the only
+ * explanation of why the device won't save, or why the server said "slow down". `errorKind` lets callers branch on the reason (e.g. a
  * "not found" page).
  */
 import { ref } from 'vue'
@@ -23,6 +23,12 @@ import { ref } from 'vue'
 import type { ListRepository } from './listRepository'
 import { type ListErrorKind, toListError } from './listErrors'
 import { useListRepository } from './useListRepository'
+
+/**
+ * Kinds whose copy is the only useful explanation, whatever the action: why the
+ * device won't save, or that the server wants the user to slow down.
+ */
+const ALWAYS_SHOW_DETAIL: ReadonlySet<ListErrorKind> = new Set(['storage', 'rate-limited'])
 
 export interface ListActionOptions {
   /** Message shown when there's no more specific copy to show. */
@@ -52,7 +58,7 @@ export function useListAction(options: ListActionOptions) {
       const listError = toListError(caught)
       errorKind.value = listError.kind
       const showDetail =
-        listError.kind === 'storage' || options.showDetailFor?.includes(listError.kind)
+        ALWAYS_SHOW_DETAIL.has(listError.kind) || options.showDetailFor?.includes(listError.kind)
       error.value = listError.detail && showDetail ? listError.detail : options.fallback
       return null
     } finally {

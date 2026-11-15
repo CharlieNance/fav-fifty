@@ -18,6 +18,7 @@ from pydantic import BaseModel
 class ClientLimits(BaseModel):
     # Runtime settings (tunable without a deploy).
     max_tags_per_list: int
+    max_lists_per_user: int
     max_lists_per_import: int
     max_import_bytes: int
     # Fixed limits (app/core/limits.py).

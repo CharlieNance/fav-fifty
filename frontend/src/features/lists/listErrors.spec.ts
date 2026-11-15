@@ -11,6 +11,7 @@ describe('toListError', () => {
     [422, 'invalid'],
     [500, 'unknown'],
     [401, 'unauthenticated'],
+    [429, 'rate-limited'],
   ] as const)('maps HTTP %i to %s', (status, kind) => {
     const apiError = new ApiError(status, 'failed', 'Backend copy')
     const listError = toListError(apiError)

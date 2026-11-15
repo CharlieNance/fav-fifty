@@ -149,7 +149,7 @@ def test_list_for_user_filter_never_matches_soft_deleted_lists(db_session: Sessi
 def test_create_list_returns_a_new_row_owned_by_the_user(db_session: Session) -> None:
     user = _user(db_session, "owner")
 
-    row = list_service.create_list(db_session, user.id, "My New List")
+    row = list_service.create_list(db_session, user.id, "My New List", max_lists=100)
 
     assert row.id is not None
     assert row.user_id == user.id

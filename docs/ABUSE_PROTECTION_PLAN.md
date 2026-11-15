@@ -11,6 +11,31 @@ not app code) and **Q25** (quota defaults, changeable at runtime). Related: [COS
 (the last line of defence for cost), [ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md)
 (the lock/block UI), and [CONSIDERATIONS.md](CONSIDERATIONS.md) §Security.
 
+## Status (2026-11-14)
+
+**Built (app layer, build-order steps 1–4):**
+
+- Body-size cap (`BodySizeLimitMiddleware`: 64 KiB, import = `limits.max_import_bytes`,
+  counted while streaming), DB `statement_timeout` (5 s, `DB_STATEMENT_TIMEOUT_MS`),
+  search `q` capped at 200 chars.
+- Quotas: `limits.max_lists_per_user` (100; create **and** import, under a per-user row
+  lock; served to clients and enforced on-device too), `limits.max_writes_per_user_per_day`.
+- In-process token-bucket limiter (`app/core/rate_limit.py`, `app/api/rate_limits.py`)
+  with runtime-tunable `rate_limits.*` and a kill switch; 429 + `Retry-After` + copy the
+  frontend shows (`rate-limited` error kind). Each 429 is logged as `rate_limited rule=…`.
+- Client IP from `CloudFront-Viewer-Address`, trusted only with the origin secret.
+- `OriginVerifyMiddleware` (`ORIGIN_VERIFY_SECRET`, `/health` exempt) and the
+  Origin/Referer CSRF check on cookie writes. CORS narrowed to the methods/headers we use.
+- Boot guard: a deployed `DEPLOY_TARGET` refuses `APP_ENV=development` (which would
+  enable dev-login), and the box refuses to start without the origin secret.
+- Tests: every non-public route answers 401 without a session (behavioral walk of the
+  OpenAPI operations); ESLint `vue/no-v-html` is an error.
+
+**Still to do:** Layer 1 (WAF) and the security-headers policy (with the first deploy),
+the sign-up alarm/switch, 429 counters into Postgres for the dashboard, description
+length (when descriptions get an API), supply-chain checks, and the backup restore test.
+**Deploy note:** run Uvicorn with **one worker** (the limiter is per process).
+
 ## What we're defending against (at our scale)
 
 Ranked by likelihood × damage for a small, private-by-default list app:

@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
+from app.api.rate_limits import limit_writes
 from app.core.limits import MAX_ITEMS_PER_LIST
 from app.models.list import List
 from app.models.list_item import ListItem
@@ -14,7 +15,10 @@ from app.models.user import User
 from app.schemas.list_item import ItemCreate, ItemRead, ItemReorder, ItemUpdate
 from app.services import list_item_service, list_service
 
-router = APIRouter(prefix="/lists/{list_id}/items", tags=["list_items"])
+# Every write here counts against the user's write rate limits (reads don't).
+router = APIRouter(
+    prefix="/lists/{list_id}/items", tags=["list_items"], dependencies=[Depends(limit_writes)]
+)
 
 
 def _get_owned_list(

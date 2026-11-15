@@ -29,6 +29,7 @@ import type { ListRepository } from './listRepository'
 import type { ListsImportResult } from './types'
 import {
   charLength,
+  importQuotaDetail,
   normalizeTags,
   uniqueTitle,
   validateItemDraft,
@@ -212,6 +213,10 @@ export function mergeImportedLists(
   { lists, skipped }: ParsedImport,
   options: { newId: () => string; limits: ClientLimits },
 ): ImportSummary {
+  const max = options.limits.max_lists_per_user
+  if (document.lists.length + lists.length > max) {
+    throw new ListError('invalid', importQuotaDetail(document.lists.length, lists.length, max))
+  }
   const taken = new Set(document.lists.map((list) => list.title.toLowerCase()))
   const renamed: ImportSummary['renamed'] = []
 

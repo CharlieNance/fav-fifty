@@ -2,11 +2,12 @@
 
 from fastapi import APIRouter, Depends
 
+from app.api.rate_limits import limit_config
 from app.core import limits
 from app.core.runtime_settings import RuntimeSettings, get_runtime_settings
 from app.schemas.config import ClientConfig, ClientLimits
 
-router = APIRouter(prefix="/config", tags=["config"])
+router = APIRouter(prefix="/config", tags=["config"], dependencies=[Depends(limit_config)])
 
 
 @router.get("/client", response_model=ClientConfig)
@@ -15,6 +16,7 @@ def client_config(runtime: RuntimeSettings = Depends(get_runtime_settings)) -> C
     return ClientConfig(
         limits=ClientLimits(
             max_tags_per_list=runtime.limits.max_tags_per_list,
+            max_lists_per_user=runtime.limits.max_lists_per_user,
             max_lists_per_import=runtime.limits.max_lists_per_import,
             max_import_bytes=runtime.limits.max_import_bytes,
             max_items_per_list=limits.MAX_ITEMS_PER_LIST,
