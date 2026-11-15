@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 
-// Drives the whole items feature (docs/ITEMS_CRUD_PLAN.md) against the REAL
+// Drives the whole items feature (docs/ARCHITECTURE.md §Items) against the REAL
 // backend: add, edit, delete, and reorder — including a genuine SortableJS
 // drag, which jsdom can't exercise (the Vitest specs simulate the drop event
 // instead). Runs as one serial journey on one list because each step builds
@@ -39,7 +39,7 @@ async function addItem(page: Page, text: string, note?: string): Promise<void> {
 
 test('build, edit, reorder, and prune a ranked list end-to-end', async ({ page }) => {
   // — Sign in via the dev stub and create a fresh list —
-  await page.goto('/lists')
+  await page.goto('/login')
   await page.getByRole('button', { name: /dev login/i }).click()
   await expect(page.getByRole('heading', { name: 'My lists' })).toBeVisible()
 

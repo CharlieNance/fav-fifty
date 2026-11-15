@@ -9,12 +9,15 @@
  */
 import { computed, useId } from 'vue'
 
-import { itemCountTier, MAX_ITEMS, type ItemCountTier } from './itemCountTier'
+import { useClientConfigStore } from '@/stores/clientConfig'
+import { itemCountTier, type ItemCountTier } from './itemCountTier'
 
 const props = defineProps<{ count: number }>()
 
-const tier = computed(() => itemCountTier(props.count))
-const label = computed(() => `${props.count} of ${MAX_ITEMS} items`)
+const config = useClientConfigStore()
+const max = computed(() => config.limits.max_items_per_list)
+const tier = computed(() => itemCountTier(props.count, max.value))
+const label = computed(() => `${props.count} of ${max.value} items`)
 // Per-instance id for the star's gradient: the index can show several full
 // lists at once, and SVG ids live in the page-wide id namespace.
 const gradientId = `item-count-gold-${useId()}`

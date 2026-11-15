@@ -1,9 +1,9 @@
 /**
  * Holds the search box's query text and debounces re-fetching, so a network
  * request fires once per pause in typing rather than once per keystroke
- * (Interaction 3, docs/TAGS_SEARCH_PLAN.md). Kept out of `ListsView.vue` and
+ * (docs/ARCHITECTURE.md §Tags and search). Kept out of `ListsView.vue` and
  * `useLists.ts` so the debounce timer is its own small, independently-testable
- * unit — per open question 4's decision, this also keeps the door open for a
+ * unit — this also keeps the door open for a
  * future upgrade (autocomplete, fuzzy matching) to plug in here later without
  * touching the fetch/list state at all.
  */

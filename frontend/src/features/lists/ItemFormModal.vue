@@ -1,12 +1,11 @@
 <script setup lang="ts">
 /**
- * The add/edit item overlay (Interactions 1 + 2, docs/ITEMS_CRUD_PLAN.md). One
+ * The add/edit item overlay (docs/ARCHITECTURE.md §Frontend patterns). One
  * component covers both modes — the form (text / note / image URL), validation,
  * and error handling are identical; only the heading, endpoint, and initial
- * values differ, all driven by whether an `item` prop is present. The plan doc
- * sketched these as two components mirroring Create/EditListModal, but unlike
- * those two (different hosting, navigation, and store wiring), these would have
- * been byte-for-byte duplicates.
+ * values differ, all driven by whether an `item` prop is present. Unlike
+ * Create/EditListModal (different hosting, navigation, and store wiring), two
+ * item modals would have been byte-for-byte duplicates.
  *
  * Client-side checks mirror the backend's (`backend/app/schemas/list_item.py`)
  * for fast feedback, but the backend stays the source of truth — its 409s
@@ -15,6 +14,7 @@
 import { computed, nextTick, onMounted, ref } from 'vue'
 
 import BaseButton from '@/components/BaseButton.vue'
+import { useClientConfigStore } from '@/stores/clientConfig'
 import type { ListItem, ListItemDraft } from './types'
 import { useCreateItem } from './useCreateItem'
 import { useUpdateItem } from './useUpdateItem'
@@ -26,6 +26,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{ saved: [item: ListItem]; cancel: [] }>()
+const config = useClientConfigStore()
 
 const isEdit = computed(() => props.item != null)
 
@@ -109,7 +110,7 @@ onMounted(async () => {
             v-model="text"
             type="text"
             placeholder="e.g. The Empire Strikes Back"
-            maxlength="500"
+            :maxlength="config.limits.max_item_text_length"
             class="w-full rounded-lg border border-border bg-transparent px-4 py-2 text-ink transition-colors focus-visible:outline-2 focus-visible:outline-accent"
           />
         </div>
@@ -123,7 +124,7 @@ onMounted(async () => {
             v-model="note"
             rows="2"
             placeholder="Why it deserves the spot…"
-            maxlength="2000"
+            :maxlength="config.limits.max_note_length"
             class="w-full resize-y rounded-lg border border-border bg-transparent px-4 py-2 text-ink transition-colors focus-visible:outline-2 focus-visible:outline-accent"
           ></textarea>
         </div>
@@ -137,7 +138,7 @@ onMounted(async () => {
             v-model="imageUrl"
             type="url"
             placeholder="https://…"
-            maxlength="2048"
+            :maxlength="config.limits.max_image_url_length"
             class="w-full rounded-lg border border-border bg-transparent px-4 py-2 text-ink transition-colors focus-visible:outline-2 focus-visible:outline-accent"
           />
         </div>

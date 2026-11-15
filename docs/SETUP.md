@@ -141,6 +141,10 @@ served from the **same origin** as the site — `favfifty.com/api/v1` behind Clo
 no cookie `Domain` setting or CORS is needed; see
 [DEPLOYMENT_TOPOLOGY_PLAN.md](DEPLOYMENT_TOPOLOGY_PLAN.md).)
 
+Further reading: a
+[Cognito walkthrough](https://medium.com/@yaroslavzhbankov/implementing-user-authentication-with-aws-cognito-a-complete-guide-5f8cd45679c1)
+and [its example repo](https://github.com/yzhbankov/aws-cognito).
+
 ---
 
 ## 4. DNS: move favfifty.com to Route 53 (keep registration at Squarespace)

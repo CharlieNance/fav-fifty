@@ -6,10 +6,10 @@ import { useToastStore } from '@/stores/toasts'
 /**
  * The "Log out" action: end the session, leave anywhere that needed it, say so.
  *
- * The navigation is the point. Clearing the session alone left the user sitting
- * on `/lists` reading lists they were no longer signed in to see — the page only
- * corrected itself on the next navigation, when the auth guard bounced them to
- * login. Going home instead makes logging out look like it did something.
+ * The navigation is the point. Clearing the session alone would leave the user
+ * on `/lists`, which then reloads from this device's storage (useListsRefresh):
+ * correct, never the account's lists, but it looks like nothing happened. Going
+ * home instead makes logging out look like it did something.
  *
  * Home (not login): logging out is not a prelude to logging back in.
  */

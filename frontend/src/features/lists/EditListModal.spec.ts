@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 
 import { ApiError } from '@/api/client'
 import type { ListSummary } from './types'
@@ -11,6 +12,7 @@ vi.mock('@/api/client', async (importOriginal) => {
 
 import { apiFetch } from '@/api/client'
 import EditListModal from './EditListModal.vue'
+import { pinApiRepository } from './repositoryTestUtils'
 
 const apiFetchMock = vi.mocked(apiFetch)
 
@@ -24,8 +26,11 @@ const LIST: ListSummary = {
   updated_at: '2026-01-01T00:00:00Z',
 }
 
+pinApiRepository()
+
 describe('EditListModal', () => {
   beforeEach(() => {
+    setActivePinia(createPinia())
     apiFetchMock.mockReset()
   })
 

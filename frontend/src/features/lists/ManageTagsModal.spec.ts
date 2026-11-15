@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 
 import { ApiError } from '@/api/client'
 import type { ListSummary } from './types'
@@ -11,6 +12,7 @@ vi.mock('@/api/client', async (importOriginal) => {
 
 import { apiFetch } from '@/api/client'
 import ManageTagsModal from './ManageTagsModal.vue'
+import { pinApiRepository } from './repositoryTestUtils'
 
 const apiFetchMock = vi.mocked(apiFetch)
 
@@ -28,8 +30,11 @@ function tagChips(wrapper: VueWrapper): string[] {
   return wrapper.findAll('li').map((li) => li.text())
 }
 
+pinApiRepository()
+
 describe('ManageTagsModal', () => {
   beforeEach(() => {
+    setActivePinia(createPinia())
     apiFetchMock.mockReset()
   })
 

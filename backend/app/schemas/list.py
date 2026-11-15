@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
+from app.core.limits import MAX_TITLE_LENGTH
+
 if TYPE_CHECKING:
     from app.models.tag import Tag
 
@@ -30,13 +32,13 @@ class ListRead(BaseModel):
     def _tag_names(cls, value: "list[str | Tag]") -> list[str]:
         """Read from the ORM's ``list[Tag]`` relationship as plain tag names.
 
-        The wire shape is ``string[]`` (see docs/TAGS_SEARCH_PLAN.md §Data model
-        additions) — the frontend never needs a tag's id, only its name.
+        The wire shape is ``string[]`` (see docs/ARCHITECTURE.md
+        §Tags and search) — the frontend never needs a tag's id, only its name.
         """
         return [item if isinstance(item, str) else item.name for item in value]
 
 
-def _validated_title(value: str) -> str:
+def validated_title(value: str) -> str:
     """Trim and enforce the same length limit as the ``lists.title`` column.
 
     Shared by ``ListCreate`` and ``ListUpdate`` so create and rename can never
@@ -45,8 +47,8 @@ def _validated_title(value: str) -> str:
     trimmed = value.strip()
     if not trimmed:
         raise ValueError("Title is required.")
-    if len(trimmed) > 200:
-        raise ValueError("Title must be 200 characters or fewer.")
+    if len(trimmed) > MAX_TITLE_LENGTH:
+        raise ValueError(f"Title must be {MAX_TITLE_LENGTH} characters or fewer.")
     return trimmed
 
 
@@ -62,7 +64,7 @@ class ListCreate(BaseModel):
     @field_validator("title")
     @classmethod
     def _title_trimmed_and_non_empty(cls, value: str) -> str:
-        return _validated_title(value)
+        return validated_title(value)
 
 
 class ListUpdate(BaseModel):
@@ -73,4 +75,4 @@ class ListUpdate(BaseModel):
     @field_validator("title")
     @classmethod
     def _title_trimmed_and_non_empty(cls, value: str) -> str:
-        return _validated_title(value)
+        return validated_title(value)

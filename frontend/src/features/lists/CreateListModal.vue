@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Create-a-list overlay (Interaction 2, docs/LISTS_CRUD_PLAN.md). Hosted once,
+ * Create-a-list overlay (docs/ARCHITECTURE.md §Frontend patterns). Hosted once,
  * globally (App.vue), and opened via the shared `useListModalsStore` so "Start a
  * list" (header, homepage) and the index's "New list" button all reach the same
  * modal without a dedicated route. Save is the one deliberate navigation in this
@@ -10,16 +10,22 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import BaseButton from '@/components/BaseButton.vue'
-import { apiFetch } from '@/api/client'
-import type { ListSummary } from './types'
+import { useClientConfigStore } from '@/stores/clientConfig'
 import { useListModalsStore } from './useListModals'
+import { useListAction } from './useListAction'
 
 const modals = useListModalsStore()
 const router = useRouter()
+const config = useClientConfigStore()
 
 const title = ref('')
-const error = ref<string | null>(null)
-const saving = ref(false)
+const {
+  pending: saving,
+  error,
+  run,
+} = useListAction({
+  fallback: 'Could not create the list. Check the title and try again.',
+})
 const inputRef = ref<HTMLInputElement | null>(null)
 
 const canSave = computed(() => title.value.trim().length > 0 && !saving.value)
@@ -27,7 +33,6 @@ const canSave = computed(() => title.value.trim().length > 0 && !saving.value)
 function reset(): void {
   title.value = ''
   error.value = null
-  saving.value = false
 }
 
 function cancel(): void {
@@ -42,20 +47,11 @@ async function save(): Promise<void> {
     return
   }
 
-  saving.value = true
-  error.value = null
-  try {
-    const created = await apiFetch<ListSummary>('/lists', {
-      method: 'POST',
-      body: JSON.stringify({ title: trimmed }),
-    })
-    modals.closeCreate()
-    reset()
-    await router.push({ name: 'list-detail', params: { id: created.id } })
-  } catch {
-    error.value = 'Could not create the list. Check the title and try again.'
-    saving.value = false
-  }
+  const created = await run((repo) => repo.createList(trimmed))
+  if (!created) return
+  modals.closeCreate()
+  reset()
+  await router.push({ name: 'list-detail', params: { id: created.id } })
 }
 
 // Focus the input each time the modal opens.
@@ -93,7 +89,7 @@ watch(
           v-model="title"
           type="text"
           placeholder="e.g. Favorite albums"
-          maxlength="200"
+          :maxlength="config.limits.max_title_length"
           class="w-full rounded-lg border border-border bg-transparent px-4 py-2 text-ink focus-visible:outline-2 focus-visible:outline-accent"
         />
 

@@ -20,7 +20,7 @@ design problem than a graphical one. Whitespace, type, and one good accent color
 - **One accent color.** Keep restraint — a single brand accent until there's a reason
   for more.
 - **Palette (2026-07-14).** **Warm, cozy dark** — from the homepage mock
-  (`docs/Fav Fifty Homepage.html`). Low-chroma warm-brown surfaces (`oklch` hue ~50)
+  (`docs/Fav Fifty Example.html`). Low-chroma warm-brown surfaces (`oklch` hue ~50)
   with a single **coral accent** (hue ~40). Semantic ramp, all in `main.css`:
   `canvas` (app bg) → `surface` (cards) → `elevated` (hover) → `border`; text is
   `ink` / `muted`; brand is `accent` / `accent-hover` / `accent-ink` (dark text on the
@@ -31,12 +31,18 @@ design problem than a graphical one. Whitespace, type, and one good accent color
 - **Mobile-first, always.** The mock is desktop-first; we port it as mobile-first
   responsive (design the narrow layout, scale up at `sm:`/`md:`). Audience arrives via
   Discord links, mostly on phones.
-- ~~**Logged-out "Start a list" (2026-07-14).** Button stays visible; clicking it when
-  logged out routes to login and **preserves intent** (continue to create-a-list after).
-  Gate the action, not the button — more inviting, better funnel.~~
-  **Superseded (2026-10-13):** anonymous visitors can build lists on-device, so "Start a
-  list" no longer gates on login at all. Sign-in prompts move to *keeping* (sync across
-  devices) and *sharing*. See [ANONYMOUS_AND_LOCAL_LISTS_PLAN.md](ANONYMOUS_AND_LOCAL_LISTS_PLAN.md).
+- **No login wall (2026-10-13, built 2026-11-14).** Anonymous visitors build lists
+  on their device, so "Start a list" opens the create modal for everyone. (This replaced
+  the 2026-07-14 call to send logged-out visitors to login first.) Sign-in is pitched as
+  *keeping* lists (across devices, safe from a cleared browser) and, later, *sharing*:
+  - the lists page says "Saved on this device only", with a "Sign in to keep them safe"
+    link;
+  - a dismissible "Keep your lists safe" banner appears once there's enough to lose
+    (2+ lists or 20+ items), offering sign-in or an export;
+  - after sign-in, a "Bring your lists with you?" dialog offers to add the device's
+    lists to the account.
+
+  Details: [ARCHITECTURE.md §Anonymous lists](ARCHITECTURE.md#anonymous-lists-on-device-storage).
 - **Motion (2026-08-08).** Small, quick, and a little springy — interactive elements
   should *feel* pressed and lifted, not just recolor. (Owner call: hover/click was too
   flat; the site should give feedback and feel alive.) Concretely:
@@ -104,7 +110,7 @@ design problem than a graphical one. Whitespace, type, and one good accent color
   now goes to `/` and toasts — home rather than login, since logging out isn’t a
   prelude to logging back in. (Pairs with sign-in landing on `/lists`, see
   [DECISIONS.md](DECISIONS.md).)
-- **Margin showcase (decided 2026-10-13, QUESTIONS.md Q17).** Scrolling art in the side
+- **Margin showcase (decided 2026-10-13, Q17).** Scrolling art in the side
   gutters, **only on screens ≥1280px** (not even fetched below that):
   - **posters on the left, album covers on the right**;
   - low opacity with edge fades;
@@ -119,8 +125,8 @@ design problem than a graphical one. Whitespace, type, and one good accent color
 - **Drag-and-drop library (2026-08-08): `vue-draggable-plus`** (MIT, typed,
   maintained; SortableJS underneath). Chosen over hand-rolled DnD (don't want to
   maintain drag code) and over `vuedraggable`, which is unmaintained and crashes with
-  Vue 3.5 — full story in
-  [ITEMS_CRUD_PLAN.md](ITEMS_CRUD_PLAN.md) §Frontend implementation notes.
+  Vue 3.5. How it's configured, and why:
+  [ARCHITECTURE.md](ARCHITECTURE.md) §Frontend patterns.
 
 ## Open — to decide (no rush; these don't block feature work)
 
@@ -132,8 +138,6 @@ design problem than a graphical one. Whitespace, type, and one good accent color
   showcase). Opacity, tint, fade-mask depth and scroll speed get settled with a static
   mock before animating —
   [MARGIN_SHOWCASE_PLAN.md](MARGIN_SHOWCASE_PLAN.md).
-- **Anonymous-user states.** "Saved on this device" badge, export/import, the post-sign-in
-  "Bring your lists with you?" claim dialog, and gentle sign-in nudges — need designing.
 - **Catalog type-ahead.** Combobox dropdown rows (thumbnail + title + subtitle), list-kind
   picker chips, and where provider attribution sits —
   [CATALOG_SEARCH_PLAN.md](CATALOG_SEARCH_PLAN.md) §Frontend design.

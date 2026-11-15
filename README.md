@@ -8,11 +8,9 @@
 
 ## Status
 
-🚧 **Phase 1 — Walking skeleton.** Foundation and key decisions are done. Backend (FastAPI + Postgres + Alembic) and frontend (Vue 3 + Vite) are scaffolded, CI runs on every push, and **real Google sign-in via AWS Cognito is live end-to-end** (2026-07-31). A couple of small follow-ups remain before Phase 2.
+🚧 **Pre-launch, running locally.** Built: Google sign-in via AWS Cognito; lists with up to 50 ranked items, tags and search; and **use without an account**, with lists saved on the device that can be exported, imported, and added to an account on sign-in.
 
-**Scope expansion (2026-10-13, pre-launch):** anonymous use with on-device lists, catalog lookup, a margin art showcase, mobile readiness, and a Lightsail/Lambda/hybrid backend — planned, not yet built (Phase 2.5 in NEXT_STEPS). Before launch: abuse protection, an admin portal with dashboards and analytics, and cost guardrails that take the site offline rather than run up a bill.
-
-See [docs/NEXT_STEPS.md](docs/NEXT_STEPS.md) for the roadmap and [docs/QUESTIONS.md](docs/QUESTIONS.md) for open decisions.
+Next, before launch: abuse protection, an admin portal, cost guardrails that take the site offline rather than run up a bill, and the first deploy. After that: catalog lookup and a margin art showcase. See [docs/NEXT_STEPS.md](docs/NEXT_STEPS.md).
 
 ## Vision
 
@@ -27,7 +25,7 @@ See [docs/NEXT_STEPS.md](docs/NEXT_STEPS.md) for the roadmap and [docs/QUESTIONS
 
 ## Tech Stack
 
-Decisions recorded in [docs/DECISIONS.md](docs/DECISIONS.md) (deliberation in [docs/QUESTIONS.md](docs/QUESTIONS.md)).
+Decisions recorded in [docs/DECISIONS.md](docs/DECISIONS.md).
 
 - **Frontend:** Vue 3 + Vite + TypeScript, Pinia (state), Vue Router, Tailwind CSS. Vitest + ESLint. Hosted as a static SPA on S3 + CloudFront.
 - **Backend:** Python + FastAPI (REST API), Pydantic for validation. pytest + Ruff.
@@ -40,26 +38,29 @@ Decisions recorded in [docs/DECISIONS.md](docs/DECISIONS.md) (deliberation in [d
 
 > ⚠️ The repo is **public**. Never commit real secrets — each app has its own template: [`backend/.env.example`](backend/.env.example) and [`frontend/.env.example`](frontend/.env.example).
 
-## Repository Layout (planned)
+## Repository Layout
 
 ``` tree
 fav-fifty/
-├── README.md
-├── CLAUDE.md              # Guidance for AI assistants working in this repo
-├── .gitignore
-├── .claudeignore
-├── docs/
-│   ├── NEXT_STEPS.md      # Roadmap & phased build plan
-│   ├── DECISIONS.md       # Resolved decisions & product data model
-│   ├── QUESTIONS.md       # Decision deliberation & trade-offs (record)
-│   ├── SETUP.md           # External setup: Google OAuth, AWS, Route 53/DNS
-│   ├── DESIGN.md          # Frontend look-and-feel decisions & design system
-│   ├── CONSIDERATIONS.md  # Security, cost, scaling, legal notes
-│   └── *_PLAN.md, MOBILE_READINESS.md  # Per-feature implementation plans
-├── frontend/              # Vue 3 + Vite + TS app (scaffold)
-├── backend/               # FastAPI app (skeleton)
-└── infra/                 # (later) Infrastructure as code
+├── CLAUDE.md              # Conventions (for people and AI assistants)
+├── frontend/              # Vue 3 + Vite + TS app
+├── backend/               # FastAPI app
+├── tools/                 # Dev helper scripts (see tools/README.md)
+├── infra/                 # (later) Terraform
+└── docs/
+    ├── NEXT_STEPS.md      # Roadmap — start here
+    ├── ARCHITECTURE.md    # How the built parts work, and why
+    ├── DECISIONS.md       # Resolved decisions & data model
+    ├── DESIGN.md          # Look-and-feel decisions & design system
+    ├── CONSIDERATIONS.md  # Security, cost, scaling, legal notes
+    ├── SETUP.md           # External setup: Google OAuth, AWS, Cognito, DNS
+    ├── legal/             # Privacy policy & terms
+    └── *_PLAN.md, MOBILE_READINESS.md, EMAIL_SIGNIN_OPTIONS.md  # Plans for unbuilt work
 ```
+
+**New here?** Read this README, then [NEXT_STEPS.md](docs/NEXT_STEPS.md) and
+[ARCHITECTURE.md](docs/ARCHITECTURE.md). The `*_PLAN.md` files only matter when you
+pick up that feature.
 
 ## Getting Started
 

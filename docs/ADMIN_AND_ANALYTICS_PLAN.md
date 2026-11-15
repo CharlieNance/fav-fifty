@@ -4,7 +4,7 @@ Planning doc. With strangers able to use the site, the owner needs to **see what
 happening** (analytics and dashboards) and **act on it** (lock an account, read or
 remove content, switch a feature off, change a limit) without a database shell or a
 redeploy. Owner direction (2026-10-13): this is **pre-launch** work. Decided in
-[QUESTIONS.md](QUESTIONS.md):
+[DECISIONS.md](DECISIONS.md):
 
 - **Q14:** catalog providers can be enabled or disabled at runtime.
 - **Q23:** Cloudflare Web Analytics, an `/events` endpoint, errors via logs.

@@ -1,7 +1,6 @@
 <script setup lang="ts">
-// The details page for one list. On top of the list-level Edit/Delete from
-// Interaction 5 of docs/LISTS_CRUD_PLAN.md, this now hosts the whole items
-// feature (docs/ITEMS_CRUD_PLAN.md): ranked rows, add/edit via ItemFormModal,
+// The details page for one list. On top of the list-level Edit/Delete, this
+// hosts the whole items feature (docs/ARCHITECTURE.md §Items): ranked rows, add/edit via ItemFormModal,
 // delete via the shared ConfirmDialog, and reorder via drag (vue-draggable-plus
 // / SortableJS) or the rows' up/down buttons — both paths call the same
 // move-one-item endpoint. Item modal state is component-local (plain refs)
@@ -14,24 +13,33 @@ import { VueDraggable } from 'vue-draggable-plus'
 
 import BaseButton from '@/components/BaseButton.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
+import { useClientConfigStore } from '@/stores/clientConfig'
+import BackupReminder from './BackupReminder.vue'
 import EditListModal from './EditListModal.vue'
 import ItemFormModal from './ItemFormModal.vue'
 import ListItemRow from './ListItemRow.vue'
 import ManageTagsModal from './ManageTagsModal.vue'
 import TagChip from './TagChip.vue'
-import { MAX_ITEMS } from './itemCountTier'
 import type { ListItem, ListSummary } from './types'
 import { useDeleteItem } from './useDeleteItem'
 import { useDeleteList } from './useDeleteList'
 import { useListDetail } from './useListDetail'
 import { useListItems } from './useListItems'
 import { useListModalsStore } from './useListModals'
+import { useListsRefresh } from './useListsRefresh'
 import { useReorderItem } from './useReorderItem'
 
 const route = useRoute()
 const router = useRouter()
 
-const { status, list, load, updateList } = useListDetail()
+const {
+  status,
+  list,
+  error: loadError,
+  errorKind: loadErrorKind,
+  load,
+  updateList,
+} = useListDetail()
 const {
   status: itemsStatus,
   items,
@@ -68,7 +76,9 @@ const editingItem = ref<ListItem | null>(null)
 const deletingItem = ref<ListItem | null>(null)
 
 const listId = computed(() => route.params.id as string)
-const isFull = computed(() => items.value.length >= MAX_ITEMS)
+const config = useClientConfigStore()
+const maxItems = computed(() => config.limits.max_items_per_list)
+const isFull = computed(() => items.value.length >= maxItems.value)
 
 async function loadAll(id: string): Promise<void> {
   // Items only after the list resolves: if the list 404s, the page shows
@@ -86,6 +96,10 @@ onMounted(() => {
 onBeforeRouteUpdate((to) => {
   void loadAll(to.params.id as string)
 })
+
+// Sign-in/out switches storage (a device list's id then shows "not found", as a
+// stale bookmark would), and another tab can change or delete this list.
+useListsRefresh(() => void loadAll(listId.value))
 
 function handleRenamed(updated: ListSummary): void {
   updateList(updated)
@@ -198,6 +212,10 @@ function nudge(item: ListItem, direction: -1 | 1): void {
       <RouterLink :to="{ name: 'lists' }" class="text-ink underline">Back to my lists</RouterLink>
     </p>
 
+    <p v-else-if="status === 'error' && loadErrorKind === 'storage'" class="text-muted">
+      {{ loadError }}
+    </p>
+
     <p v-else-if="status === 'error'" class="text-muted">
       Something went wrong loading this list. Try refreshing the page.
     </p>
@@ -222,6 +240,9 @@ function nudge(item: ListItem, direction: -1 | 1): void {
         </li>
       </ul>
 
+      <!-- Anonymous, with enough on this device to be worth keeping. -->
+      <BackupReminder />
+
       <!-- ——— Items ——— -->
 
       <p v-if="itemsStatus === 'loading'" class="mt-6 text-muted">Loading items…</p>
@@ -243,7 +264,7 @@ function nudge(item: ListItem, direction: -1 | 1): void {
           <div class="mt-6 flex items-center justify-between gap-4">
             <p class="text-sm text-muted">
               <span class="font-semibold text-ink tabular-nums">{{ items.length }}</span>
-              of {{ MAX_ITEMS }} ranked
+              of {{ maxItems }} ranked
               <span v-if="isFull"> — a full fifty! 🎉</span>
             </p>
             <BaseButton size="sm" :disabled="isFull" @click="isAddOpen = true">Add item</BaseButton>

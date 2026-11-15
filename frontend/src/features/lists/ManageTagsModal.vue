@@ -1,21 +1,22 @@
 <script setup lang="ts">
 /**
- * Manage-tags overlay (Interaction 1, docs/TAGS_SEARCH_PLAN.md) — a small modal
- * with explicit Save/Cancel (open question 2's decision, for consistency with
- * EditListModal) rather than autosave-per-change. Tags are edited as chips
- * (open question 5's decision): type a name and press Enter (or Add) to turn
+ * Manage-tags overlay (docs/ARCHITECTURE.md §Frontend patterns) — a small modal
+ * with explicit Save/Cancel (for consistency with
+ * EditListModal) rather than autosave-per-change. Tags are edited as chips: type a name and press Enter (or Add) to turn
  * it into a chip, click a chip's × to drop it. The whole edited set is only
  * sent to the server once, on Save — Cancel discards every change made here.
  */
 import { nextTick, onMounted, ref } from 'vue'
 
 import BaseButton from '@/components/BaseButton.vue'
+import { useClientConfigStore } from '@/stores/clientConfig'
 import TagChip from './TagChip.vue'
 import type { ListSummary } from './types'
 import { useListTags } from './useListTags'
 
 const props = defineProps<{ list: ListSummary }>()
 const emit = defineEmits<{ saved: [list: ListSummary]; cancel: [] }>()
+const config = useClientConfigStore()
 
 const tags = ref<string[]>([...props.list.tags])
 const draft = ref('')
@@ -92,7 +93,7 @@ onMounted(async () => {
           v-model="draft"
           type="text"
           placeholder="e.g. sci-fi"
-          maxlength="50"
+          :maxlength="config.limits.max_tag_length"
           class="w-full rounded-lg border border-border bg-transparent px-4 py-2 text-ink focus-visible:outline-2 focus-visible:outline-accent"
         />
         <BaseButton variant="secondary" size="sm" type="submit">Add</BaseButton>

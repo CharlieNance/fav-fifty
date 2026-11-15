@@ -79,8 +79,8 @@ def test_list_for_user_filter_treats_percent_and_underscore_as_literal(
 ) -> None:
     # `%` and `_` are SQL LIKE wildcards, not just regular characters — a query
     # containing them must match only the literal text, not "any characters"
-    # (`%`) or "any one character" (`_`), per docs/TAGS_SEARCH_PLAN.md
-    # §Cross-cutting's "treated as literal characters" guarantee.
+    # (`%`) or "any one character" (`_`), per docs/ARCHITECTURE.md
+    # §Tags and search.
     owner = _user(db_session, "owner")
     literal = _list(db_session, owner, "50% off list")
     _list(db_session, owner, "50X off list")  # would false-match "50%" unescaped

@@ -20,17 +20,25 @@ const routes: RouteRecordRaw[] = [
     name: 'login',
     component: () => import('@/features/auth/LoginView.vue'),
   },
+  // Same Google flow as /login (the backend creates the account on first
+  // sign-in, social-only, no password); only the wording differs.
+  {
+    path: '/signup',
+    name: 'signup',
+    component: () => import('@/features/auth/LoginView.vue'),
+    props: { mode: 'signup' },
+  },
+  // Open to everyone: signed-in users see their account's lists, anonymous
+  // visitors the ones saved on this device (useListRepository picks which).
   {
     path: '/lists',
     name: 'lists',
     component: () => import('@/features/lists/ListsView.vue'),
-    meta: { requiresAuth: true },
   },
   {
     path: '/lists/:id',
     name: 'list-detail',
     component: () => import('@/features/lists/ListDetailView.vue'),
-    meta: { requiresAuth: true },
   },
 ]
 
@@ -41,9 +49,10 @@ export const router = createRouter({
 
 // Provisional auth guard. It (a) resolves the session once on first navigation
 // and (b) sends unauthenticated users away from `requiresAuth` routes, keeping
-// their intended destination in `redirect`. The real login flow on the auth
-// branch will build on this; the network-error swallow keeps the frontend
-// usable in dev when the backend isn't running.
+// their intended destination in `redirect`. No route needs auth today (lists
+// work on-device for anonymous visitors); it's kept for pages that will, such
+// as publishing. The network-error swallow keeps the frontend usable when the
+// backend isn't running: the visitor is treated as anonymous.
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
   if (!auth.isReady) {

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /**
- * Rename-a-list overlay (Interaction 3, docs/LISTS_CRUD_PLAN.md). Unlike
+ * Rename-a-list overlay (docs/ARCHITECTURE.md §Frontend patterns). Unlike
  * CreateListModal, this isn't hosted globally — it needs an existing list's data
  * to prefill, so whichever page has that list in hand (the index row today,
- * the details page in Interaction 5) mounts it directly, keyed off the shared
+ * the details page) mounts it directly, keyed off the shared
  * `useListModalsStore.editingListId`. Save/Cancel report back via emits, not the
  * store, so the page stays the single source of truth for "what does this list's
  * title look like right now."
@@ -11,15 +11,22 @@
 import { computed, nextTick, ref, onMounted } from 'vue'
 
 import BaseButton from '@/components/BaseButton.vue'
-import { apiFetch } from '@/api/client'
+import { useClientConfigStore } from '@/stores/clientConfig'
 import type { ListSummary } from './types'
+import { useListAction } from './useListAction'
 
 const props = defineProps<{ list: ListSummary }>()
 const emit = defineEmits<{ saved: [list: ListSummary]; cancel: [] }>()
+const config = useClientConfigStore()
 
 const title = ref(props.list.title)
-const error = ref<string | null>(null)
-const saving = ref(false)
+const {
+  pending: saving,
+  error,
+  run,
+} = useListAction({
+  fallback: 'Could not save the title. Check it and try again.',
+})
 const inputRef = ref<HTMLInputElement | null>(null)
 
 const canSave = computed(() => title.value.trim().length > 0 && !saving.value)
@@ -35,18 +42,8 @@ async function save(): Promise<void> {
     return
   }
 
-  saving.value = true
-  error.value = null
-  try {
-    const updated = await apiFetch<ListSummary>(`/lists/${props.list.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ title: trimmed }),
-    })
-    emit('saved', updated)
-  } catch {
-    error.value = 'Could not save the title. Check it and try again.'
-    saving.value = false
-  }
+  const updated = await run((repo) => repo.renameList(props.list.id, trimmed))
+  if (updated) emit('saved', updated)
 }
 
 onMounted(async () => {
@@ -77,7 +74,7 @@ onMounted(async () => {
           v-model="title"
           type="text"
           placeholder="e.g. Favorite albums"
-          maxlength="200"
+          :maxlength="config.limits.max_title_length"
           class="w-full rounded-lg border border-border bg-transparent px-4 py-2 text-ink focus-visible:outline-2 focus-visible:outline-accent"
         />
 

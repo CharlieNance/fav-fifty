@@ -35,6 +35,15 @@ const tag = computed(() => {
   return 'button'
 })
 
+// Only the binding the element needs. Passing `href: undefined` to a RouterLink
+// falls through as an attribute and wipes out the href it renders, which leaves an
+// <a> that can't be focused by keyboard or opened in a new tab.
+const linkProps = computed(() => {
+  if (props.to) return { to: props.to }
+  if (props.href) return { href: props.href }
+  return {}
+})
+
 const variantClasses = {
   primary: 'bg-accent text-accent-ink hover:bg-accent-hover hover:shadow-lg hover:shadow-accent/25',
   secondary: 'border border-border text-ink hover:border-muted/60 hover:bg-elevated',
@@ -56,8 +65,7 @@ const motionClasses =
 <template>
   <component
     :is="tag"
-    :to="to"
-    :href="href"
+    v-bind="linkProps"
     :type="tag === 'button' ? type : undefined"
     :disabled="tag === 'button' ? disabled : undefined"
     class="inline-flex cursor-pointer items-center justify-center rounded-full text-center font-semibold transition-all duration-150 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-60 disabled:shadow-none"

@@ -1,18 +1,21 @@
 /**
- * Fetches the signed-in user's lists. Kept separate from `ListsView.vue` so the
+ * Fetches the visitor's lists (their account's, or this device's when anonymous). Kept separate from `ListsView.vue` so the
  * fetch/state logic is unit-testable on its own and reusable once other actions
  * (create/edit/delete) need to refresh the same data.
  */
 import { ref } from 'vue'
 
-import { apiFetch } from '@/api/client'
 import type { ListSummary } from './types'
+import { useListAction } from './useListAction'
 
 export type ListsStatus = 'idle' | 'loading' | 'success' | 'error'
 
 export function useLists() {
   const status = ref<ListsStatus>('idle')
   const lists = ref<ListSummary[]>([])
+  // `error` is only worth showing for a `storage` failure (the browser won't let
+  // us read this device's lists); anything else gets the page's generic copy.
+  const { error, errorKind, run } = useListAction({ fallback: 'Could not load your lists.' })
 
   // Guards against a slower, earlier request (e.g. a stale search query)
   // resolving after a faster, later one and clobbering fresher results.
@@ -21,14 +24,12 @@ export function useLists() {
   async function load(q?: string): Promise<void> {
     const thisRequest = ++requestId
     status.value = 'loading'
-    try {
-      const path = q ? `/lists?q=${encodeURIComponent(q)}` : '/lists'
-      const result = await apiFetch<ListSummary[]>(path)
-      if (thisRequest !== requestId) return
+    const result = await run((repo) => repo.getLists(q))
+    if (thisRequest !== requestId) return
+    if (result) {
       lists.value = result
       status.value = 'success'
-    } catch {
-      if (thisRequest !== requestId) return
+    } else {
       status.value = 'error'
     }
   }
@@ -46,5 +47,5 @@ export function useLists() {
     lists.value = lists.value.filter((list) => list.id !== id)
   }
 
-  return { status, lists, load, updateList, removeList }
+  return { status, lists, error, errorKind, load, updateList, removeList }
 }

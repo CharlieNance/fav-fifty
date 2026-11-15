@@ -77,17 +77,16 @@ describe('AppHeader', () => {
     expect(wrapper.find('span[aria-hidden="true"]').text()).toBe('S')
   })
 
-  it('shows a "My lists" link only when logged in', () => {
-    const loggedOut = mountHeader(testRouter())
-    expect(loggedOut.text()).not.toContain('My lists')
+  it('shows a "My lists" link whether or not you are logged in', () => {
+    const myListsLink = (wrapper: ReturnType<typeof mountHeader>) =>
+      wrapper.findAllComponents({ name: 'RouterLink' }).find((c) => c.text() === 'My lists')
+
+    // Anonymous visitors have lists too: the ones saved on this device.
+    expect(myListsLink(mountHeader(testRouter()))?.props('to')).toBe('/lists')
 
     const auth = useAuthStore()
     auth.user = { id: 'u1', display_name: 'Shaggy', avatar_url: null }
-    const loggedIn = mountHeader(testRouter())
-    const link = loggedIn
-      .findAllComponents({ name: 'RouterLink' })
-      .find((c) => c.text() === 'My lists')
-    expect(link?.props('to')).toBe('/lists')
+    expect(myListsLink(mountHeader(testRouter()))?.props('to')).toBe('/lists')
   })
 
   it('"Log out" sends you home and announces it', async () => {
@@ -109,7 +108,7 @@ describe('AppHeader', () => {
     expect(useToastStore().toasts).toHaveLength(1)
   })
 
-  it('"Start a list" routes an anonymous user to login, preserving intent', async () => {
+  it('"Start a list" opens the create modal for an anonymous user, without sending them to login', async () => {
     const router = testRouter()
     const wrapper = mountHeader(router)
     await router.isReady()
@@ -119,8 +118,8 @@ describe('AppHeader', () => {
     await startButton!.trigger('click')
     await flushPromises()
 
-    expect(router.currentRoute.value.name).toBe('login')
-    expect(router.currentRoute.value.query.redirect).toBe('/lists?openCreate=1')
+    expect(useListModalsStore().isCreateOpen).toBe(true)
+    expect(router.currentRoute.value.name).not.toBe('login')
   })
 
   it('"Start a list" opens the create modal for a logged-in user, without navigating', async () => {

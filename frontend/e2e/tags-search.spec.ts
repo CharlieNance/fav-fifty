@@ -1,7 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 
-// One end-to-end journey covering step 6 of docs/TAGS_SEARCH_PLAN.md's build
-// order: add a tag on the details page, see it as a chip on the index, then
+// One end-to-end journey for tags and search (docs/ARCHITECTURE.md): add a tag on the details page, see it as a chip on the index, then
 // find the list by searching for that tag. Runs against the REAL backend, the
 // same spirit as list-items.spec.ts — everything below it is exercised by
 // Vitest specs already; this is the one pass confirming the pieces click
@@ -26,7 +25,7 @@ async function search(page: Page, query: string): Promise<void> {
 
 test('add a tag, see it on the index, and find the list by searching', async ({ page }) => {
   // — Sign in via the dev stub and create a fresh list —
-  await page.goto('/lists')
+  await page.goto('/login')
   await page.getByRole('button', { name: /dev login/i }).click()
   await expect(page.getByRole('heading', { name: 'My lists' })).toBeVisible()
 

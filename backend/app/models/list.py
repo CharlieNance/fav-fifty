@@ -10,9 +10,19 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, Text, func, select
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+    select,
+)
 from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
+from app.core.limits import MAX_IMPORT_KEY_LENGTH, MAX_TITLE_LENGTH
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 from app.models.list_item import ListItem
 from app.models.tag import list_tags
@@ -24,12 +34,17 @@ if TYPE_CHECKING:
 
 class List(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "lists"
-    __table_args__ = (CheckConstraint("status in ('draft', 'published')", name="ck_lists_status"),)
+    __table_args__ = (
+        CheckConstraint("status in ('draft', 'published')", name="ck_lists_status"),
+        # One list per uploaded local list, per account: a retried import finds the
+        # lists the first attempt made instead of creating them again.
+        UniqueConstraint("user_id", "import_key", name="uq_lists_user_import_key"),
+    )
 
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
-    title: Mapped[str] = mapped_column(String(200))
+    title: Mapped[str] = mapped_column(String(MAX_TITLE_LENGTH))
     description: Mapped[str | None] = mapped_column(Text, default=None)
     # 'draft' until the user publishes the list; then 'published'.
     status: Mapped[str] = mapped_column(String(20), server_default="draft")
@@ -38,6 +53,10 @@ class List(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     deleted_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), default=None, index=True
     )
+    # ``"<device_id>:<local_id>"`` for a list uploaded by ``POST /lists/import``, so a
+    # retry is idempotent; NULL for a list made on the server. NULLs never collide
+    # in the unique constraint above.
+    import_key: Mapped[str | None] = mapped_column(String(MAX_IMPORT_KEY_LENGTH), default=None)
 
     owner: Mapped[User] = relationship(back_populates="lists")
     items: Mapped[list[ListItem]] = relationship(

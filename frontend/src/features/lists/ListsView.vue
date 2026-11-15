@@ -1,14 +1,16 @@
 <script setup lang="ts">
-// Interaction 1 + 2 + 3 + 4 (docs/LISTS_CRUD_PLAN.md): the index of the
-// signed-in user's own lists, plus the entry points for creating, renaming, and
+// The lists page (docs/ARCHITECTURE.md §Frontend patterns): the index of the
+// visitor's own lists (their account's, or this device's when anonymous — see
+// useListRepository), plus the entry points for creating, renaming, and
 // deleting one. Create is a modal (CreateListModal, hosted globally in App.vue)
 // opened via the shared useListModalsStore; rename (EditListModal) and delete
 // (ConfirmDialog) are both mounted right here per-row, keyed off the same
 // store's `editingListId`/`deletingListId` — none of the three ever navigates
 // away from this page.
-import { computed, onMounted, onUnmounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import {
+  ArrowDownTrayIcon,
+  ArrowUpTrayIcon,
   MagnifyingGlassIcon,
   PencilSquareIcon,
   TrashIcon,
@@ -16,8 +18,10 @@ import {
 } from '@heroicons/vue/24/outline'
 
 import BaseButton from '@/components/BaseButton.vue'
+import { useAuthStore } from '@/stores/auth'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import IconButton from '@/components/IconButton.vue'
+import BackupReminder from './BackupReminder.vue'
 import EditListModal from './EditListModal.vue'
 import ItemCountBadge from './ItemCountBadge.vue'
 import TagChip from './TagChip.vue'
@@ -26,8 +30,18 @@ import { useDeleteList } from './useDeleteList'
 import { useLists } from './useLists'
 import { useListModalsStore } from './useListModals'
 import { useListSearch } from './useListSearch'
+import { useListsRefresh } from './useListsRefresh'
+import { useListTransfer } from './useListTransfer'
 
-const { status, lists, load, updateList, removeList } = useLists()
+const {
+  status,
+  lists,
+  error: loadError,
+  errorKind: loadErrorKind,
+  load,
+  updateList,
+  removeList,
+} = useLists()
 const {
   pending: deletePending,
   error: deleteError,
@@ -35,8 +49,7 @@ const {
   reset: resetDeleteError,
 } = useDeleteList()
 const modals = useListModalsStore()
-const route = useRoute()
-const router = useRouter()
+const auth = useAuthStore()
 // Destructured to top-level bindings (not held as `search.query`) so Vue's
 // template compiler auto-unwraps the ref — nested member access like
 // `search.query` is not unwrapped automatically.
@@ -49,16 +62,29 @@ const isSearching = computed(() => searchQuery.value.trim().length > 0)
 
 onUnmounted(disposeSearch)
 
-onMounted(() => {
-  void load()
+/** Load (or reload) the lists, keeping whatever search is in the box. */
+function reload(): void {
+  void load(searchQuery.value.trim() || undefined)
+}
 
-  // Resuming a "Start a list" click that sent an anonymous visitor through
-  // login (see useStartList) — open the modal, then drop the flag from the URL.
-  if (route.query.openCreate) {
-    modals.openCreate()
-    void router.replace({ path: route.path, query: { ...route.query, openCreate: undefined } })
-  }
-})
+onMounted(reload)
+// Sign-in/out switches storage, and another tab can change this device's lists.
+useListsRefresh(reload)
+
+// Export/import a file (docs/ARCHITECTURE.md §Export and import a file): an
+// anonymous visitor's only backup, and a way to move lists between browsers or
+// send them to a friend. Both work for everyone: signed in, an import goes to the
+// account in one all-or-nothing request (see useListTransfer).
+const { exporting, importing, exportLists, importFile } = useListTransfer()
+const importInput = ref<HTMLInputElement | null>(null)
+
+async function handleImportPicked(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  // Cleared so picking the same file again (after fixing it) fires `change` again.
+  input.value = ''
+  if (file && (await importFile(file))) reload()
+}
 
 function handleRenamed(updated: ListSummary): void {
   updateList(updated)
@@ -90,6 +116,50 @@ async function confirmDelete(list: ListSummary): Promise<void> {
       <BaseButton size="sm" @click="modals.openCreate()">New list</BaseButton>
     </div>
 
+    <!-- Anonymous lists live only in this browser (Safari can even clear them
+         after a week without a visit), so say so plainly, and offer the way to
+         keep them: signing in, after which the claim dialog brings them along.
+         Plain /login or /signup (the same Google flow), which lands on /lists,
+         where that dialog opens. -->
+    <div class="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+      <p v-if="!auth.isAuthenticated" class="text-sm text-muted">
+        Saved on this device only. Clearing your browser data deletes them.
+        <RouterLink to="/login" class="font-medium text-ink underline hover:text-accent"
+          >Sign in</RouterLink
+        >
+        or
+        <RouterLink to="/signup" class="font-medium text-ink underline hover:text-accent"
+          >create a FREE account</RouterLink
+        >
+        to keep them safe.
+      </p>
+      <div class="ml-auto flex gap-2">
+        <BaseButton variant="secondary" size="sm" :disabled="exporting" @click="exportLists()">
+          <ArrowDownTrayIcon class="mr-1.5 size-4" aria-hidden="true" />
+          {{ exporting ? 'Exporting…' : 'Export' }}
+        </BaseButton>
+        <BaseButton
+          variant="secondary"
+          size="sm"
+          :disabled="importing"
+          @click="importInput?.click()"
+        >
+          <ArrowUpTrayIcon class="mr-1.5 size-4" aria-hidden="true" />
+          {{ importing ? 'Importing…' : 'Import' }}
+        </BaseButton>
+        <input
+          ref="importInput"
+          type="file"
+          accept=".json,application/json"
+          class="hidden"
+          data-testid="import-file"
+          @change="handleImportPicked"
+        />
+      </div>
+    </div>
+
+    <BackupReminder />
+
     <div class="relative mt-6">
       <label for="list-search" class="sr-only">Search your lists by title or tag</label>
       <MagnifyingGlassIcon
@@ -115,6 +185,10 @@ async function confirmDelete(list: ListSummary): Promise<void> {
     </div>
 
     <p v-if="status === 'loading'" class="mt-6 text-muted">Loading your lists…</p>
+
+    <p v-else-if="status === 'error' && loadErrorKind === 'storage'" class="mt-6 text-muted">
+      {{ loadError }}
+    </p>
 
     <p v-else-if="status === 'error'" class="mt-6 text-muted">
       Something went wrong loading your lists. Try refreshing the page.

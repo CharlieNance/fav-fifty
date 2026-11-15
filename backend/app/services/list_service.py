@@ -16,7 +16,7 @@ from app.models.tag import Tag
 # Escapes LIKE metacharacters (and the escape character itself) in user-supplied
 # search text, paired with `escape="\\"` on every `ilike()` call below — without
 # this, a literal `%`/`_` in `q` is interpreted as a SQL wildcard instead of the
-# literal character a user typed (see docs/TAGS_SEARCH_PLAN.md §Cross-cutting).
+# literal character a user typed (see docs/ARCHITECTURE.md §Tags and search).
 _LIKE_ESCAPE_CHAR = "\\"
 
 
@@ -34,7 +34,7 @@ def list_for_user(db: Session, user_id: uuid.UUID, q: str | None = None) -> list
     ``q``, if given, filters to lists whose title or any tag name contains it
     (case-insensitive substring). Whitespace-only or omitted ``q`` means "no filter" —
     same result as calling this without the argument at all (see
-    docs/TAGS_SEARCH_PLAN.md §Search semantics). Matching a tag uses an ``EXISTS``
+    docs/ARCHITECTURE.md §Tags and search). Matching a tag uses an ``EXISTS``
     subquery (``List.tags.any(...)``) rather than a join, so a list with multiple
     matching tags is still returned once. Tags are eager-loaded (``selectinload``)
     since every result renders its ``tags`` in ``ListRead`` — otherwise each row
@@ -93,9 +93,9 @@ def rename_list(db: Session, row: List, title: str) -> List:
 def soft_delete_list(db: Session, row: List) -> None:
     """Soft-delete an already-resolved, owned list by stamping ``deleted_at``.
 
-    Never issues a real ``DELETE`` — see "Cross-cutting: soft delete" in
-    docs/LISTS_CRUD_PLAN.md. Callers resolve ``row`` via ``get_owned_list`` first,
-    so ownership/soft-delete filtering has already happened once here.
+    Never issues a real ``DELETE`` — see docs/ARCHITECTURE.md §Lists. Callers resolve
+    ``row`` via ``get_owned_list`` first, so ownership/soft-delete filtering has
+    already happened once here.
     """
     row.deleted_at = datetime.now(UTC)
     db.commit()

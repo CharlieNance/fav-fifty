@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * One ranked row on the list detail page (docs/ITEMS_CRUD_PLAN.md): big rank
+ * One ranked row on the list detail page (docs/ARCHITECTURE.md §Items): big rank
  * numeral, optional image thumbnail, text + optional note, and the row's
  * actions (move up/down, edit, delete, drag handle). Purely presentational —
  * every action is an emit; the page owns all state and API calls, keeping this

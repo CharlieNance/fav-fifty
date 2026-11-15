@@ -1,6 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 
+import { useClientConfigStore } from '@/stores/clientConfig'
 import ItemCountBadge from './ItemCountBadge.vue'
 import { itemCountTier } from './itemCountTier'
 
@@ -14,11 +16,15 @@ describe('itemCountTier', () => {
     [49, 'high'],
     [50, 'full'],
   ] as const)('buckets %i items as %s', (count, tier) => {
-    expect(itemCountTier(count)).toBe(tier)
+    expect(itemCountTier(count, 50)).toBe(tier)
   })
 })
 
 describe('ItemCountBadge', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
   it('shows the count in a disc with a spelled-out accessible name', () => {
     const wrapper = mount(ItemCountBadge, { props: { count: 12 } })
 
@@ -27,6 +33,14 @@ describe('ItemCountBadge', () => {
     expect(badge.attributes('aria-label')).toBe('12 of 50 items')
     expect(badge.find('.bg-warning').exists()).toBe(true)
     expect(wrapper.find('svg').exists()).toBe(false)
+  })
+
+  it('follows the cap served by the client config', () => {
+    useClientConfigStore().limits.max_items_per_list = 40
+    const wrapper = mount(ItemCountBadge, { props: { count: 40 } })
+
+    expect(wrapper.get('[role="img"]').attributes('aria-label')).toBe('40 of 40 items')
+    expect(wrapper.find('svg polygon').exists()).toBe(true)
   })
 
   it('becomes a star once the list is full', () => {

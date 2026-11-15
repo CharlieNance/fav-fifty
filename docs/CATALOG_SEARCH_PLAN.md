@@ -5,7 +5,7 @@ typing "In Rai…" in a list of albums and pick *In Rainbows (Radiohead, 2007)* 
 cover art filled in. The suggestions come from free or cheap external catalogs
 (movies, TV, music, places, …), called **from the Python backend, never from the
 client**. Part of the 2026-10 scope expansion ([NEXT_STEPS.md](NEXT_STEPS.md)).
-Nothing is built yet. Decided in [QUESTIONS.md](QUESTIONS.md) (2026-10-13):
+Nothing is built yet. Decided in [DECISIONS.md](DECISIONS.md) (2026-10-13):
 
 - **Q13:** a fixed `lists.kind` enum.
 - **Q14:** set up every provider that's free or nearly free, keyed or keyless, and
@@ -37,7 +37,7 @@ Nothing is built yet. Decided in [QUESTIONS.md](QUESTIONS.md) (2026-10-13):
   came from** (`source` + `external_id`), so later features (dedup across spellings,
   "12 people ranked this album", the margin showcase) have a stable key.
 - Works for **anonymous** visitors too (see
-  [ANONYMOUS_AND_LOCAL_LISTS_PLAN.md](ANONYMOUS_AND_LOCAL_LISTS_PLAN.md)), which is
+  [ARCHITECTURE.md §Anonymous lists](ARCHITECTURE.md#anonymous-lists-on-device-storage)), which is
   why rate limiting is part of this slice and not left for later.
 
 ### Out of scope (for now)

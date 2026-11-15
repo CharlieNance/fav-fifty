@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * Generic confirm-before-destructive-action overlay (Interaction 4,
- * docs/LISTS_CRUD_PLAN.md) — first use of this pattern in the app, kept free of
+ * Generic confirm-before-destructive-action overlay (docs/ARCHITECTURE.md
+ * §Frontend patterns) — first use of this pattern in the app, kept free of
  * any list-specific knowledge (title/message/labels are all props) so it's
  * reusable later for deleting items/comments. It never calls an API itself:
  * `confirm` only fires the event, and the caller reports back `pending`/`error`

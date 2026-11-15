@@ -14,6 +14,7 @@ vi.mock('@/api/client', async (importOriginal) => {
 
 import { apiFetch } from '@/api/client'
 import CreateListModal from './CreateListModal.vue'
+import { pinApiRepository } from './repositoryTestUtils'
 
 const apiFetchMock = vi.mocked(apiFetch)
 
@@ -45,6 +46,8 @@ const CREATED: ListSummary = {
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
 }
+
+pinApiRepository()
 
 describe('CreateListModal', () => {
   beforeEach(() => {

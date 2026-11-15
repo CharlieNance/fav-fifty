@@ -1,7 +1,7 @@
 # Deployment Topology — One Lightsail Box + Lambda for Stateless Routes
 
 Planning doc for how Fav Fifty runs in AWS. **Decided 2026-10-13**
-([QUESTIONS.md](QUESTIONS.md) Q16, Q17, Q19, Q20). It replaces the earlier
+([DECISIONS.md](DECISIONS.md) Q16, Q17, Q19, Q20). It replaces the earlier
 "Lightsail Containers + Aurora Serverless v2" plan. Nothing is deployed yet;
 `infra/` doesn't exist. Related: [COST_GUARDRAILS_PLAN.md](COST_GUARDRAILS_PLAN.md),
 [MOBILE_READINESS.md](MOBILE_READINESS.md) §4,

@@ -1,12 +1,12 @@
 # Abuse Protection & Hardening — Implementation Plan
 
 Planning doc. Opening the site to **anonymous visitors**
-([ANONYMOUS_AND_LOCAL_LISTS_PLAN.md](ANONYMOUS_AND_LOCAL_LISTS_PLAN.md)) means
+([ARCHITECTURE.md §Anonymous lists](ARCHITECTURE.md#anonymous-lists-on-device-storage)) means
 strangers can reach the backend without signing in. Even if most traffic comes from
 the Discord community, the owner doesn't know everyone, and a public link travels.
 "Rate limiting and anti-abuse hardening" therefore moves from the backlog to
 **pre-launch** (owner, 2026-10-13). Nothing is built yet. Decided in
-[QUESTIONS.md](QUESTIONS.md): **Q16** (catalog and showcase limits are enforced by AWS,
+[DECISIONS.md](DECISIONS.md): **Q16** (catalog and showcase limits are enforced by AWS,
 not app code) and **Q25** (quota defaults, changeable at runtime). Related: [COST_GUARDRAILS_PLAN.md](COST_GUARDRAILS_PLAN.md)
 (the last line of defence for cost), [ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md)
 (the lock/block UI), and [CONSIDERATIONS.md](CONSIDERATIONS.md) §Security.
@@ -93,15 +93,22 @@ lists per request.
   `tag_service`. Moved there in Track 0 (2026-10-14); the other quotas join it.
 - Enforced in the service layer like the item cap, with friendly 409/422 messages.
   The same values go to clients via `GET /api/v1/config/client`, so the anonymous
-  mode's local validation stays in step (ANONYMOUS_AND_LOCAL_LISTS_PLAN.md §Key
-  design).
+  mode's local validation stays in step ([ARCHITECTURE.md](ARCHITECTURE.md)
+  §Layers).
 - Combined with the 50-item cap, they bound worst-case storage per account to a few
   MB.
 - The **50-item cap stays fixed in code.** It's the product's identity, not a tunable.
+- **Import counts against the lists-per-user cap.** `POST /lists/import` must check
+  existing + incoming against `max_lists_per_user`, all or nothing like the rest of the
+  import, or one import can take an account past it. Not checked today because the cap
+  doesn't exist yet.
 
 ### Request hygiene
 
-- **Body-size limit middleware:** default 64 KB, import 1 MB. Neither Uvicorn nor
+- **Body-size limit middleware:** default 64 KB, import 5 MiB (the
+  `limits.max_import_bytes` runtime setting, which the import route already checks
+  once the body is read, and which the frontend's file check uses too). 100 full lists
+  is about 2 MB, so 1 MB would undercut `max_lists_per_import`. Neither Uvicorn nor
   FastAPI caps bodies by default. Reject early with `413`.
 - **Database `statement_timeout`** (e.g. 5 s) on app connections, so a pathological
   query (e.g. `ILIKE` search) can't pin the box's CPU.

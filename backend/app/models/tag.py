@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import Column, ForeignKey, String, Table
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.limits import MAX_TAG_LENGTH
 from app.db.base import Base, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
@@ -29,6 +30,6 @@ class Tag(Base, UUIDPrimaryKeyMixin):
     __tablename__ = "tags"
 
     # Stored normalized (lower-cased, trimmed) by the service layer.
-    name: Mapped[str] = mapped_column(String(50), unique=True, index=True)
+    name: Mapped[str] = mapped_column(String(MAX_TAG_LENGTH), unique=True, index=True)
 
     lists: Mapped[list[List]] = relationship(secondary=list_tags, back_populates="tags")

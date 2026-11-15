@@ -3,7 +3,7 @@
 Planning doc. The owner plans **Android and iOS apps** eventually, talking to the same
 Python backend. Nothing here is urgent, but several items are **cheap now and
 expensive later** (API paths, auth shape), so they're called out before launch.
-Status from [QUESTIONS.md](QUESTIONS.md):
+Status from [DECISIONS.md](DECISIONS.md):
 
 - **Q18:** the app technology is **deferred** (mobile comes later). Capacitor is the
   lead candidate; the owner will look into it, and would rather not rewrite the
@@ -131,8 +131,8 @@ months. So:
 - **Public endpoints and rate limiting:** catalog lookup and the showcase are
   public, and mobile multiplies callers. Covered in
   [CATALOG_SEARCH_PLAN.md](CATALOG_SEARCH_PLAN.md) §Abuse.
-- **Offline lists:** the list repository interface from
-  ANONYMOUS_AND_LOCAL_LISTS_PLAN.md gets a mobile implementation. Use **Capacitor
+- **Offline lists:** the list repository interface
+  ([ARCHITECTURE.md](ARCHITECTURE.md) §Layers) gets a mobile implementation. Use **Capacitor
   Preferences/SQLite, not WebView `localStorage`**, which iOS can evict. The same
   versioned JSON document is used for claim/import.
 - **Push notifications (later, Phase 4 "notifications"):** APNs + FCM, via Amazon

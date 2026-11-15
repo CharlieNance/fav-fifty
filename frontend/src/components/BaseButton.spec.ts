@@ -31,6 +31,8 @@ describe('BaseButton', () => {
       global: { plugins: [testRouter()] },
     })
     expect(wrapper.element.tagName).toBe('A')
+    // A real href, so it's keyboard-focusable and can open in a new tab.
+    expect(wrapper.attributes('href')).toBe('/')
   })
 
   it('applies the variant styling', () => {

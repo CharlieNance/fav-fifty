@@ -10,10 +10,13 @@ vi.mock('@/api/client', async (importOriginal) => {
 import { apiFetch } from '@/api/client'
 import { makeItem } from './itemTestUtils'
 import { useCreateItem } from './useCreateItem'
+import { pinApiRepository } from './repositoryTestUtils'
 
 const apiFetchMock = vi.mocked(apiFetch)
 
 const DRAFT = { text: 'New favorite', note: null, image_url: null }
+
+pinApiRepository()
 
 describe('useCreateItem', () => {
   beforeEach(() => {

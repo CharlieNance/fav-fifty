@@ -2,7 +2,7 @@
 #
 # mock_probe.sh — comb through the Claude Design homepage mock without opening it.
 #
-# `docs/Fav Fifty Homepage.html` is a single ~400 KB file; what we actually care
+# `docs/Fav Fifty Example.html` is a single ~400 KB file; what we actually care
 # about when referencing it is small: the colors, the (few) interactions, and the
 # layout choices. This script pulls each of those out so nobody has to scroll the
 # raw file. Read-only; safe to run anytime.

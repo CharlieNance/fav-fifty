@@ -8,8 +8,11 @@ vi.mock('@/api/client', async (importOriginal) => {
 import { apiFetch } from '@/api/client'
 import { makeItems } from './itemTestUtils'
 import { useReorderItem } from './useReorderItem'
+import { pinApiRepository } from './repositoryTestUtils'
 
 const apiFetchMock = vi.mocked(apiFetch)
+
+pinApiRepository()
 
 describe('useReorderItem', () => {
   beforeEach(() => {
