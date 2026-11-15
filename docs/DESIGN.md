@@ -85,6 +85,11 @@ design problem than a graphical one. Whitespace, type, and one good accent color
     `main.css` and checks both themes: text 4.5:1 on every surface, and form-field
     edges (`control` token) and the focus ring 3:1. A palette change that fails
     breaks the build.
+  - **Pages and dialogs are scanned.** `frontend/e2e/accessibility.spec.ts` runs
+    axe-core (WCAG 2.1 A/AA rules) on every page and dialog in the light theme, the
+    dark theme and at phone size, in CI too. A new page or dialog gets a scan there.
+    axe finds only part of what matters; keyboard flow and screen-reader wording
+    still need a manual check.
   - **Every dialog uses `BaseDialog`.** It moves focus in, traps Tab, closes on
     Escape or a backdrop click, and returns focus to the opener. Don't hand-roll a
     `role="dialog"` overlay.

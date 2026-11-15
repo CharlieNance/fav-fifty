@@ -285,5 +285,7 @@ Rules in `localListTransfer.ts`, I/O in `useListTransfer.ts`. Both work signed i
   glide → release; `dragTo()` is too abrupt. Specs import `test`/`expect` from
   `e2e/fixtures.ts`, not `@playwright/test`. Every spec runs three times: desktop
   light (`chromium`), desktop dark (`chromium-dark`) and phone-sized (`mobile`,
-  Pixel 7), all Chromium. CI runs them too (`e2e` job, retries
+  Pixel 7), all Chromium. `accessibility.spec.ts` runs axe on every page and dialog;
+  use `expectAccessible(page, '<screen>')` from `fixtures.ts` on new screens. CI runs
+  them too (`e2e` job, retries
   and an uploaded report + traces on failure).

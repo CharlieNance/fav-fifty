@@ -66,8 +66,11 @@ export default defineConfig({
         // default (5173) every write from the e2e frontend would be a 403.
         FRONTEND_URL: `http://localhost:${FRONTEND_PORT}`,
         CORS_ALLOWED_ORIGINS: `http://localhost:${FRONTEND_PORT}`,
-        // Rate limits and caps run at their real defaults: they're per user,
-        // and every test is a fresh user.
+        // Per-user rate limits and caps run at their real defaults, since every
+        // test is a fresh user. The per-IP ones can't: every e2e browser is
+        // 127.0.0.1, and each page load fetches /config/client, so the whole
+        // suite (×3 projects) shares one bucket and blew the 60/min default.
+        RUNTIME_RATE_LIMITS__CONFIG_PER_MINUTE: '10000',
       },
     },
   ],

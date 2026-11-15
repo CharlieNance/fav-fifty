@@ -4,7 +4,7 @@ The living plan for building Fav Fifty. Each step is meant to be small and shipp
 Decisions live in [DECISIONS.md](DECISIONS.md); how the built parts work is in
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
-Last updated: 2026-11-14
+Last updated: 2026-11-15
 
 ---
 
@@ -23,7 +23,8 @@ Last updated: 2026-11-14
    protections when it ships.
 5. **Launch** = steps 1–3 done, plus at least the admin lock/unlock and Settings pages,
    a real contact email in the [privacy policy](legal/PRIVACY_POLICY.md) and
-   [terms](legal/TERMS_OF_SERVICE.md), and both hosted at public URLs.
+   [terms](legal/TERMS_OF_SERVICE.md), both hosted at public URLs, and Apple device
+   testing (WebKit e2e + a real-iPhone pass, under Pre-launch hardening below).
 
 Small owner to-do (AWS console): push notifications beyond email for the budgets (AWS
 Console app, Discord webhook). It can wait for the breaker's SNS topic at deploy. See
@@ -92,6 +93,12 @@ absorb a surprise bill, so these **block launch**. All decided (Q16, Q21–Q25 i
   - request/429 counters;
   - a CloudWatch health dashboard and a daily cost snapshot;
   - Cloudflare Web Analytics and the `/events` stream.
+- [ ] **Apple device testing** ([MOBILE_READINESS.md](MOBILE_READINESS.md) §6). Every
+      iPhone/iPad browser is WebKit, and e2e runs only Chromium today:
+  - Playwright WebKit projects (`iPhone 15`, `iPad Pro 11`), in CI too;
+  - a manual pass on a real iPhone (the §6 checklist: on-device lists surviving
+    Safari's storage cleanup, export/import/claim, touch drag, dialogs with the
+    keyboard open, Google sign-in).
 
 **🎯 "Phase one complete" target.** Everything below is incremental.
 

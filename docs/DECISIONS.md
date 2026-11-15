@@ -328,7 +328,8 @@ the fixed dev user, exactly as before.
   rate-limit buckets. The e2e config had to raise `imports_per_hour` and
   `max_lists_per_user` and sweep leftover lists. Now each test gets a fresh user
   (`frontend/e2e/fixtures.ts` adds the key to the "Dev login" button's request) and runs
-  against real default limits.
+  against the real default per-user limits. Per-IP limits (`config_per_minute`) are
+  still raised for e2e, since every test browser is 127.0.0.1.
 - **API impact:** additive within v1 and **development only**. The route still 404s
   outside `APP_ENV=development`, including for a malformed key, and
   `DevIdentityProvider` still hard-fails there. A key gives an ordinary user, never

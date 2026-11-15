@@ -39,17 +39,24 @@ watch(
   <header
     class="flex items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-8 sm:py-4"
   >
-    <!-- Wordmark -->
-    <RouterLink to="/" class="flex items-center gap-2" aria-label="Fav Fifty home">
-      <span class="font-display text-xl font-extrabold tracking-tight sm:text-2xl">
+    <!-- Wordmark + beta pill. The link's accessible name starts with the
+         visible "favfifty" so voice control ("click favfifty") finds it (WCAG
+         2.5.3 Label in Name); the pill sits beside the link, not inside it, so
+         its text isn't part of what the name must contain. -->
+    <div class="flex items-center gap-2">
+      <RouterLink
+        to="/"
+        class="font-display text-xl font-extrabold tracking-tight sm:text-2xl"
+        aria-label="favfifty home"
+      >
         <span class="text-ink">fav</span><span class="text-accent">fifty</span>
-      </span>
+      </RouterLink>
       <span
         class="hidden rounded-full border border-border px-2 py-0.5 text-xs text-muted sm:inline-block"
       >
         beta, obviously
       </span>
-    </RouterLink>
+    </div>
 
     <!-- Auth-aware controls. `aria-current="page"` (set by RouterLink on the
          exact route) is what screen readers announce as "current page"; the

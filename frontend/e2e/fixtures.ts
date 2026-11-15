@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 
-import { test as base } from '@playwright/test'
+import AxeBuilder from '@axe-core/playwright'
+import { test as base, expect, type Page } from '@playwright/test'
 
 // Every e2e test signs in as its OWN dev user. Specs import `test`/`expect`
 // from here instead of '@playwright/test'.
@@ -27,6 +28,25 @@ export const test = base.extend<{ devUserKey: string }>({
 })
 
 export { expect } from '@playwright/test'
+
+/** WCAG 2.1 A + AA: the level docs/DESIGN.md §Accessibility holds the app to. */
+const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']
+
+/**
+ * Fail the test if axe finds WCAG A/AA violations on the page as it is now
+ * (open dialogs included). `what` names the screen in the failure message,
+ * which lists each rule, its help link and the offending elements — enough to
+ * fix without re-running.
+ */
+export async function expectAccessible(page: Page, what: string): Promise<void> {
+  const { violations } = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
+  const report = violations.map(
+    (v) =>
+      `${v.id} (${v.impact}): ${v.help}\n  ${v.helpUrl}\n` +
+      v.nodes.map((n) => `  - ${n.target.join(' ')}\n    ${n.failureSummary ?? ''}`).join('\n'),
+  )
+  expect(report, `accessibility violations on ${what}`).toEqual([])
+}
 
 type Routable = Pick<import('@playwright/test').BrowserContext, 'route'>
 
