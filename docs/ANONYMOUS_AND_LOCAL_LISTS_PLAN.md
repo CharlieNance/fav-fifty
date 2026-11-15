@@ -12,7 +12,7 @@ up later. This is **Track 1** in [NEXT_STEPS.md](NEXT_STEPS.md). **Decided in
 
 ## Status and where to start
 
-*Last checked against the code: 2026-11-14 (after PR 4).*
+*Last checked against the code: 2026-11-14 (after PR 5).*
 
 - **PR 1 (repository refactor) is done** on `feat/track1_anon_local_list`. All 11
   call sites go through the layers described in [§Layers](#layers-as-built-in-pr-1).
@@ -49,9 +49,13 @@ up later. This is **Track 1** in [NEXT_STEPS.md](NEXT_STEPS.md). **Decided in
   - Specs that mock `apiFetch` pin the API repository with `pinApiRepository()`
     ([repositoryTestUtils.ts](../frontend/src/features/lists/repositoryTestUtils.ts)).
     New Playwright spec: [anonymous-lists.spec.ts](../frontend/e2e/anonymous-lists.spec.ts).
-- **Next: PR 5 (export/import a file), then PR 6.** PR 5 is the only backup an
-  anonymous user has, so it should follow PR 4 closely (see
-  [§Build order](#build-order-small-shippable-prs)).
+- **PR 5 (export/import a file) is done** on the same branch. Everyone gets Export on
+  the lists page; Import is for anonymous visitors until the server import exists. The rules are in
+  [localListTransfer.ts](../frontend/src/features/lists/localListTransfer.ts), and
+  [useListTransfer.ts](../frontend/src/features/lists/useListTransfer.ts) does the
+  file and storage I/O. See [§Export/import a file](#exportimport-a-file-pr-5).
+- **Next: PR 6 (`POST /api/v1/lists/import`).** It must rename title clashes the same
+  way as `uniqueTitle` in [listRules.ts](../frontend/src/features/lists/listRules.ts).
 - **Not in PR 4, still open:** the reminder banner (2+ lists or 20+ items) and the
   "keep your lists safe" sign-in prompt. Both point at sign-in, which only keeps device
   lists once the claim dialog (PR 7) exists, so they wait for it.
@@ -306,6 +310,46 @@ Decisions inside the format:
   of overwriting with stale data. Last write wins, which is acceptable for one
   person on one device.
 
+## Export/import a file (PR 5)
+
+As built.
+
+- **Export is for everyone.** It reads through the active repository, so a signed-in
+  user exports their account's lists (one request per list, made one at a time) and
+  an anonymous visitor the device's. That covers taking an account's lists to a
+  machine you can't sign in on, or sending them to a friend.
+- **Import is anonymous-only, until PR 6.** Importing into an account needs
+  `POST /lists/import`. Creating lists and items one request at a time could leave
+  half a file imported, which breaks Q12's all-or-nothing rule, and a retry could
+  duplicate lists. **PR 7 should show Import to signed-in users too**, on the same
+  endpoint as the claim dialog.
+- **The file uses the on-device document format** (pretty-printed,
+  `fav-fifty-lists-YYYY-MM-DD.json`), with **fresh ids and a fresh `device_id`**, so
+  an account's server ids never end up in a file that gets shared. An import goes
+  through the same `parseDocument` as storage, migrations included, so old exports
+  keep working. Export with no lists shows a toast instead of saving an empty file.
+- **Import adds to the device's lists; it never replaces them.** Nothing is
+  overwritten, so it needs no confirmation.
+- **Unreadable entries are skipped, and the visitor is told.** `parseDocument`
+  counts the lists and items it drops (no id, no title or text, a repeated id). The
+  import toast says how many and turns into a warning. A file with no readable lists
+  at all is rejected.
+- **One bad list rejects the whole file (Q12's rule),** with a message naming the list,
+  e.g. "'Top Albums' has 51 items; the limit is 50." Every list is checked with the
+  same rules as a normal create (title, tags, item fields, the item cap, duplicate
+  items). That keeps data the server would refuse at claim time off the device.
+  Nothing is written on a failure.
+- **Title clashes are renamed `"Title (2)"`** (Q12), against the device's lists and
+  earlier lists in the same file. `uniqueTitle` shortens the base if the suffix would
+  go over the title limit. PR 6 must do the same.
+- **Imported lists and items get fresh `local_id`s.** Re-importing a backup while the
+  originals are still here then can't collide, and each list keeps a unique
+  `device_id:local_id` key for the claim. Timestamps from the file are kept, and the
+  device keeps its own `device_id`.
+- **Files over 5 MB are refused without being read.** That's about a whole
+  `localStorage` quota, far above any real export.
+- A successful import also calls `navigator.storage.persist()`, as creating a list does.
+
 ## Shared limits (PR 2)
 
 Today the limits live in three places that can drift apart:
@@ -463,9 +507,9 @@ third implementation if the Safari wipe turns out to bite real users.
 | 2 | **Shared limits**: backend constants module, new `ClientLimits` fields, frontend config store with bundled defaults | Both | No | Done |
 | 3 | **`LocalListRepository`** plus the storage format, schema validation and migrations, with unit tests (not wired up yet) | Frontend | No | Done |
 | 4 | **Unlock the routes for anonymous users**, `useStartList` change, repository switching, "Saved on this device" copy | Frontend | Yes | Done |
-| 5 | **Export/import a file** | Frontend | Yes | Not started |
+| 5 | **Export/import a file** | Frontend | Yes | Done |
 | 6 | **`POST /api/v1/lists/import`**, its migration, runtime setting and tests | Backend | No | Not started |
-| 7 | **Claim dialog** wired to the import, plus Playwright e2e | Frontend | Yes | Not started |
+| 7 | **Claim dialog** wired to the import, file Import for signed-in users, plus Playwright e2e | Frontend | Yes | Not started |
 | 8 | Privacy policy and docs updates | Docs | — | Not started |
 
 PRs 2, 3 and 6 don't depend on each other once PR 1 is in, so they can be done in any

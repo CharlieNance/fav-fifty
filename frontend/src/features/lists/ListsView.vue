@@ -7,8 +7,10 @@
 // (ConfirmDialog) are both mounted right here per-row, keyed off the same
 // store's `editingListId`/`deletingListId` — none of the three ever navigates
 // away from this page.
-import { computed, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import {
+  ArrowDownTrayIcon,
+  ArrowUpTrayIcon,
   MagnifyingGlassIcon,
   PencilSquareIcon,
   TrashIcon,
@@ -28,6 +30,7 @@ import { useLists } from './useLists'
 import { useListModalsStore } from './useListModals'
 import { useListSearch } from './useListSearch'
 import { useListsRefresh } from './useListsRefresh'
+import { useListTransfer } from './useListTransfer'
 
 const {
   status,
@@ -67,6 +70,21 @@ onMounted(reload)
 // Sign-in/out switches storage, and another tab can change this device's lists.
 useListsRefresh(reload)
 
+// Export/import a file (docs/ANONYMOUS_AND_LOCAL_LISTS_PLAN.md, PR 5): an
+// anonymous visitor's only backup, and a way to move lists between browsers or
+// send them to a friend. Everyone can export; importing into an account waits for
+// the server's bulk import (PR 6), so Import is anonymous-only for now.
+const { exporting, importing, exportLists, importFile } = useListTransfer()
+const importInput = ref<HTMLInputElement | null>(null)
+
+async function handleImportPicked(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  // Cleared so picking the same file again (after fixing it) fires `change` again.
+  input.value = ''
+  if (file && (await importFile(file))) reload()
+}
+
 function handleRenamed(updated: ListSummary): void {
   updateList(updated)
   modals.closeEdit()
@@ -99,9 +117,36 @@ async function confirmDelete(list: ListSummary): Promise<void> {
 
     <!-- Anonymous lists live only in this browser (Safari can even clear them
          after a week without a visit), so say so plainly. -->
-    <p v-if="!auth.isAuthenticated" class="mt-2 text-sm text-muted">
-      Saved on this device only. Clearing your browser data deletes them.
-    </p>
+    <div class="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+      <p v-if="!auth.isAuthenticated" class="text-sm text-muted">
+        Saved on this device only. Clearing your browser data deletes them.
+      </p>
+      <div class="ml-auto flex gap-2">
+        <BaseButton variant="secondary" size="sm" :disabled="exporting" @click="exportLists()">
+          <ArrowDownTrayIcon class="mr-1.5 size-4" aria-hidden="true" />
+          {{ exporting ? 'Exporting…' : 'Export' }}
+        </BaseButton>
+        <BaseButton
+          v-if="!auth.isAuthenticated"
+          variant="secondary"
+          size="sm"
+          :disabled="importing"
+          @click="importInput?.click()"
+        >
+          <ArrowUpTrayIcon class="mr-1.5 size-4" aria-hidden="true" />
+          {{ importing ? 'Importing…' : 'Import' }}
+        </BaseButton>
+        <input
+          v-if="!auth.isAuthenticated"
+          ref="importInput"
+          type="file"
+          accept=".json,application/json"
+          class="hidden"
+          data-testid="import-file"
+          @change="handleImportPicked"
+        />
+      </div>
+    </div>
 
     <div class="relative mt-6">
       <label for="list-search" class="sr-only">Search your lists by title or tag</label>

@@ -64,3 +64,66 @@ test("signing in shows the account's lists, and signing out brings the device's 
   await expect(page.getByText('Saved on this device only')).toBeVisible()
   await expect(page.getByRole('link', { name: title })).toBeVisible()
 })
+
+test('export lists to a file, then import them into another browser', async ({ page, browser }) => {
+  const title = `Backed up ${Date.now()}`
+  await page.goto('/lists')
+  await page.getByRole('button', { name: 'New list' }).click()
+  await page.getByPlaceholder(/favorite albums/i).fill(title)
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByRole('heading', { name: title })).toBeVisible()
+
+  await page.getByRole('link', { name: 'My lists' }).click()
+  const downloading = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Export' }).click()
+  const download = await downloading
+  expect(download.suggestedFilename()).toMatch(/^fav-fifty-lists-\d{4}-\d{2}-\d{2}\.json$/)
+  const file = await download.path()
+
+  // A fresh context is a different browser as far as storage goes: empty.
+  const other = await browser.newContext()
+  try {
+    const otherPage = await other.newPage()
+    await otherPage.goto('/lists')
+    await expect(otherPage.getByRole('link', { name: title })).toBeHidden()
+
+    await otherPage.getByTestId('import-file').setInputFiles(file)
+    await expect(otherPage.getByText('Imported 1 list.')).toBeVisible()
+    await expect(otherPage.getByRole('link', { name: title })).toBeVisible()
+  } finally {
+    await other.close()
+  }
+})
+
+test("a signed-in user can export their account's lists for a browser that isn't signed in", async ({
+  page,
+  browser,
+}) => {
+  const title = `From my account ${Date.now()}`
+  await page.goto('/')
+  await page.getByRole('link', { name: 'Log in' }).click()
+  await page.getByRole('button', { name: /dev login/i }).click()
+  await expect(page.getByRole('heading', { name: 'My lists' })).toBeVisible()
+  // Importing into an account waits for the server's bulk import (PR 6).
+  await expect(page.getByRole('button', { name: 'Import' })).toBeHidden()
+
+  await page.getByRole('button', { name: 'New list' }).click()
+  await page.getByPlaceholder(/favorite albums/i).fill(title)
+  await page.getByRole('button', { name: 'Save' }).click()
+  await expect(page.getByRole('heading', { name: title })).toBeVisible()
+
+  await page.getByRole('link', { name: 'My lists' }).click()
+  const downloading = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Export' }).click()
+  const file = await (await downloading).path()
+
+  const other = await browser.newContext()
+  try {
+    const otherPage = await other.newPage()
+    await otherPage.goto('/lists')
+    await otherPage.getByTestId('import-file').setInputFiles(file)
+    await expect(otherPage.getByRole('link', { name: title })).toBeVisible()
+  } finally {
+    await other.close()
+  }
+})

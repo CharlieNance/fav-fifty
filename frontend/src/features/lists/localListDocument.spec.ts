@@ -48,7 +48,12 @@ function validDocument(): LocalListsDocument {
 describe('parseDocument', () => {
   it('accepts a valid document unchanged', () => {
     const doc = validDocument()
-    expect(parseDocument(doc, options)).toEqual({ ok: true, repaired: false, document: doc })
+    expect(parseDocument(doc, options)).toEqual({
+      ok: true,
+      repaired: false,
+      skipped: 0,
+      document: doc,
+    })
   })
 
   it.each([null, 'text', 42, [], {}, { schema_version: 0 }, { schema_version: '1' }])(
@@ -80,6 +85,8 @@ describe('parseDocument', () => {
     }
     const result = parseDocument(raw, options)
     expect(result.ok && result.repaired).toBe(true)
+    // 3 items, then 4 lists; the dropped lists' items aren't counted.
+    expect(result.ok && result.skipped).toBe(7)
     expect(result.ok && result.document).toEqual(doc)
   })
 
@@ -106,6 +113,7 @@ describe('parseDocument', () => {
     expect(result).toEqual({
       ok: true,
       repaired: true,
+      skipped: 0,
       document: {
         schema_version: 1,
         device_id: 'new-id',

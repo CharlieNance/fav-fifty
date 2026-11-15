@@ -103,3 +103,26 @@ export function normalizeTags(names: string[], limits: ClientLimits): string[] {
   }
   return deduped
 }
+
+/**
+ * `title`, or `"title (2)"`, `"title (3)"`, … if a list already uses it. `taken`
+ * holds the titles in use, lower-cased (the match ignores case). The base is
+ * shortened if a suffix would push it over the title limit.
+ *
+ * Q12's rename rule for imports (docs/QUESTIONS.md). The server import
+ * (`POST /lists/import`, PR 6) must rename the same way.
+ */
+export function uniqueTitle(
+  title: string,
+  taken: ReadonlySet<string>,
+  limits: ClientLimits,
+): string {
+  if (!taken.has(title.toLowerCase())) return title
+  for (let n = 2; ; n++) {
+    const suffix = ` (${n})`
+    const room = limits.max_title_length - charLength(suffix)
+    const base = Array.from(title).slice(0, room).join('').trimEnd()
+    const candidate = `${base}${suffix}`
+    if (!taken.has(candidate.toLowerCase())) return candidate
+  }
+}

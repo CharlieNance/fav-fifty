@@ -70,6 +70,11 @@ export type ParseResult =
       document: LocalListsDocument
       /** True if anything was dropped, repaired or migrated on the way in. */
       repaired: boolean
+      /**
+       * How many lists and items were dropped because they couldn't be read (no id,
+       * no title or text, or a repeated id). Items inside a dropped list aren't counted.
+       */
+      skipped: number
     }
   | {
       ok: false
@@ -134,6 +139,7 @@ export function parseDocument(raw: unknown, options: ParseOptions): ParseResult 
 
   let doc = raw
   let repaired = false
+  let skipped = 0
   for (let v = version; v < currentVersion; v++) {
     const migrate = migrations[v]
     if (!migrate) return { ok: false, reason: 'unreadable' }
@@ -168,6 +174,7 @@ export function parseDocument(raw: unknown, options: ParseOptions): ParseResult 
       listIds.has(rawList.local_id)
     ) {
       repaired = true
+      skipped++
       continue
     }
     listIds.add(rawList.local_id)
@@ -189,6 +196,7 @@ export function parseDocument(raw: unknown, options: ParseOptions): ParseResult 
         itemIds.has(rawItem.local_id)
       ) {
         repaired = true
+        skipped++
         continue
       }
       itemIds.add(rawItem.local_id)
@@ -231,6 +239,7 @@ export function parseDocument(raw: unknown, options: ParseOptions): ParseResult 
   return {
     ok: true,
     repaired,
+    skipped,
     document: {
       schema_version: CURRENT_SCHEMA_VERSION,
       device_id: deviceId,

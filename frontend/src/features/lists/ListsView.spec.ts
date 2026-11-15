@@ -433,6 +433,53 @@ describe('ListsView for anonymous visitors and storage changes', () => {
     expect(getLists).toHaveBeenCalledTimes(2)
   })
 
+  it('offers Export to everyone, and Import only to an anonymous visitor', async () => {
+    const wrapper = await mountAtLists(testRouter())
+    await flushPromises()
+    const labels = () => wrapper.findAll('button').map((b) => b.text())
+    expect(labels()).toEqual(expect.arrayContaining(['Export', 'Import']))
+
+    // Importing into an account waits for the server's bulk import (PR 6).
+    signIn()
+    await flushPromises()
+    expect(labels()).toContain('Export')
+    expect(labels()).not.toContain('Import')
+    expect(wrapper.find('[data-testid="import-file"]').exists()).toBe(false)
+  })
+
+  it('reloads the lists after importing a file', async () => {
+    window.localStorage.clear()
+    const exported = JSON.stringify({
+      schema_version: 1,
+      device_id: 'other-device',
+      claimed_at: null,
+      lists: [
+        {
+          local_id: 'l-1',
+          title: 'Imported',
+          tags: [],
+          created_at: '2026-10-01T00:00:00Z',
+          updated_at: '2026-10-01T00:00:00Z',
+          items: [],
+        },
+      ],
+    })
+    const wrapper = await mountAtLists(testRouter())
+    await flushPromises()
+    expect(getLists).toHaveBeenCalledTimes(1)
+
+    const input = wrapper.get('[data-testid="import-file"]')
+    Object.defineProperty(input.element, 'files', {
+      value: [new File([exported], 'lists.json', { type: 'application/json' })],
+    })
+    await input.trigger('change')
+    await flushPromises()
+
+    expect(getLists).toHaveBeenCalledTimes(2)
+    expect(window.localStorage.getItem(STORAGE_KEY)).toContain('Imported')
+    window.localStorage.clear()
+  })
+
   it("ignores another tab's device changes while signed in", async () => {
     signIn()
     await mountAtLists(testRouter())

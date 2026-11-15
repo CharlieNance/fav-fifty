@@ -48,7 +48,8 @@ export interface LocalListRepositoryOptions {
   requestPersistence?: () => void
 }
 
-function requestPersistentStorage(): void {
+/** Ask the browser to keep this site's storage. Also used after a file import. */
+export function requestPersistentStorage(): void {
   // Best effort: missing in older browsers, and a refusal changes nothing for us.
   navigator.storage?.persist?.().catch(() => {})
 }

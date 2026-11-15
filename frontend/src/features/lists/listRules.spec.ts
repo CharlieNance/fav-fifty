@@ -6,6 +6,7 @@ import {
   charLength,
   normalizeTagName,
   normalizeTags,
+  uniqueTitle,
   validateItemDraft,
   validateTitle,
 } from './listRules'
@@ -123,5 +124,23 @@ describe('normalizeTags', () => {
     expect(invalidDetail(() => normalizeTags(['a', 'b', 'c'], tight))).toBe(
       'A list can have at most 2 tags.',
     )
+  })
+})
+
+describe('uniqueTitle', () => {
+  it('keeps a title nobody is using', () => {
+    expect(uniqueTitle('Albums', new Set(['songs']), LIMITS)).toBe('Albums')
+  })
+
+  it('numbers a clash from (2), ignoring case', () => {
+    expect(uniqueTitle('Albums', new Set(['albums']), LIMITS)).toBe('Albums (2)')
+    expect(uniqueTitle('ALBUMS', new Set(['albums', 'albums (2)']), LIMITS)).toBe('ALBUMS (3)')
+  })
+
+  it('shortens the base so the numbered title still fits the limit', () => {
+    const tight = { ...LIMITS, max_title_length: 10 }
+    expect(uniqueTitle('Top albums', new Set(['top albums']), tight)).toBe('Top al (2)')
+    // Trailing spaces left by the cut are dropped, and lengths count code points.
+    expect(uniqueTitle('Top 🎵 song', new Set(['top 🎵 song']), tight)).toBe('Top 🎵 (2)')
   })
 })
