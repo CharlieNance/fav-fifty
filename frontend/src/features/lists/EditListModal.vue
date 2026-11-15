@@ -11,6 +11,7 @@
 import { computed, nextTick, ref, onMounted } from 'vue'
 
 import BaseButton from '@/components/BaseButton.vue'
+import BaseDialog from '@/components/BaseDialog.vue'
 import { useClientConfigStore } from '@/stores/clientConfig'
 import type { ListSummary } from './types'
 import { useListAction } from './useListAction'
@@ -53,42 +54,31 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div
-    class="fixed inset-0 z-50 grid place-items-center bg-canvas/50 px-4"
-    @click.self="cancel"
-    @keydown.escape="cancel"
-  >
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="edit-list-heading"
-      class="w-full max-w-sm rounded-2xl border border-border bg-elevated p-6 shadow-xl motion-safe:animate-rise-in"
-    >
-      <h2 id="edit-list-heading" class="font-display text-xl font-bold text-ink">Rename list</h2>
+  <BaseDialog labelledby="edit-list-heading" @close="cancel">
+    <h2 id="edit-list-heading" class="font-display text-xl font-bold text-ink">Rename list</h2>
 
-      <form class="mt-4" @submit.prevent="save">
-        <label for="edit-list-title" class="sr-only">Title</label>
-        <input
-          id="edit-list-title"
-          ref="inputRef"
-          v-model="title"
-          type="text"
-          placeholder="e.g. Favorite albums"
-          :maxlength="config.limits.max_title_length"
-          class="w-full rounded-lg border border-border bg-transparent px-4 py-2 text-ink focus-visible:outline-2 focus-visible:outline-accent"
-        />
+    <form class="mt-4" @submit.prevent="save">
+      <label for="edit-list-title" class="sr-only">Title</label>
+      <input
+        id="edit-list-title"
+        ref="inputRef"
+        v-model="title"
+        type="text"
+        placeholder="e.g. Favorite albums"
+        :maxlength="config.limits.max_title_length"
+        class="w-full rounded-lg border border-control bg-transparent px-4 py-2 text-ink focus-visible:outline-2 focus-visible:outline-accent"
+      />
 
-        <p v-if="error" role="alert" class="mt-2 text-sm text-accent">{{ error }}</p>
+      <p v-if="error" role="alert" class="mt-2 text-sm text-accent">{{ error }}</p>
 
-        <div class="mt-6 flex justify-end gap-3">
-          <BaseButton variant="secondary" size="sm" type="button" @click="cancel">
-            Cancel
-          </BaseButton>
-          <BaseButton size="sm" type="submit" :disabled="!canSave">
-            {{ saving ? 'Saving…' : 'Save' }}
-          </BaseButton>
-        </div>
-      </form>
-    </div>
-  </div>
+      <div class="mt-6 flex justify-end gap-3">
+        <BaseButton variant="secondary" size="sm" type="button" @click="cancel">
+          Cancel
+        </BaseButton>
+        <BaseButton size="sm" type="submit" :disabled="!canSave">
+          {{ saving ? 'Saving…' : 'Save' }}
+        </BaseButton>
+      </div>
+    </form>
+  </BaseDialog>
 </template>

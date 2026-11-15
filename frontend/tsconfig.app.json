@@ -17,5 +17,8 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
+  /* `*.node.spec.ts` tests run in Node, not the DOM (e.g. reading main.css from
+     disk), so they're type-checked by tsconfig.node.json instead. */
+  "exclude": ["src/**/*.node.spec.ts"]
 }

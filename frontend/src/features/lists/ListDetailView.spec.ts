@@ -289,6 +289,9 @@ describe('ListDetailView', () => {
       const rows = wrapper.findAll('li')
       expect(rows[0].text()).toContain('Favorite thing 2')
       expect(rows[1].text()).toContain('Favorite thing 1')
+      expect(wrapper.get('[role="status"][aria-live="polite"]').text()).toBe(
+        'Favorite thing 1 moved to number 2 of 2.',
+      )
     })
 
     it('a drag drop calls the same endpoint with the new 1-based rank', async () => {

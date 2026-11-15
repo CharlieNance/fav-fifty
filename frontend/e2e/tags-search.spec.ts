@@ -55,7 +55,10 @@ test('add a tag, see it on the index, and find the list by searching', async ({ 
   await expect(page.getByText('board games')).toBeVisible()
 
   // — Back on the index, the same tags show as chips on the row —
-  await page.getByRole('link', { name: 'My lists' }).click()
+  await page
+    .getByRole('navigation', { name: 'Main' })
+    .getByRole('link', { name: 'My lists' })
+    .click()
   await expect(page.getByRole('heading', { name: 'My lists' })).toBeVisible()
   const row = page.locator('li').filter({ hasText: title })
   await expect(row.getByText('board games')).toBeVisible()

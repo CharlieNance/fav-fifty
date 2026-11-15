@@ -7,12 +7,14 @@
 // rather than in useListModalsStore: unlike the list modals, these are only
 // ever reachable from this page, so a shared store would be indirection with
 // no second consumer.
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteUpdate, useRoute, useRouter } from 'vue-router'
 import { VueDraggable } from 'vue-draggable-plus'
+import { ArrowLeftIcon } from '@heroicons/vue/20/solid'
 
 import BaseButton from '@/components/BaseButton.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
+import { setPageTitle } from '@/router/pageTitle'
 import { useClientConfigStore } from '@/stores/clientConfig'
 import BackupReminder from './BackupReminder.vue'
 import EditListModal from './EditListModal.vue'
@@ -101,6 +103,14 @@ onBeforeRouteUpdate((to) => {
 // stale bookmark would), and another tab can change or delete this list.
 useListsRefresh(() => void loadAll(listId.value))
 
+// The tab title (and what a screen reader announces) is the list's own name.
+watch(
+  () => list.value?.title,
+  (title) => {
+    if (title) setPageTitle(title)
+  },
+)
+
 function handleRenamed(updated: ListSummary): void {
   updateList(updated)
   modals.closeEdit()
@@ -163,10 +173,15 @@ async function confirmDeleteItem(): Promise<void> {
 
 // ——— Items: reorder (shared by drag and the up/down buttons) ———
 
+// What a screen reader hears after a move. A drag or an arrow click changes the
+// ranks silently otherwise (WCAG 4.1.3 Status Messages).
+const moveAnnouncement = ref('')
+
 async function applyMove(item: ListItem, position: number): Promise<void> {
   const result = await reorderItem(listId.value, item.id, position)
   if (result) {
     setItems(result)
+    moveAnnouncement.value = `${item.text} moved to number ${position} of ${result.length}.`
   } else {
     // The server refused (or the request died): resnap to the order the
     // server still has, so the UI never silently disagrees with it.
@@ -195,17 +210,45 @@ function onSortUpdate(event: { item: HTMLElement; newIndex?: number }): void {
 }
 
 /** Keyboard-friendly move — same endpoint, one rank at a time. */
-function nudge(item: ListItem, direction: -1 | 1): void {
+async function nudge(item: ListItem, direction: -1 | 1): Promise<void> {
   resetReorderError()
   const target = item.position + direction
   if (target < 1 || target > items.value.length || reorderPending.value) return
-  void applyMove(item, target)
+  await applyMove(item, target)
+  await keepFocusOnRow(item.id, direction === -1 ? 'move-up' : 'move-down')
+}
+
+/**
+ * Keep keyboard focus on the moved row, so pressing the same arrow again keeps
+ * moving it. The buttons are disabled while the move is in flight (which drops
+ * focus), and the one just used is disabled for good once the row reaches the
+ * top or bottom, so fall back to its opposite.
+ */
+async function keepFocusOnRow(itemId: string, action: 'move-up' | 'move-down'): Promise<void> {
+  await nextTick()
+  const row = Array.from(document.querySelectorAll<HTMLElement>('[data-id]')).find(
+    (candidate) => candidate.dataset.id === itemId,
+  )
+  const opposite = action === 'move-up' ? 'move-down' : 'move-up'
+  const target =
+    row?.querySelector<HTMLButtonElement>(`[data-action="${action}"]:not(:disabled)`) ??
+    row?.querySelector<HTMLButtonElement>(`[data-action="${opposite}"]:not(:disabled)`)
+  target?.focus()
 }
 </script>
 
 <template>
   <section class="mx-auto max-w-3xl px-6 py-12 sm:my-10 sm:px-10 sm:py-10 sm:page-panel">
-    <p v-if="status === 'loading'" class="text-muted">Loading…</p>
+    <!-- The way back up, always there (even when the list failed to load). -->
+    <RouterLink
+      :to="{ name: 'lists' }"
+      class="-ml-1 mb-4 inline-flex items-center gap-1 rounded px-1 text-sm font-medium text-muted transition-colors hover:text-ink"
+    >
+      <ArrowLeftIcon class="size-4" aria-hidden="true" />
+      <span><span class="sr-only">Back to </span>My lists</span>
+    </RouterLink>
+
+    <p v-if="status === 'loading'" class="text-muted" role="status">Loading…</p>
 
     <p v-else-if="status === 'not-found'" class="text-muted">
       This list doesn't exist, or you don't have access to it.
@@ -221,8 +264,10 @@ function nudge(item: ListItem, direction: -1 | 1): void {
     </p>
 
     <template v-else-if="status === 'success' && list">
-      <div class="flex items-center justify-between gap-4">
-        <h1 class="font-display text-3xl font-extrabold text-ink">{{ list.title }}</h1>
+      <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+        <h1 class="min-w-0 font-display text-3xl font-extrabold break-words text-ink">
+          {{ list.title }}
+        </h1>
         <div class="flex items-center gap-2">
           <BaseButton variant="secondary" size="sm" @click="modals.openManageTags(list.id)">
             Tags
@@ -245,7 +290,7 @@ function nudge(item: ListItem, direction: -1 | 1): void {
 
       <!-- ——— Items ——— -->
 
-      <p v-if="itemsStatus === 'loading'" class="mt-6 text-muted">Loading items…</p>
+      <p v-if="itemsStatus === 'loading'" class="mt-6 text-muted" role="status">Loading items…</p>
 
       <p v-else-if="itemsStatus === 'error'" class="mt-6 text-muted">
         Something went wrong loading the items. Try refreshing the page.
@@ -280,9 +325,14 @@ function nudge(item: ListItem, direction: -1 | 1): void {
                identical in every browser, and drivable by Playwright.
                fallback-on-body keeps that clone OUT of the <ul>, where it would
                confuse both the wrapper's child bookkeeping and :empty/nth CSS. -->
+          <!-- Announced, not shown: see moveAnnouncement. -->
+          <p class="sr-only" role="status" aria-live="polite">{{ moveAnnouncement }}</p>
+
+          <!-- An <ol>: it's a ranking, so the order is the content. -->
           <VueDraggable
             v-model="itemsModel"
-            tag="ul"
+            tag="ol"
+            aria-label="Ranked items"
             handle=".drag-handle"
             :animation="200"
             ghost-class="drag-ghost"

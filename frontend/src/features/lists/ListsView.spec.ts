@@ -334,6 +334,8 @@ describe('ListsView', () => {
 
       expect(wrapper.text()).toContain('Best sandwiches')
       expect(wrapper.text()).not.toContain('Favorite albums')
+      // Announced too: rows changing alone says nothing to a screen reader.
+      expect(wrapper.get('[role="status"][aria-live="polite"]').text()).toBe('1 list matches.')
     })
 
     it('shows a distinct "no matches" empty state, not the "no lists yet" one', async () => {

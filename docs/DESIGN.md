@@ -12,8 +12,8 @@ design problem than a graphical one. Whitespace, type, and one good accent color
 
 ## Decided
 
-- **Theme direction:** **dark-first.** Design for dark now; a light theme is a later
-  additive flip. (Owner call, 2026-07-09.)
+- **Theme direction:** **dark-first.** Design for dark first; light is the same tokens
+  with different values (see Light theme below). (Owner call, 2026-07-09.)
 - **Tokens, not hex.** All color/type/spacing live as semantic tokens in
   `frontend/src/assets/main.css` (`@theme`). Components reference token utilities
   (`bg-canvas`, `text-accent`, …). Re-theming = edit that one block.
@@ -62,11 +62,43 @@ design problem than a graphical one. Whitespace, type, and one good accent color
     drop-in runs 500ms.** It travels from off-screen rather than nudging in place,
     and the longer arc is what makes it read as *falling into place* instead of
     appearing. Feedback on something you just clicked stays at ~200ms.
-- **Light/dark toggle: required before launch (2026-08-08).** Upgraded from "when
-  (if)" — owner wants a toggle live at go-live. Dark stays the design-first theme;
-  the token architecture (one `@theme` block) is what makes the flip additive. Until
-  then: keep the palette restrained, don't scatter new colors that would each need a
-  light-mode counterpart.
+- **Light theme (built 2026-11-15).** Dark stays the design-first theme; light is
+  the same token names with a second set of values:
+  - **Palette:** warm cream surfaces (hue ~70), near-black warm ink, and the coral
+    accent deepened (`oklch(53% 0.18 36)`) with near-white `accent-ink`, so the
+    accent still reads as text. Values live in `:root[data-theme='light']` in
+    `main.css`. Status and gold chips are unchanged: their contrast is internal,
+    as planned.
+  - **Choosing:** it follows the system's `prefers-color-scheme` until the visitor
+    uses the sun/moon toggle in the header; that choice is saved per device
+    (`localStorage`, `favfifty:theme`). Not stored on the account.
+  - **No flash:** `public/theme-init.js` sets `data-theme` on `<html>` before first
+    paint. It's an external file, not inline, because the planned CSP is
+    `script-src 'self'`. `stores/theme.ts` takes over once the app mounts.
+  - **New colors need two values.** Anything added to `@theme` that differs by
+    theme needs a matching line in the light block. Glows, panel and shadow colors
+    are plain custom properties (`--glow-*`, `--panel-*`, `--lift-shadow`) set the
+    same way.
+- **Accessibility target: WCAG 2.1 AA (what Section 508 references) (2026-11-15).**
+  The rules the app follows:
+  - **Contrast is tested.** `src/assets/theme.spec.ts` reads the tokens from
+    `main.css` and checks both themes: text 4.5:1 on every surface, and form-field
+    edges (`control` token) and the focus ring 3:1. A palette change that fails
+    breaks the build.
+  - **Every dialog uses `BaseDialog`.** It moves focus in, traps Tab, closes on
+    Escape or a backdrop click, and returns focus to the opener. Don't hand-roll a
+    `role="dialog"` overlay.
+  - **Focus is always visible.** A global `:focus-visible` ring in `main.css` covers
+    anything without its own.
+  - **Navigation:** a "Skip to main content" link is the first Tab stop. Every route
+    sets a tab title (`meta.title`, or `setPageTitle` once data loads). After a
+    route change, focus moves to the new page's `<h1>`. The header marks the current
+    page with `aria-current`.
+  - **Status changes are announced** through polite live regions: search result
+    counts, item moves ("Reuben moved to number 3 of 12."), and toasts. After a
+    keyboard move, focus stays on the moved row.
+  - **Icon-only buttons need a label** (`IconButton` requires one), and decorative
+    images and icons are `aria-hidden` or `alt=""`.
 - **Dependency policy (2026-08-08).** Any frontend/backend library we add must be
   free and under a permissive license (MIT/BSD/Apache-2.0) — this is an open-source,
   no-revenue project; nothing paid, nothing copyleft-restrictive for our use.
@@ -132,8 +164,6 @@ design problem than a graphical one. Whitespace, type, and one good accent color
 
 - **Wordmark / logo + favicon.** Even a simple type-based mark. (Current: the `fav·fifty`
   text wordmark from the mock; favicon still the scaffold default.)
-- **Light theme:** *whether* is decided (yes, pre-launch — see Decided above); still
-  open is *when* to build it and what the light palette's exact values are.
 - **Margin showcase: exact values.** The shape is decided (see Decided: Margin
   showcase). Opacity, tint, fade-mask depth and scroll speed get settled with a static
   mock before animating —
@@ -163,9 +193,8 @@ not by default:
 
 - **Mobile-first / responsive.** The audience arrives via Discord links, often on phones.
   Design the narrow layout first.
-- **Accessibility.** Sufficient color contrast (verify against the dark palette), visible
-  focus rings, keyboard navigation. Cheaper to bake in than retrofit; overlaps with
-  quality and the "escape all user content" security rule.
+- **Accessibility.** WCAG 2.1 AA in both themes. See Decided: Accessibility target
+  for the concrete rules. Cheaper to bake in than retrofit.
 - **Consistency via tokens & shared components.** Buttons, inputs, cards, dialogs come
   from one small set, not ad-hoc per page.
 
@@ -177,6 +206,6 @@ Not installed yet; reach for these at the moment of first real need, not before:
   modals, menus, dialogs done accessibly.
 - ~~**Icons**~~ — added: Heroicons (`@heroicons/vue`).
 - ~~**Drag-and-drop**~~ — added: `vue-draggable-plus` (see Decided above).
-- **VueUse** — handy composables (`useDark`, `useLocalStorage`, …) — likely wanted for
-  the light/dark toggle.
+- **VueUse** — handy composables (`useLocalStorage`, …). Not needed for the theme
+  toggle after all: `stores/theme.ts` is ~40 lines.
 - ~~**Web fonts**~~ — added: Fontsource-hosted Baloo 2 + Figtree.

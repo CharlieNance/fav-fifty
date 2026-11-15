@@ -38,7 +38,7 @@ describe('ConfirmDialog', () => {
   it('emits cancel on Escape and on a backdrop click', async () => {
     const wrapper = mount(ConfirmDialog, { props: { title: 'Delete?', message: 'Sure?' } })
 
-    await wrapper.trigger('keydown.escape')
+    await wrapper.trigger('keydown', { key: 'Escape' })
     await wrapper.trigger('click')
 
     expect(wrapper.emitted('cancel')).toHaveLength(2)

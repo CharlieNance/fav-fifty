@@ -109,6 +109,23 @@ describe('HomeView', () => {
     expect(wrapper.get('button').text()).toBe('Start a new list')
   })
 
+  it("offers the way back to a returning visitor's lists, ahead of starting another", async () => {
+    signIn()
+    apiFetchMock.mockResolvedValueOnce([LIST])
+
+    const { wrapper } = await mountHome()
+
+    const link = wrapper.get('a')
+    expect(link.text()).toBe('View my lists')
+    expect(link.attributes('href')).toBe('/lists')
+  })
+
+  it('has no "View my lists" link for someone with no lists yet', async () => {
+    const { wrapper } = await mountHome()
+
+    expect(wrapper.text()).not.toContain('View my lists')
+  })
+
   it('falls back to the neutral wording when the lists fetch fails', async () => {
     // Better to under-promise than to tell someone with fifty lists it's their first.
     signIn()

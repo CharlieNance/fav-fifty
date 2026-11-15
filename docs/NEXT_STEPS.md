@@ -15,7 +15,7 @@ Last updated: 2026-11-14
      ([ABUSE_PROTECTION_PLAN.md](ABUSE_PROTECTION_PLAN.md));
    - `users.role`, the audit log and the admin Users/Settings pages
      ([ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md)).
-2. **Remaining Phase 2:** publish/unpublish, list-title dedup, the light/dark toggle.
+2. **Remaining Phase 2:** publish/unpublish, list-title dedup.
 3. **First deploy** (Terraform: box, S3, CloudFront + WAF on the flat-rate plan,
    backups) → **breaker + game day**.
 4. **Tracks 2–3** (catalog lookup, margin showcase) and dashboards/analytics, just
@@ -50,7 +50,8 @@ Console app, Discord webhook). It can wait for the breaker's SNS topic at deploy
 
 - [ ] Publish/unpublish (draft vs public)
 - [ ] No duplicate list titles per user (items are already deduplicated)
-- [ ] **Light/dark toggle**, required before go-live ([DESIGN.md](DESIGN.md))
+- [x] **Light/dark toggle** (2026-11-15), plus an accessibility pass
+      ([DESIGN.md](DESIGN.md) §Light theme, §Accessibility)
 - [ ] First deploy to AWS, behind `favfifty.com`, per
       [DEPLOYMENT_TOPOLOGY_PLAN.md](DEPLOYMENT_TOPOLOGY_PLAN.md): one Lightsail box
       (Docker Compose: FastAPI + Postgres 16 + TLS proxy), the SPA on S3, and one
