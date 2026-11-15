@@ -51,6 +51,10 @@ flow would. Only rendered in Vite dev mode and only live when the backend is gen
 in `development` (404s otherwise — see `backend/app/api/routes/auth.py` and
 `backend/tests/test_auth.py`).
 
+Need a clean account, or a second one? `POST .../auth/dev-login?user=<key>` (1–64 of
+`a-z`, `0-9`, `-`) signs in as a separate dev user per key. The e2e suite uses a fresh
+key for every test (`frontend/e2e/fixtures.ts`).
+
 Typical flow for a chromium-cli script: navigate to `http://localhost:5173/login`,
 click **"🧪 Dev login (stub)"**, wait for the redirect back to `/`, then continue with
 whatever you're actually testing.

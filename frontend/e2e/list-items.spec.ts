@@ -1,34 +1,18 @@
-import { test, expect, type Page } from '@playwright/test'
+import type { Page } from '@playwright/test'
+
+import { test, expect } from './fixtures.ts'
 
 // Drives the whole items feature (docs/ARCHITECTURE.md §Items) against the REAL
 // backend: add, edit, delete, and reorder — including a genuine SortableJS
 // drag, which jsdom can't exercise (the Vitest specs simulate the drop event
 // instead). Runs as one serial journey on one list because each step builds
-// on the previous one's data; the list title is unique per run so leftovers
-// from earlier local runs can't collide.
+// on the previous one's data. Signs in as its own fresh dev user (see
+// fixtures.ts), so there's nothing from other tests or runs to collide with.
 
 /** Rank rows as the user sees them: the text of each item, top to bottom. */
 async function rowTexts(page: Page): Promise<string[]> {
   return page.locator('main li p.font-medium').allInnerTexts()
 }
-
-// The journey deletes its list in its last step, but a FAILED run dies before
-// getting there — and this litter is visible beyond e2e: the local DB is shared
-// with manual browser testing and with backend pytest (both use the same
-// dev-login user). Sweep every list this spec ever names, pass or fail.
-// `page.request` shares the page's session cookie, so plain API calls work.
-test.afterEach(async ({ page, baseURL }) => {
-  const response = await page.request.get('/api/v1/lists')
-  if (!response.ok()) return
-  for (const list of (await response.json()) as { id: string; title: string }[]) {
-    if (list.title.startsWith('E2E favorites ')) {
-      // The API refuses a cookie write without our Origin (CSRF check).
-      await page.request.delete(`/api/v1/lists/${list.id}`, {
-        headers: { Origin: baseURL ?? '' },
-      })
-    }
-  }
-})
 
 async function addItem(page: Page, text: string, note?: string): Promise<void> {
   await page.getByRole('button', { name: /add (your first favorite|item)/i }).click()
@@ -46,7 +30,7 @@ test('build, edit, reorder, and prune a ranked list end-to-end', async ({ page }
   await page.getByRole('button', { name: /dev login/i }).click()
   await expect(page.getByRole('heading', { name: 'My lists' })).toBeVisible()
 
-  const title = `E2E favorites ${Date.now()}`
+  const title = 'E2E favorites'
   await page.getByRole('button', { name: 'New list' }).click()
   await page.getByPlaceholder(/favorite albums/i).fill(title)
   await page.getByRole('button', { name: 'Save' }).click()
@@ -121,7 +105,7 @@ test('build, edit, reorder, and prune a ranked list end-to-end', async ({ page }
   expect(await rowTexts(page)).toEqual(['Bravo II', 'Alpha'])
   await expect(page.locator('main li').first()).toContainText('1')
 
-  // — Tidy up: delete the whole list so local DBs don't accumulate E2E litter —
+  // — Delete the whole list; back to the index —
   await page.getByRole('button', { name: 'Delete', exact: true }).first().click()
   await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click()
   await expect(page).toHaveURL(/\/lists$/)

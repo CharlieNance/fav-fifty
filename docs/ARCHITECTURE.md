@@ -272,13 +272,20 @@ Rules in `localListTransfer.ts`, I/O in `useListTransfer.ts`. Both work signed i
 
 - **Backend tests run against the real Dockerized Postgres** with per-test rollback.
   `second_user_client` gives a second identity for "user A can't touch B's list" tests.
-- **The local DB is shared** by pytest, Playwright and manual testing, all as the same
-  dev-login user. A test that asserts "exactly these rows for this user" must use
-  `fresh_user` / `fresh_user_client`, not the dev user.
+- **The local DB is shared** by pytest, Playwright and manual testing. pytest and manual
+  testing use the fixed dev-login user, so a pytest test that asserts "exactly these
+  rows for this user" must use `fresh_user` / `fresh_user_client`, not the dev user.
+  Each Playwright test signs in as its own fresh dev user (`?user=<key>` on dev-login,
+  added by `frontend/e2e/fixtures.ts`), so e2e specs need no cleanup.
 - **Frontend specs that mock `apiFetch`** must pin the API repository with
   `pinApiRepository()` (`repositoryTestUtils.ts`), or they'd run against device
   storage as an anonymous visitor.
 - **Playwright** (`frontend/e2e/`) covers items with a real drag, tags and search,
   anonymous use, and the claim. A Sortable drag needs press → small move → stepped
-  glide → release; `dragTo()` is too abrupt. Specs clean up their own lists in
-  `afterEach`.
+  glide → release; `dragTo()` is too abrupt. Specs import `test`/`expect` from
+  `e2e/fixtures.ts`, not `@playwright/test`. Every spec runs three times: desktop
+  light (`chromium`), desktop dark (`chromium-dark`) and phone-sized (`mobile`,
+  Pixel 7), all Chromium. `accessibility.spec.ts` runs axe on every page and dialog;
+  use `expectAccessible(page, '<screen>')` from `fixtures.ts` on new screens. CI runs
+  them too (`e2e` job, retries
+  and an uploaded report + traces on failure).

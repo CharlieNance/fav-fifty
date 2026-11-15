@@ -10,6 +10,8 @@ Two providers live behind the :class:`~app.auth.claims.IdentityProvider` seam:
 downstream ever knows which one produced the :class:`Claims` it received.
 """
 
+import re
+
 import jwt
 from jwt import InvalidTokenError, PyJWKClient
 
@@ -24,6 +26,10 @@ DEV_CLAIMS = Claims(
     name="Dev User",
     picture=None,
 )
+
+# Optional dev user keys (``POST /auth/dev-login?user=<key>``) — kept to a safe,
+# boring alphabet since they end up in the user's sub, email and display name.
+DEV_USER_KEY_PATTERN = re.compile(r"[a-z0-9-]{1,64}")
 
 # Clock-skew tolerance applied to the id token's time claims (`iat`, `exp`, `nbf`).
 #
@@ -54,8 +60,22 @@ class DevIdentityProvider:
             )
 
     def get_claims(self, credential: str | None = None, *, nonce: str | None = None) -> Claims:
-        # The stub issues no real token, so there is no signature or nonce to check.
-        return DEV_CLAIMS
+        """Return the fixed dev identity, or a separate one named by ``credential``.
+
+        ``credential`` is an optional dev user key (see :data:`DEV_USER_KEY_PATTERN`):
+        each distinct key is its own user, so parallel e2e tests don't share data.
+        The stub issues no real token, so there is no signature or nonce to check.
+        """
+        if credential is None:
+            return DEV_CLAIMS
+        if not DEV_USER_KEY_PATTERN.fullmatch(credential):
+            raise ValueError("dev user key must be 1-64 of a-z, 0-9 and '-'")
+        return Claims(
+            sub=f"dev-user-{credential}",
+            email=f"dev+{credential}@example.com",
+            name=f"Dev User {credential}",
+            picture=None,
+        )
 
 
 class CognitoIdentityProvider:

@@ -317,6 +317,24 @@ feature that needs it:
   give false confidence. First feature slice adds a disposable test database (or
   transactional-rollback-per-test) pointed at the same Dockerized Postgres.
 
+### Dev login takes an optional user key (decided 2026-11-15)
+
+`POST /api/v1/auth/dev-login` accepts an optional `?user=<key>` (1–64 of `a-z`, `0-9`,
+`-`). Each key signs in as its own dev user (`sub` = `dev-user-<key>`); with no key it's
+the fixed dev user, exactly as before.
+
+- **Why:** every Playwright test signed in as the one dev user, so parallel tests and
+  repeat runs against the persistent local DB shared lists, per-user caps and per-user
+  rate-limit buckets. The e2e config had to raise `imports_per_hour` and
+  `max_lists_per_user` and sweep leftover lists. Now each test gets a fresh user
+  (`frontend/e2e/fixtures.ts` adds the key to the "Dev login" button's request) and runs
+  against the real default per-user limits. Per-IP limits (`config_per_minute`) are
+  still raised for e2e, since every test browser is 127.0.0.1.
+- **API impact:** additive within v1 and **development only**. The route still 404s
+  outside `APP_ENV=development`, including for a malformed key, and
+  `DevIdentityProvider` still hard-fails there. A key gives an ordinary user, never
+  admin.
+
 ## Still open / deferred
 
 - Exact color theme, branding, type, and layout for the frontend (owner to design) — tracked in [DESIGN.md](DESIGN.md).

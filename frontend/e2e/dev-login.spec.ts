@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures.ts'
 
 // Exercises the dev-login stub (backend/app/api/routes/auth.py), since the
 // real Google/Cognito flow needs live credentials and can't be driven in an
