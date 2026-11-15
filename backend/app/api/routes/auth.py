@@ -5,7 +5,8 @@ converge on ``get_or_create_user`` → ``issue_session`` → set the session coo
 everything past the auth seam is identical no matter how the user signed in.
 
 * ``POST /auth/dev-login`` — **development only** shortcut: mints a session for the
-  fixed dev identity so the app is usable before/without Cognito.
+  fixed dev identity (or, with ``?user=<key>``, a separate dev identity per key) so
+  the app is usable — and e2e-testable — without Cognito.
 * ``GET /auth/login`` / ``GET /auth/callback`` — the real authorization-code + PKCE
   flow, active only once Cognito is configured. ``/login`` redirects the browser to
   the Cognito hosted UI; ``/callback`` verifies the returned id token and logs in.
@@ -48,10 +49,26 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/dev-login", response_model=UserRead)
-def dev_login(response: Response, db: Session = Depends(get_db)) -> User:
-    """Log in as the fixed dev user and set the session cookie (development only)."""
+def dev_login(
+    response: Response,
+    db: Session = Depends(get_db),
+    user: str | None = Query(
+        default=None,
+        description=(
+            "Optional dev user key (1-64 of a-z, 0-9, '-'). Each key is a separate "
+            "user; omit it for the shared fixed dev user."
+        ),
+    ),
+) -> User:
+    """Log in as a dev user and set the session cookie (development only).
+
+    Without ``user`` this is the fixed dev user; with it, a separate user per key —
+    e2e tests use one per test so parallel runs never share lists or rate limits.
+    """
     if not settings.is_development:
         # Unreachable outside dev: return 404 so the endpoint simply doesn't exist.
+        # (``user`` is validated below, not in Query(), so a bad value also 404s
+        # here instead of a 422 revealing the route.)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
     # Deliberately DevIdentityProvider(), not the get_identity_provider() factory: the
@@ -60,10 +77,15 @@ def dev_login(response: Response, db: Session = Depends(get_db)) -> User:
     # is *also* configured locally — that's the whole point of a dev-only shortcut.
     # DevIdentityProvider() still hard-fails outside development.
     provider = DevIdentityProvider()
-    claims = provider.get_claims()
-    user = user_service.get_or_create_user(db, claims)
-    set_session_cookie(response, issue_session(user))
-    return user
+    try:
+        claims = provider.get_claims(user)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)
+        ) from exc
+    db_user = user_service.get_or_create_user(db, claims)
+    set_session_cookie(response, issue_session(db_user))
+    return db_user
 
 
 @router.get("/login", dependencies=[Depends(limit_auth)])

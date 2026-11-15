@@ -31,6 +31,26 @@ def test_dev_login_sets_cookie_and_returns_user(client: TestClient) -> None:
     assert settings.session_cookie_name in response.cookies
 
 
+def test_dev_login_with_a_user_key_is_a_separate_user(client: TestClient) -> None:
+    default = client.post("/auth/dev-login").json()
+    first = client.post("/auth/dev-login", params={"user": "e2e-abc123"}).json()
+    again = client.post("/auth/dev-login", params={"user": "e2e-abc123"}).json()
+    other = client.post("/auth/dev-login", params={"user": "e2e-xyz789"}).json()
+
+    assert first["display_name"] == "Dev User e2e-abc123"
+    assert first["id"] == again["id"]  # same key → same user
+    assert len({default["id"], first["id"], other["id"]}) == 3
+    # The cookie from the last login is the keyed user's session.
+    assert client.get("/me").json()["id"] == other["id"]
+
+
+@pytest.mark.parametrize("bad_key", ["", "UPPER", "has space", "a/b", "x" * 65])
+def test_dev_login_rejects_a_malformed_user_key(client: TestClient, bad_key: str) -> None:
+    response = client.post("/auth/dev-login", params={"user": bad_key})
+    assert response.status_code == 422
+    assert settings.session_cookie_name not in response.cookies
+
+
 def test_me_requires_authentication(client: TestClient) -> None:
     assert client.get("/me").status_code == 401
 
@@ -104,6 +124,9 @@ def test_dev_login_endpoint_hidden_outside_development(
 ) -> None:
     monkeypatch.setattr(settings, "app_env", "production")
     assert client.post("/auth/dev-login").status_code == 404
+    # A user key — valid or not — doesn't change that (no 422 hinting it exists).
+    assert client.post("/auth/dev-login", params={"user": "e2e-abc"}).status_code == 404
+    assert client.post("/auth/dev-login", params={"user": "BAD KEY"}).status_code == 404
 
 
 def test_dev_login_works_even_if_cognito_is_also_configured(

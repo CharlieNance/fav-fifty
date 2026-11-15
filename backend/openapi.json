@@ -54,8 +54,28 @@
           "auth"
         ],
         "summary": "Dev Login",
-        "description": "Log in as the fixed dev user and set the session cookie (development only).",
+        "description": "Log in as a dev user and set the session cookie (development only).\n\nWithout ``user`` this is the fixed dev user; with it, a separate user per key —\ne2e tests use one per test so parallel runs never share lists or rate limits.",
         "operationId": "dev_login_api_v1_auth_dev_login_post",
+        "parameters": [
+          {
+            "name": "user",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional dev user key (1-64 of a-z, 0-9, '-'). Each key is a separate user; omit it for the shared fixed dev user.",
+              "title": "User"
+            },
+            "description": "Optional dev user key (1-64 of a-z, 0-9, '-'). Each key is a separate user; omit it for the shared fixed dev user."
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -63,6 +83,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }

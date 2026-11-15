@@ -1,23 +1,13 @@
-import { test, expect, type Page } from '@playwright/test'
+import type { Page } from '@playwright/test'
+
+import { test, expect } from './fixtures.ts'
 
 // One end-to-end journey for tags and search (docs/ARCHITECTURE.md): add a tag on the details page, see it as a chip on the index, then
 // find the list by searching for that tag. Runs against the REAL backend, the
 // same spirit as list-items.spec.ts — everything below it is exercised by
 // Vitest specs already; this is the one pass confirming the pieces click
-// together in a real browser.
-
-test.afterEach(async ({ page, baseURL }) => {
-  const response = await page.request.get('/api/v1/lists')
-  if (!response.ok()) return
-  for (const list of (await response.json()) as { id: string; title: string }[]) {
-    if (list.title.startsWith('E2E tags ')) {
-      // The API refuses a cookie write without our Origin (CSRF check).
-      await page.request.delete(`/api/v1/lists/${list.id}`, {
-        headers: { Origin: baseURL ?? '' },
-      })
-    }
-  }
-})
+// together in a real browser. Signs in as its own fresh dev user (see
+// fixtures.ts), so the index holds only this test's list.
 
 async function search(page: Page, query: string): Promise<void> {
   const box = page.getByRole('searchbox', { name: /search your lists/i })
@@ -32,7 +22,7 @@ test('add a tag, see it on the index, and find the list by searching', async ({ 
   await page.getByRole('button', { name: /dev login/i }).click()
   await expect(page.getByRole('heading', { name: 'My lists' })).toBeVisible()
 
-  const title = `E2E tags ${Date.now()}`
+  const title = 'E2E tags'
   await page.getByRole('button', { name: 'New list' }).click()
   await page.getByPlaceholder(/favorite albums/i).fill(title)
   await page.getByRole('button', { name: 'Save' }).click()
@@ -76,7 +66,7 @@ test('add a tag, see it on the index, and find the list by searching', async ({ 
   await page.getByRole('button', { name: 'Clear search' }).click()
   await expect(page.locator('li').filter({ hasText: title })).toBeVisible()
 
-  // — Tidy up: delete the list so local DBs don't accumulate E2E litter —
+  // — Delete the list; back to the index —
   await page.getByRole('link', { name: title }).click()
   await page.getByRole('button', { name: 'Delete', exact: true }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Delete' }).click()

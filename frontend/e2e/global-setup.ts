@@ -11,10 +11,16 @@ const repoRoot = path.resolve(dirname, '../..')
 // volume the tests would otherwise fail confusingly at the dev-login step
 // (missing tables) despite `npm run test:e2e` claiming to be self-contained.
 // `alembic upgrade head` is a no-op if the DB is already current.
+//
+// In CI (GitHub Actions sets CI=true) Postgres is a job service container that
+// is already up and healthy on :5432, so starting the docker-compose one would
+// only collide with it — skip straight to migrations.
 export default function globalSetup(): void {
-  execFileSync('bash', [path.resolve(repoRoot, 'tools/db_up.sh')], {
-    stdio: 'inherit',
-  })
+  if (!process.env.CI) {
+    execFileSync('bash', [path.resolve(repoRoot, 'tools/db_up.sh')], {
+      stdio: 'inherit',
+    })
+  }
   execFileSync('uv', ['run', 'alembic', 'upgrade', 'head'], {
     cwd: path.resolve(repoRoot, 'backend'),
     stdio: 'inherit',

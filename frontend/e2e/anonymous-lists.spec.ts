@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises'
 
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures.ts'
 
 // Anonymous use (docs/ARCHITECTURE.md §Anonymous lists): a visitor who
 // never signs in builds a list that's saved in this browser's localStorage, and
