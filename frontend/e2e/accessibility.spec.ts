@@ -108,4 +108,56 @@ test('signed in, with the claim dialog', async ({ page }) => {
 
   await expect(page.getByRole('link', { name: 'Axe claim' })).toBeVisible()
   await expectAccessible(page, 'the signed-in lists index')
+
+  // Logging out goes home and says so in a toast (its own colors, so scan it).
+  await page.getByRole('button', { name: 'Log out' }).click()
+  await expect(page.getByText(/logged out/)).toBeVisible()
+  await expectAccessible(page, 'the logged-out toast')
+})
+
+test('messages and empty states', async ({ page }) => {
+  await page.goto('/login?error=1')
+  await expect(page.getByRole('alert')).toContainText('didn’t complete')
+  await expectAccessible(page, 'the login error')
+
+  // A list id that doesn't exist (on this device or anywhere).
+  await page.goto('/lists/00000000-0000-4000-8000-000000000000')
+  await expect(page.getByText(/not found|doesn.t exist|couldn.t find/i)).toBeVisible()
+  await expectAccessible(page, 'a missing list')
+
+  // Two device lists bring up the backup reminder banner.
+  await createList(page, 'Axe one')
+  await createList(page, 'Axe two')
+  await page.goto('/lists')
+  await expect(page.getByTestId('backup-reminder')).toBeVisible()
+  await expectAccessible(page, 'the backup reminder')
+
+  await page.getByRole('searchbox', { name: /search your lists/i }).fill('zzz-nothing')
+  await expect(page.getByText(/no lists match/i)).toBeVisible()
+  await expectAccessible(page, 'a search with no results')
+})
+
+// axe can't judge keyboard use. BaseDialog's focus handling has jsdom tests
+// (BaseDialog.spec.ts); this is the one real-browser check of the same thing.
+test('a dialog works from the keyboard alone', async ({ page }) => {
+  await createList(page, 'Axe keyboard')
+  const opener = page.getByRole('button', { name: /add your first favorite/i })
+  await opener.focus()
+  await page.keyboard.press('Enter')
+
+  // Focus moves into the dialog, and Tab can't leave it.
+  const dialog = page.getByRole('dialog')
+  await expect(dialog).toBeVisible()
+  await expect(dialog.locator(':focus')).toHaveCount(1)
+  for (let i = 0; i < 8; i++) {
+    await page.keyboard.press('Tab')
+    await expect(dialog.locator(':focus')).toHaveCount(1)
+  }
+  await page.keyboard.press('Shift+Tab')
+  await expect(dialog.locator(':focus')).toHaveCount(1)
+
+  // Escape closes it and puts focus back where it was.
+  await page.keyboard.press('Escape')
+  await expect(dialog).toBeHidden()
+  await expect(opener).toBeFocused()
 })

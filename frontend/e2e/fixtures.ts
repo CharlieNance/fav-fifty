@@ -39,6 +39,16 @@ const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']
  * fix without re-running.
  */
 export async function expectAccessible(page: Page, what: string): Promise<void> {
+  // Let running CSS transitions/animations finish first, or axe measures colors
+  // mid-fade: e.g. a button re-enabling after a failed save fades opacity
+  // 60% → 100% over 150ms and read as 3.5:1 contrast. Endless animations
+  // (spinners) are skipped, or this would never resolve. A string, because the
+  // e2e tsconfig has no DOM types.
+  await page.evaluate(`Promise.allSettled(
+    document.getAnimations()
+      .filter((a) => a.effect?.getComputedTiming().iterations !== Infinity)
+      .map((a) => a.finished),
+  )`)
   const { violations } = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze()
   const report = violations.map(
     (v) =>
