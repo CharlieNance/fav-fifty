@@ -885,6 +885,10 @@
             "type": "integer",
             "title": "Max Lists Per Import"
           },
+          "max_import_bytes": {
+            "type": "integer",
+            "title": "Max Import Bytes"
+          },
           "max_items_per_list": {
             "type": "integer",
             "title": "Max Items Per List"
@@ -914,6 +918,7 @@
         "required": [
           "max_tags_per_list",
           "max_lists_per_import",
+          "max_import_bytes",
           "max_items_per_list",
           "max_title_length",
           "max_item_text_length",

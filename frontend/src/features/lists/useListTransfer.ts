@@ -25,16 +25,18 @@ import { requestPersistentStorage } from './localListRepository'
 import {
   collectExport,
   exportFileName,
+  IMPORT_REJECTED_DETAIL,
   IMPORT_TOO_LARGE_DETAIL,
   type ImportSummary,
   importSummaryMessage,
-  MAX_IMPORT_FILE_BYTES,
   mergeImportedLists,
   type ParsedImport,
   parseImportFile,
   serializeExport,
+  SIGN_IN_AGAIN_DETAIL,
   summarizeAccountImport,
   tooManyListsDetail,
+  withFreshIds,
 } from './localListTransfer'
 import { useListRepository } from './useListRepository'
 
@@ -89,7 +91,12 @@ export function useListTransfer(options: ListTransferOptions = {}) {
   const importing = ref(false)
 
   function showError(caught: unknown, fallback: string): void {
-    toasts.show(toListError(caught).detail ?? fallback, {
+    const listError = toListError(caught)
+    let detail = listError.detail ?? fallback
+    if (listError.kind === 'unauthenticated') detail = SIGN_IN_AGAIN_DETAIL
+    // A rejection without one readable sentence: "try again" would never work.
+    else if (listError.kind === 'invalid' && !listError.detail) detail = IMPORT_REJECTED_DETAIL
+    toasts.show(detail, {
       variant: 'error',
       duration: ERROR_TOAST_MS,
     })
@@ -128,8 +135,10 @@ export function useListTransfer(options: ListTransferOptions = {}) {
     if (parsed.lists.length > max) throw new ListError('invalid', tooManyListsDetail(max))
     // A fresh device id per import, so the server keys these lists apart from any
     // earlier import of the same file: a file import adds, as it does on a device,
-    // even if the lists it made last time have since been deleted.
-    const result = await account.importLists({ device_id: newId(), lists: parsed.lists })
+    // even if the lists it made last time have since been deleted. Fresh list ids
+    // too, as on a device: the file's own may be longer than the server accepts.
+    const lists = parsed.lists.map((list) => withFreshIds(list, newId))
+    const result = await account.importLists({ device_id: newId(), lists })
     return summarizeAccountImport(result, parsed.skipped)
   }
 
@@ -140,7 +149,7 @@ export function useListTransfer(options: ListTransferOptions = {}) {
   async function importFile(file: File): Promise<boolean> {
     importing.value = true
     try {
-      if (file.size > MAX_IMPORT_FILE_BYTES) {
+      if (file.size > config.limits.max_import_bytes) {
         toasts.show(IMPORT_TOO_LARGE_DETAIL, { variant: 'error', duration: ERROR_TOAST_MS })
         return false
       }

@@ -15,8 +15,9 @@ import type { AccountImport, ListRepository } from './listRepository'
 import { createLocalListRepository } from './localListRepository'
 import { memoryStorage } from './localListTestUtils'
 import {
+  IMPORT_REJECTED_DETAIL,
   IMPORT_TOO_LARGE_DETAIL,
-  MAX_IMPORT_FILE_BYTES,
+  SIGN_IN_AGAIN_DETAIL,
   tooManyListsDetail,
 } from './localListTransfer'
 import { EXPORT_EMPTY_MESSAGE, EXPORT_FAILED_MESSAGE, useListTransfer } from './useListTransfer'
@@ -186,9 +187,10 @@ describe('importFile', () => {
     ])
   })
 
-  it('rejects a file too large to be an export without reading it', async () => {
+  it("rejects a file over the server's byte limit without reading it", async () => {
+    useClientConfigStore().limits.max_import_bytes = 1000
     const big = jsonFile('x')
-    Object.defineProperty(big, 'size', { value: MAX_IMPORT_FILE_BYTES + 1 })
+    Object.defineProperty(big, 'size', { value: 1001 })
     const read = vi.spyOn(big, 'text')
 
     expect(await transfer().importFile(big)).toBe(false)
@@ -299,6 +301,56 @@ describe('importFile while signed in', () => {
     expect(toasts()).toEqual([
       { message: "'Albums' has 51 items; the limit is 50.", variant: 'error' },
     ])
+  })
+
+  it("sends fresh list and item ids, not the file's own (which may be too long)", async () => {
+    const longId = 'x'.repeat(65)
+    const file = {
+      schema_version: 1,
+      device_id: 'file-device',
+      claimed_at: null,
+      lists: [
+        {
+          local_id: longId,
+          title: 'Albums',
+          tags: [],
+          created_at: now(),
+          updated_at: now(),
+          items: [{ local_id: longId, text: 'One', created_at: now(), updated_at: now() }],
+        },
+      ],
+    }
+    const importLists = vi.fn<AccountImport['importLists']>().mockResolvedValue({
+      lists: [created('a', 'Albums')],
+    })
+
+    expect(await accountTransfer(importLists).importFile(jsonFile(JSON.stringify(file)))).toBe(true)
+
+    const [upload] = importLists.mock.calls[0]!
+    expect(upload.lists[0]!.local_id).toMatch(/^upload-/)
+    expect(upload.lists[0]!.items[0]!.local_id).toMatch(/^upload-/)
+  })
+
+  it('asks the user to sign in again when the session has ended', async () => {
+    await seed('Albums')
+    await transfer().exportLists()
+    const importLists = vi
+      .fn<AccountImport['importLists']>()
+      .mockRejectedValue(new ListError('unauthenticated', 'Not authenticated'))
+
+    expect(await accountTransfer(importLists).importFile(jsonFile(savedContents()))).toBe(false)
+    expect(toasts()).toEqual([{ message: SIGN_IN_AGAIN_DETAIL, variant: 'error' }])
+  })
+
+  it("doesn't say 'try again' for a rejection without a readable reason", async () => {
+    await seed('Albums')
+    await transfer().exportLists()
+    const importLists = vi
+      .fn<AccountImport['importLists']>()
+      .mockRejectedValue(new ListError('invalid', null))
+
+    expect(await accountTransfer(importLists).importFile(jsonFile(savedContents()))).toBe(false)
+    expect(toasts()).toEqual([{ message: IMPORT_REJECTED_DETAIL, variant: 'error' }])
   })
 
   it('refuses a file with more lists than one upload may carry, without sending it', async () => {

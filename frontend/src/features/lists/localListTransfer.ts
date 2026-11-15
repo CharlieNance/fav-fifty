@@ -42,16 +42,15 @@ import {
   parseDocument,
 } from './localListDocument'
 
-/**
- * Larger than any real export (a full 50-item list is 10–20 KB) and about the size
- * of a whole `localStorage` quota, so a file this big couldn't be saved anyway.
- */
-export const MAX_IMPORT_FILE_BYTES = 5 * 1024 * 1024
-
 export const IMPORT_TOO_LARGE_DETAIL = 'This file is too large to be a Fav Fifty lists export.'
 export const IMPORT_UNREADABLE_DETAIL = "This file isn't a Fav Fifty lists export."
 export const IMPORT_NEWER_VERSION_DETAIL =
   'This file was saved by a newer version of Fav Fifty. Reload the page and try again.'
+/** A `401` mid-import: the session ran out, so retrying as-is can't work. */
+export const SIGN_IN_AGAIN_DETAIL = 'Your session has ended. Sign in again, then try again.'
+/** A `422` whose `detail` isn't one sentence (e.g. Pydantic's list of problems). */
+export const IMPORT_REJECTED_DETAIL =
+  "Some of these lists couldn't be uploaded as they are, so nothing was added."
 export const IMPORT_EMPTY_DETAIL = "This file doesn't have any lists in it."
 export const IMPORT_ALL_SKIPPED_DETAIL =
   'None of the lists in this file could be read. It may have been damaged or edited by hand.'
@@ -221,15 +220,22 @@ export function mergeImportedLists(
     if (title !== list.title) renamed.push({ from: list.title, to: title })
     taken.add(title.toLowerCase())
 
-    document.lists.push({
-      ...list,
-      local_id: options.newId(),
-      title,
-      items: list.items.map((item) => ({ ...item, local_id: options.newId() })),
-    })
+    document.lists.push({ ...withFreshIds(list, options.newId), title })
   }
 
   return { imported: lists.length, renamed, skipped }
+}
+
+/**
+ * `list` with new ids for it and its items. A file's own ids are untrusted: they
+ * may repeat lists already here, or be longer than the server accepts.
+ */
+export function withFreshIds(list: LocalList, newId: () => string): LocalList {
+  return {
+    ...list,
+    local_id: newId(),
+    items: list.items.map((item) => ({ ...item, local_id: newId() })),
+  }
 }
 
 /**

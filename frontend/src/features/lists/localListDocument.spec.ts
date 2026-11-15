@@ -157,6 +157,33 @@ describe('parseDocument', () => {
     })
   })
 
+  it('keeps ISO 8601 timestamps and replaces any other date form with now', () => {
+    const kept = [
+      '2026-11-14T12:00:00Z',
+      '2026-11-14T12:00:00.123456+05:30',
+      '2024-02-29T00:00:00.000Z',
+    ]
+    const replaced = [
+      '11/14/2026',
+      'Nov 14 2026',
+      '2026-11-14',
+      '2026-11-14T12:00Z',
+      '2026-11-14T12:00:00',
+      '2026-02-30T00:00:00Z',
+      '2026-13-01T00:00:00Z',
+      '2026-11-14T24:00:00Z',
+    ]
+    const doc = validDocument()
+    const list = doc.lists[0]!
+    for (const value of [...kept, ...replaced]) {
+      list.created_at = value
+      const result = parseDocument(doc, options)
+      expect(result.ok && result.document.lists[0]!.created_at).toBe(
+        kept.includes(value) ? value : NOW,
+      )
+    }
+  })
+
   it('keeps content over the limits: the server rejects it at import, with a reason', () => {
     const doc = validDocument()
     const item = doc.lists[0]!.items[0]!
@@ -234,6 +261,41 @@ describe('createDocumentStore', () => {
     store.save(validDocument())
     expect(JSON.parse(storage.getItem(STORAGE_KEY)!)).toEqual(validDocument())
     expect(store.load()).toEqual(validDocument())
+  })
+
+  it('saves a repair as soon as it reads it, so a new device id sticks', () => {
+    const withoutDeviceId: Partial<LocalListsDocument> = validDocument()
+    delete withoutDeviceId.device_id
+    let id = 0
+    const storage = memoryStorage()
+    storage.setItem(STORAGE_KEY, JSON.stringify(withoutDeviceId))
+    const store = createDocumentStore({
+      storage: () => storage,
+      ...options,
+      newId: () => `d-${++id}`,
+    })
+
+    expect(store.load()!.device_id).toBe('d-1')
+    expect(store.load()!.device_id).toBe('d-1')
+    expect(JSON.parse(storage.getItem(STORAGE_KEY)!).device_id).toBe('d-1')
+  })
+
+  it("still reads a repaired document when storage won't take the write-back", () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const { storage, store } = setup(JSON.stringify({ ...validDocument(), device_id: '' }))
+    vi.spyOn(storage, 'setItem').mockImplementation(() => {
+      throw new DOMException('full', 'QuotaExceededError')
+    })
+
+    expect(store.load()!.device_id).toBe('new-id')
+  })
+
+  it("doesn't write back a document that needed no repair", () => {
+    const { storage, store } = setup(JSON.stringify(validDocument()))
+    const setItem = vi.spyOn(storage, 'setItem')
+
+    store.load()
+    expect(setItem).not.toHaveBeenCalled()
   })
 
   it('sets aside unparseable JSON instead of overwriting it', () => {

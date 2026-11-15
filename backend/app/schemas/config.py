@@ -19,6 +19,7 @@ class ClientLimits(BaseModel):
     # Runtime settings (tunable without a deploy).
     max_tags_per_list: int
     max_lists_per_import: int
+    max_import_bytes: int
     # Fixed limits (app/core/limits.py).
     max_items_per_list: int
     max_title_length: int

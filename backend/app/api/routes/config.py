@@ -16,6 +16,7 @@ def client_config(runtime: RuntimeSettings = Depends(get_runtime_settings)) -> C
         limits=ClientLimits(
             max_tags_per_list=runtime.limits.max_tags_per_list,
             max_lists_per_import=runtime.limits.max_lists_per_import,
+            max_import_bytes=runtime.limits.max_import_bytes,
             max_items_per_list=limits.MAX_ITEMS_PER_LIST,
             max_title_length=limits.MAX_TITLE_LENGTH,
             max_item_text_length=limits.MAX_ITEM_TEXT_LENGTH,

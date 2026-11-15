@@ -8,7 +8,11 @@ import type { AccountImport } from './listRepository'
 import { createDocumentStore, type DocumentStore } from './localListDocument'
 import { createLocalListRepository } from './localListRepository'
 import { memoryStorage } from './localListTestUtils'
-import { tooManyListsDetail } from './localListTransfer'
+import {
+  IMPORT_REJECTED_DETAIL,
+  SIGN_IN_AGAIN_DETAIL,
+  tooManyListsDetail,
+} from './localListTransfer'
 import type { ImportedListOutcome, ListsImportResult } from './types'
 import {
   CLAIM_DISMISSED_KEY,
@@ -210,6 +214,30 @@ describe('claim', () => {
 
     expect(claim.error).toBe(CLAIM_FAILED_MESSAGE)
     expect(deviceTitles()).toEqual(['Albums'])
+  })
+
+  it('asks the user to sign in again when the session has ended', async () => {
+    const [albums] = await seed('Albums')
+    importLists.mockRejectedValueOnce(new ListError('unauthenticated', 'Not authenticated'))
+    const claim = useListClaimStore()
+    claim.offer('u-1')
+
+    await claim.claim([albums!], 'u-1')
+
+    expect(claim.error).toBe(SIGN_IN_AGAIN_DETAIL)
+    expect(deviceTitles()).toEqual(['Albums'])
+  })
+
+  it("doesn't blame the connection for a rejection without a readable reason", async () => {
+    // e.g. a Pydantic 422, whose `detail` is a list of problems, not a sentence.
+    const [albums] = await seed('Albums')
+    importLists.mockRejectedValueOnce(new ListError('invalid', null))
+    const claim = useListClaimStore()
+    claim.offer('u-1')
+
+    await claim.claim([albums!], 'u-1')
+
+    expect(claim.error).toBe(IMPORT_REJECTED_DETAIL)
   })
 
   it('refuses more lists than one upload may carry, without sending them', async () => {

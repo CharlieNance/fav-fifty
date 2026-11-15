@@ -56,9 +56,10 @@ class Limits(BaseModel):
     model_config = ConfigDict(frozen=True, extra="ignore")
 
     max_tags_per_list: int = Field(default=25, ge=1, le=200)
-    # ``POST /lists/import`` (docs/ARCHITECTURE.md). Over
-    # either is a 413. The byte cap matches the frontend's import-file cap; the edge
-    # should enforce one too, since the app only sees the body once it's read.
+    # ``POST /lists/import`` (docs/ARCHITECTURE.md). Over either is a 413. Both go to
+    # clients via /config/client; the byte cap is also the frontend's import-file cap.
+    # The edge should enforce one too, since the app only sees the body once it's
+    # read (docs/ABUSE_PROTECTION_PLAN.md §Request hygiene).
     max_lists_per_import: int = Field(default=100, ge=1, le=1000)
     max_import_bytes: int = Field(default=5 * 1024 * 1024, ge=64 * 1024, le=50 * 1024 * 1024)
 

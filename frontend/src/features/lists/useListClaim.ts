@@ -24,11 +24,13 @@ import { defineStore } from 'pinia'
 
 import { useClientConfigStore } from '@/stores/clientConfig'
 import { useToastStore } from '@/stores/toasts'
-import { toListError } from './listErrors'
+import { type ListError, toListError } from './listErrors'
 import { type AccountImport, apiListRepository } from './listRepository'
 import { createDocumentStore, type DocumentStore, type LocalList } from './localListDocument'
 import {
   claimSummaryMessage,
+  IMPORT_REJECTED_DETAIL,
+  SIGN_IN_AGAIN_DETAIL,
   summarizeAccountImport,
   tooManyListsDetail,
 } from './localListTransfer'
@@ -64,6 +66,23 @@ export function setListClaimDeps(deps: Partial<ListClaimDeps> | null): void {
 
 function deps(): ListClaimDeps {
   return { ...defaultDeps(), ...depsOverride }
+}
+
+/**
+ * What the dialog says when the upload fails. Only a failure that retrying might
+ * fix gets "check your connection".
+ */
+function claimErrorMessage(listError: ListError): string {
+  switch (listError.kind) {
+    case 'unauthenticated':
+      return SIGN_IN_AGAIN_DETAIL
+    case 'invalid':
+      return listError.detail ?? IMPORT_REJECTED_DETAIL
+    case 'storage':
+      return listError.detail ?? CLAIM_FAILED_MESSAGE
+    default:
+      return CLAIM_FAILED_MESSAGE
+  }
 }
 
 /** Most recently updated first, as the lists page shows them. */
@@ -179,11 +198,7 @@ export const useListClaimStore = defineStore('listClaim', () => {
       })
       return true
     } catch (caught) {
-      const listError = toListError(caught)
-      error.value =
-        listError.kind === 'invalid' || listError.kind === 'storage'
-          ? (listError.detail ?? CLAIM_FAILED_MESSAGE)
-          : CLAIM_FAILED_MESSAGE
+      error.value = claimErrorMessage(toListError(caught))
       return false
     } finally {
       pending.value = false

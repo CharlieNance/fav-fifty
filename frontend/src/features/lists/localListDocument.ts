@@ -113,15 +113,30 @@ function nonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim() !== ''
 }
 
+/**
+ * ISO 8601 date-time with an explicit offset, e.g. `2026-11-14T12:00:00.000Z` (what
+ * `toISOString()` writes). Stricter than `Date.parse`, which also takes forms like
+ * `11/14/2026` that the server rejects. A list with one of those could never be
+ * claimed, so it's repaired to now instead.
+ */
+const ISO_TIMESTAMP =
+  /^(\d{4})-(\d{2})-(\d{2})T([01]\d|2[0-3]):[0-5]\d:[0-5]\d(\.\d{1,6})?(Z|[+-]([01]\d|2[0-3]):[0-5]\d)$/
+
 function isTimestamp(value: unknown): value is string {
-  return typeof value === 'string' && !Number.isNaN(Date.parse(value))
+  if (typeof value !== 'string') return false
+  const match = ISO_TIMESTAMP.exec(value)
+  if (!match) return false
+  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])]
+  if (year < 1 || month < 1 || month > 12 || day < 1) return false
+  // Day 0 of the next month is the last day of this one (catches Feb 30, Apr 31).
+  return day <= new Date(Date.UTC(year, month, 0)).getUTCDate()
 }
 
 /**
  * Validate and repair one document that's already parsed from JSON.
  *
  * Kept: anything with the right shape. Dropped: lists or items with no id, no
- * title/text, or a duplicate id. Repaired: bad timestamps (→ now), a non-http(s)
+ * title/text, or a duplicate id. Repaired: bad or non-ISO timestamps (→ now), a non-http(s)
  * image URL or bad note (→ `null`), non-string tags (removed).
  *
  * Content limits (lengths, the 50-item cap) are deliberately **not** enforced here.
@@ -327,6 +342,19 @@ export function createDocumentStore(options: DocumentStoreOptions = {}): Documen
     console.warn('Saved lists on this device were unreadable; set them aside and started fresh.')
   }
 
+  /**
+   * Best effort: if storage won't take it, the read still succeeds and the next
+   * save writes it. Doesn't bump `localListsRevision`, since the lists as the views
+   * see them haven't changed.
+   */
+  function writeRepaired(store: Storage, document: LocalListsDocument): void {
+    try {
+      store.setItem(STORAGE_KEY, JSON.stringify(document))
+    } catch {
+      console.warn('Could not save the repaired lists document on this device.')
+    }
+  }
+
   return {
     load() {
       const store = storage()
@@ -347,7 +375,13 @@ export function createDocumentStore(options: DocumentStoreOptions = {}): Documen
       }
 
       const result = parseDocument(json, { now, newId })
-      if (result.ok) return result.document
+      if (result.ok) {
+        // Write the repair back now. Otherwise each read repairs it afresh: a missing
+        // `device_id` would get a new one every time, and the claim's retries
+        // couldn't recognise the lists an earlier attempt uploaded.
+        if (result.repaired) writeRepaired(store, result.document)
+        return result.document
+      }
       if (result.reason === 'newer-version') {
         throw new ListError('storage', STORAGE_NEWER_VERSION_DETAIL)
       }

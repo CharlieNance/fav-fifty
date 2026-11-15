@@ -21,7 +21,9 @@ export type ListErrorKind =
    * `detail` always says which, in user-facing copy.
    */
   | 'storage'
-  /** Anything else: network failure, server error, signed out mid-session. */
+  /** A `401`: the session ended (or was never there). Signing in again fixes it. */
+  | 'unauthenticated'
+  /** Anything else: network failure, server error. */
   | 'unknown'
 
 export class ListError extends Error {
@@ -38,6 +40,7 @@ export class ListError extends Error {
 }
 
 const KIND_BY_STATUS: Record<number, ListErrorKind> = {
+  401: 'unauthenticated',
   404: 'not-found',
   409: 'conflict',
   // Only `POST /lists/import` sends one: too many lists, or too large a body.

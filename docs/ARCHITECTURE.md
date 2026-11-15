@@ -31,7 +31,7 @@ services are plain functions taking a `Session`, so they're testable without HTT
 | Service | `useListAction.ts` | `run(repo => …)` owns `pending` / `error` / `errorKind`, the try/catch, and picking the message. |
 | Factory | `useListRepository.ts` | Picks the repository **per call**: the API when signed in, the device otherwise. `setListRepository()` is the test seam. |
 | Repository | `listRepository.ts`, `localListRepository.ts` | The `ListRepository` interface and its two implementations. Both throw `ListError`, never a storage-specific error. |
-| Domain error | `listErrors.ts` | `ListError` with a `kind` (`not-found`, `conflict`, `invalid`, `storage`, `unknown`) and an optional user-facing `detail`. |
+| Domain error | `listErrors.ts` | `ListError` with a `kind` (`not-found`, `conflict`, `invalid`, `storage`, `unauthenticated`, `unknown`) and an optional user-facing `detail`. |
 | API client | `api/client.ts` | `apiFetch` / `ApiError`. Only the API repository uses it. |
 
 **Limits** live once, in `backend/app/core/limits.py` (fixed: 50 items, title 200,
@@ -174,8 +174,10 @@ One versioned JSON document under `localStorage["favfifty:v1"]`
   `status = "draft"`, `item_count = items.length`.
 - **Everything read from storage is untrusted** (the user or an extension can edit it).
   A hand-written guard (no Zod dependency) repairs structure (missing or duplicate ids,
-  bad timestamps, non-http(s) image URLs) but **not limits**: an over-long list stays
-  the user's, and the import rejects it with a reason.
+  bad or non-ISO-8601 timestamps, non-http(s) image URLs) but **not limits**: an
+  over-long list stays the user's, and the import rejects it with a reason. Timestamps
+  must be ISO 8601 with an offset, as the server accepts; `11/14/2026` becomes now. A
+  repair is written back on the read that made it, so a regenerated `device_id` sticks.
 - **An unreadable document is set aside**, copied to `favfifty:v1:unreadable:<time>`,
   never overwritten. A document from a **newer** app version is left alone, and every
   call says "reload the page".
@@ -213,9 +215,12 @@ Rules in `localListTransfer.ts`, I/O in `useListTransfer.ts`. Both work signed i
   (migrations included) and skips unreadable entries, saying how many. **One invalid
   list rejects the whole file**, naming the list ("'Top Albums' has 51 items; the limit
   is 50."). Title clashes are renamed `"Title (2)"` (`uniqueTitle`, which keeps the
-  same rule as the server's `unique_title`). Files over 5 MB are refused unread.
-- **Signed in, an import is one `POST /lists/import`** with a fresh `device_id`, so
-  importing the same file twice adds it twice rather than looking like a retry.
+  same rule as the server's `unique_title`). Files over `max_import_bytes` (from
+  `/config/client`) are refused unread.
+- **Signed in, an import is one `POST /lists/import`** with a fresh `device_id` and
+  fresh list ids (the file's may be longer than the server accepts), so importing the
+  same file twice adds it twice rather than looking like a retry. The trade-off: if the
+  response is lost and the user clicks Import again, the lists are added twice.
 
 ### Claim on sign-in
 
@@ -227,7 +232,8 @@ Rules in `localListTransfer.ts`, I/O in `useListTransfer.ts`. Both work signed i
   clears it.
 - It sends the device's own `device_id` and the stored lists in **one request**. A
   `422`/`413` keeps the dialog open with the server's message so the user can uncheck
-  the list it names; other errors show "try again". Nothing on the device changes on
+  the list it names (or a generic "couldn't be uploaded" if the `detail` isn't one
+  sentence); a `401` says to sign in again; other errors show "try again". Nothing on the device changes on
   failure.
 - **On success** the uploaded lists are removed from the device and `claimed_at` is
   set, a toast reports the count and any renames, and the user lands on `/lists`.
@@ -257,8 +263,8 @@ Rules in `localListTransfer.ts`, I/O in `useListTransfer.ts`. Both work signed i
 - **Timestamps from the device are kept** (future ones clamped to now), so the lists
   page sorts the same after the claim.
 - Over `max_lists_per_import` or `max_import_bytes` is a `413`. The byte check runs
-  after the body is read, so the edge cap in
-  [DEPLOYMENT_TOPOLOGY_PLAN.md](DEPLOYMENT_TOPOLOGY_PLAN.md) is still needed.
+  after the body is read, so the body-size limit planned in
+  [ABUSE_PROTECTION_PLAN.md](ABUSE_PROTECTION_PLAN.md) §Request hygiene is still needed.
 - Returns `200` (a retry creates nothing): `{ lists: [{ local_id, outcome, list,
   renamed_from }] }`.
 

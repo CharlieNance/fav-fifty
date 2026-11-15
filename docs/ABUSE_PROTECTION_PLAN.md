@@ -98,10 +98,17 @@ lists per request.
 - Combined with the 50-item cap, they bound worst-case storage per account to a few
   MB.
 - The **50-item cap stays fixed in code.** It's the product's identity, not a tunable.
+- **Import counts against the lists-per-user cap.** `POST /lists/import` must check
+  existing + incoming against `max_lists_per_user`, all or nothing like the rest of the
+  import, or one import can take an account past it. Not checked today because the cap
+  doesn't exist yet.
 
 ### Request hygiene
 
-- **Body-size limit middleware:** default 64 KB, import 1 MB. Neither Uvicorn nor
+- **Body-size limit middleware:** default 64 KB, import 5 MiB (the
+  `limits.max_import_bytes` runtime setting, which the import route already checks
+  once the body is read, and which the frontend's file check uses too). 100 full lists
+  is about 2 MB, so 1 MB would undercut `max_lists_per_import`. Neither Uvicorn nor
   FastAPI caps bodies by default. Reject early with `413`.
 - **Database `statement_timeout`** (e.g. 5 s) on app connections, so a pathological
   query (e.g. `ILIKE` search) can't pin the box's CPU.

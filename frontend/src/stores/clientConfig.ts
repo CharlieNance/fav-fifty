@@ -5,13 +5,15 @@ import { apiFetch } from '@/api/client'
 
 /**
  * The limits served by `GET /config/client` (snake_case, matching the wire). See
- * backend `app/schemas/config.py`: `max_tags_per_list` and `max_lists_per_import`
- * are runtime settings, the rest are the fixed limits from `app/core/limits.py`.
+ * backend `app/schemas/config.py`: `max_tags_per_list`, `max_lists_per_import` and
+ * `max_import_bytes` are runtime settings, the rest are the fixed limits from `app/core/limits.py`.
  */
 export interface ClientLimits {
   max_tags_per_list: number
   /** Most lists one `POST /lists/import` may carry (the claim dialog, an account's file import). */
   max_lists_per_import: number
+  /** Largest import file (or `POST /lists/import` body) accepted, in bytes. */
+  max_import_bytes: number
   max_items_per_list: number
   max_title_length: number
   max_item_text_length: number
@@ -28,6 +30,7 @@ export interface ClientLimits {
 export const DEFAULT_LIMITS: Readonly<ClientLimits> = Object.freeze({
   max_tags_per_list: 25,
   max_lists_per_import: 100,
+  max_import_bytes: 5 * 1024 * 1024,
   max_items_per_list: 50,
   max_title_length: 200,
   max_item_text_length: 500,
