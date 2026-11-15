@@ -13,12 +13,15 @@ import { apiFetch } from '@/api/client'
 import ItemFormModal from './ItemFormModal.vue'
 import { makeItem } from './itemTestUtils'
 import type { ListItem } from './types'
+import { pinApiRepository } from './repositoryTestUtils'
 
 const apiFetchMock = vi.mocked(apiFetch)
 
 function mountModal(item: ListItem | null = null) {
   return mount(ItemFormModal, { props: { listId: 'list-1', item } })
 }
+
+pinApiRepository()
 
 describe('ItemFormModal', () => {
   beforeEach(() => {

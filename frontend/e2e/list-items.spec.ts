@@ -39,7 +39,7 @@ async function addItem(page: Page, text: string, note?: string): Promise<void> {
 
 test('build, edit, reorder, and prune a ranked list end-to-end', async ({ page }) => {
   // — Sign in via the dev stub and create a fresh list —
-  await page.goto('/lists')
+  await page.goto('/login')
   await page.getByRole('button', { name: /dev login/i }).click()
   await expect(page.getByRole('heading', { name: 'My lists' })).toBeVisible()
 

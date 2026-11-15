@@ -13,8 +13,10 @@
  *     const created = await run((repo) => repo.createItem(listId, draft)) // null on failure
  *
  * On failure `error` is the storage layer's own copy when the error's kind is
- * listed in `showDetailFor` (and it wrote some), otherwise `fallback`. `errorKind`
- * lets callers branch on the reason (e.g. a "not found" page).
+ * listed in `showDetailFor` (and it wrote some), otherwise `fallback`. A `storage`
+ * error always shows its own copy, since it's the only explanation of why the
+ * device won't save. `errorKind` lets callers branch on the reason (e.g. a
+ * "not found" page).
  */
 import { ref } from 'vue'
 
@@ -49,10 +51,9 @@ export function useListAction(options: ListActionOptions) {
     } catch (caught) {
       const listError = toListError(caught)
       errorKind.value = listError.kind
-      error.value =
-        listError.detail && options.showDetailFor?.includes(listError.kind)
-          ? listError.detail
-          : options.fallback
+      const showDetail =
+        listError.kind === 'storage' || options.showDetailFor?.includes(listError.kind)
+      error.value = listError.detail && showDetail ? listError.detail : options.fallback
       return null
     } finally {
       pending.value = false

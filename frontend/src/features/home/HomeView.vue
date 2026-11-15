@@ -3,34 +3,32 @@
 // public-lists discovery grid from the mock is intentionally deferred until the
 // sharing feature exists (Phase 3, see docs/NEXT_STEPS.md) so we don't ship
 // placeholder data. The single CTA routes through the shared "start a list"
-// action, which gates on auth (see useStartList).
+// action, which opens the create modal for everyone (see useStartList).
 import { computed, onMounted } from 'vue'
 
 import BaseButton from '@/components/BaseButton.vue'
 import { useLists } from '@/features/lists/useLists'
+import { useListsRefresh } from '@/features/lists/useListsRefresh'
 import { useStartList } from '@/features/lists/useStartList'
-import { useAuthStore } from '@/stores/auth'
 
-const auth = useAuthStore()
 const { startList } = useStartList()
 const { status, lists, load } = useLists()
 
 // "Your first list" is a promise we can only keep for someone who hasn't made
-// one, so ask — but only for a signed-in visitor, since `GET /lists` is theirs
-// and would just 401 for anyone else. Cheap enough at this scale, and the whole
-// CTA is provisional: the discovery grid may replace it before launch.
-onMounted(() => {
-  if (auth.isAuthenticated) {
-    void load()
-  }
-})
+// one, so ask: the account's lists when signed in, this device's otherwise. Cheap
+// enough at this scale, and the whole CTA is provisional: the discovery grid may
+// replace it before launch.
+function reload(): void {
+  void load()
+}
+onMounted(reload)
+useListsRefresh(reload)
 
-// Signed out, the visitor is a first-timer as far as we know. Signed in, we only
-// say "first" once the fetch actually confirms they have none — while it's in
-// flight (or if it failed) the neutral wording is the safer guess, since telling
-// someone with fifty lists to make their first one is the worse mistake.
+// Only say "first" once the load confirms they have none. While it's in flight
+// (or if it failed) the neutral wording is the safer guess, since telling someone
+// with fifty lists to make their first one is the worse mistake.
 const ctaLabel = computed(() =>
-  !auth.isAuthenticated || (status.value === 'success' && lists.value.length === 0)
+  status.value === 'success' && lists.value.length === 0
     ? 'Make your first list'
     : 'Start a new list',
 )

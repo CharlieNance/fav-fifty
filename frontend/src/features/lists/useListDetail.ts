@@ -16,7 +16,7 @@ export type ListDetailStatus = 'idle' | 'loading' | 'success' | 'not-found' | 'e
 export function useListDetail() {
   const status = ref<ListDetailStatus>('idle')
   const list = ref<ListSummary | null>(null)
-  const { errorKind, run } = useListAction({ fallback: 'Could not load the list.' })
+  const { error, errorKind, run } = useListAction({ fallback: 'Could not load the list.' })
 
   async function load(id: string): Promise<void> {
     status.value = 'loading'
@@ -35,5 +35,6 @@ export function useListDetail() {
     }
   }
 
-  return { status, list, load, updateList }
+  /** Why the load failed. Only a `storage` failure's copy is worth showing (see useLists). */
+  return { status, list, error, errorKind, load, updateList }
 }

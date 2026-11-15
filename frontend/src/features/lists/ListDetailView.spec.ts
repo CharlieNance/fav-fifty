@@ -1,7 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
-import { flushPromises, mount } from '@vue/test-utils'
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 import { VueDraggable } from 'vue-draggable-plus'
 
 import { ApiError } from '@/api/client'
@@ -15,6 +15,11 @@ vi.mock('@/api/client', async (importOriginal) => {
 import { apiFetch } from '@/api/client'
 import { makeItems } from './itemTestUtils'
 import ListDetailView from './ListDetailView.vue'
+import { useAuthStore } from '@/stores/auth'
+import { ListError } from './listErrors'
+import { apiListRepository } from './listRepository'
+import { pinApiRepository } from './repositoryTestUtils'
+import { setListRepository, useListRepository } from './useListRepository'
 
 const apiFetchMock = vi.mocked(apiFetch)
 
@@ -65,6 +70,10 @@ async function mountAtDetail(router: Router, id = 'list-1') {
   await router.isReady()
   return mount({ template: '<router-view />' }, { global: { plugins: [router] } })
 }
+
+pinApiRepository()
+// Unmount each test's page, so its storage listener doesn't outlive the test.
+enableAutoUnmount(afterEach)
 
 describe('ListDetailView', () => {
   beforeEach(() => {
@@ -409,5 +418,47 @@ describe('ListDetailView', () => {
       expect(apiFetchMock).toHaveBeenCalledWith('/lists/list-1', { method: 'DELETE' })
       expect(router.currentRoute.value.name).toBe('lists')
     })
+  })
+})
+
+describe('ListDetailView across storages', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    apiFetchMock.mockReset()
+    localStorage.clear()
+    // The real choice between device and API storage, not the pinned API.
+    setListRepository(null)
+  })
+
+  afterEach(() => {
+    localStorage.clear()
+  })
+
+  it("shows an anonymous visitor's device list, then not-found once they sign in", async () => {
+    const created = await useListRepository().createList('On this device')
+    const wrapper = await mountAtDetail(testRouter(), created.id)
+    await flushPromises()
+    expect(wrapper.get('h1').text()).toBe('On this device')
+    expect(apiFetchMock).not.toHaveBeenCalled()
+
+    // The device id means nothing to the account: same as a stale bookmark.
+    mockApi({ [`GET /lists/${created.id}`]: new ApiError(404, 'Not found') })
+    useAuthStore().user = { id: 'u-1', display_name: 'Dev', avatar_url: null }
+    await flushPromises()
+
+    expect(wrapper.text()).toContain("doesn't exist")
+    expect(wrapper.text()).not.toContain('On this device')
+  })
+
+  it("shows why the device can't load the list when storage is blocked", async () => {
+    setListRepository({
+      ...apiListRepository,
+      getList: () => Promise.reject(new ListError('storage', 'Reload the page to see them.')),
+    })
+    const wrapper = await mountAtDetail(testRouter())
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Reload the page to see them.')
+    expect(wrapper.text()).not.toContain('Something went wrong')
   })
 })

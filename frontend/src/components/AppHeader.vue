@@ -52,13 +52,15 @@ watch(
 
     <!-- Auth-aware controls -->
     <nav class="flex items-center gap-3 sm:gap-4">
+      <!-- Everyone has lists: the account's, or this device's when anonymous. -->
+      <RouterLink
+        to="/lists"
+        class="text-sm font-medium text-muted transition-colors hover:text-ink"
+      >
+        My lists
+      </RouterLink>
+
       <template v-if="isAuthenticated">
-        <RouterLink
-          to="/lists"
-          class="text-sm font-medium text-muted transition-colors hover:text-ink"
-        >
-          My lists
-        </RouterLink>
         <div class="flex items-center gap-2">
           <img
             v-if="user?.avatar_url && !avatarFailed"

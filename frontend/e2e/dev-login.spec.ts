@@ -5,17 +5,16 @@ import { test, expect } from '@playwright/test'
 // automated browser (see docs/SETUP.md §3). Requires the backend to be in
 // APP_ENV=development with no COGNITO_* values set — the default from
 // backend/.env.example — so POST /auth/dev-login is live instead of 404ing.
-test('dev login unlocks a protected route', async ({ page }) => {
-  await page.goto('/lists')
-
-  // The auth guard redirects unauthenticated visitors to /login.
-  await expect(page).toHaveURL(/\/login/)
+test('signing in sends you back to the page you came from', async ({ page }) => {
+  // The kind of link a protected page (e.g. publishing, later) will send you to.
+  await page.goto('/login?redirect=/lists')
 
   await page.getByRole('button', { name: /dev login/i }).click()
 
-  // Signing in sends the user back to the page they originally asked for.
   await expect(page).toHaveURL(/\/lists$/)
   await expect(page.getByRole('heading', { name: 'My lists' })).toBeVisible()
+  // Signed in, so these are the account's lists, not the device's.
+  await expect(page.getByText('Saved on this device only')).toBeHidden()
 })
 
 test('signing in with no destination in mind lands on your lists', async ({ page }) => {

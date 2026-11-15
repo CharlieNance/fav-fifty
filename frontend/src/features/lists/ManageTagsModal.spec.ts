@@ -12,6 +12,7 @@ vi.mock('@/api/client', async (importOriginal) => {
 
 import { apiFetch } from '@/api/client'
 import ManageTagsModal from './ManageTagsModal.vue'
+import { pinApiRepository } from './repositoryTestUtils'
 
 const apiFetchMock = vi.mocked(apiFetch)
 
@@ -28,6 +29,8 @@ const LIST: ListSummary = {
 function tagChips(wrapper: VueWrapper): string[] {
   return wrapper.findAll('li').map((li) => li.text())
 }
+
+pinApiRepository()
 
 describe('ManageTagsModal', () => {
   beforeEach(() => {

@@ -1,4 +1,5 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { createPinia, setActivePinia } from 'pinia'
 
 import { ApiError } from '@/api/client'
 import { ListError } from './listErrors'
@@ -7,6 +8,11 @@ import { useListAction } from './useListAction'
 import { setListRepository } from './useListRepository'
 
 describe('useListAction', () => {
+  // The active repository depends on the auth store.
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
   afterEach(() => {
     setListRepository(null)
   })
@@ -64,6 +70,13 @@ describe('useListAction', () => {
     })
     await run(() => Promise.reject(new ListError('conflict', 'This list already has 50 items.')))
     expect(error.value).toBe('This list already has 50 items.')
+  })
+
+  it("always shows a storage error's own copy, listed or not", async () => {
+    const { run, error, errorKind } = useListAction({ fallback: 'Could not do it.' })
+    await run(() => Promise.reject(new ListError('storage', 'Your browser isn’t letting us save.')))
+    expect(errorKind.value).toBe('storage')
+    expect(error.value).toBe('Your browser isn’t letting us save.')
   })
 
   it('falls back when a listed kind has no detail', async () => {

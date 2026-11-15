@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter, type Router } from 'vue-router'
-import { flushPromises, mount } from '@vue/test-utils'
+import { enableAutoUnmount, flushPromises, mount } from '@vue/test-utils'
 
 import { ApiError } from '@/api/client'
 import type { ListSummary } from './types'
@@ -15,6 +15,12 @@ vi.mock('@/api/client', async (importOriginal) => {
 import { apiFetch } from '@/api/client'
 import ListsView from './ListsView.vue'
 import TagChip from './TagChip.vue'
+import { useAuthStore } from '@/stores/auth'
+import { ListError } from './listErrors'
+import { apiListRepository, type ListRepository } from './listRepository'
+import { STORAGE_KEY } from './localListDocument'
+import { pinApiRepository } from './repositoryTestUtils'
+import { setListRepository } from './useListRepository'
 
 const apiFetchMock = vi.mocked(apiFetch)
 
@@ -56,6 +62,10 @@ async function mountAtLists(router: Router, path = '/lists') {
   await router.isReady()
   return mount({ template: '<router-view />' }, { global: { plugins: [router] } })
 }
+
+pinApiRepository()
+// Unmount each test's page, so its storage listener doesn't outlive the test.
+enableAutoUnmount(afterEach)
 
 describe('ListsView', () => {
   beforeEach(() => {
@@ -142,17 +152,6 @@ describe('ListsView', () => {
 
     expect(useListModalsStore().isCreateOpen).toBe(true)
     expect(router.currentRoute.value.name).toBe('lists')
-  })
-
-  it('opens the create modal on mount when redirected here with ?openCreate=1', async () => {
-    apiFetchMock.mockResolvedValueOnce([])
-    const router = testRouter()
-
-    await mountAtLists(router, '/lists?openCreate=1')
-    await flushPromises()
-
-    expect(useListModalsStore().isCreateOpen).toBe(true)
-    expect(router.currentRoute.value.query.openCreate).toBeUndefined()
   })
 
   it('the edit icon opens EditListModal for that row without navigating', async () => {
@@ -373,5 +372,75 @@ describe('ListsView', () => {
       expect(apiFetchMock).toHaveBeenLastCalledWith('/lists')
       expect(wrapper.text()).toContain('Favorite albums')
     })
+  })
+})
+
+describe('ListsView for anonymous visitors and storage changes', () => {
+  let getLists: ReturnType<typeof vi.fn<ListRepository['getLists']>>
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    getLists = vi.fn<ListRepository['getLists']>().mockResolvedValue(LISTS)
+    setListRepository({ ...apiListRepository, getLists })
+  })
+
+  const signIn = () => {
+    useAuthStore().user = { id: 'u-1', display_name: 'Dev', avatar_url: null }
+  }
+
+  it('tells an anonymous visitor their lists are saved on this device only', async () => {
+    const wrapper = await mountAtLists(testRouter())
+    await flushPromises()
+    expect(wrapper.text()).toContain('Saved on this device only')
+  })
+
+  it("doesn't show the device note to a signed-in user", async () => {
+    signIn()
+    const wrapper = await mountAtLists(testRouter())
+    await flushPromises()
+    expect(wrapper.text()).not.toContain('Saved on this device only')
+  })
+
+  it("shows why the device can't load lists when storage is blocked", async () => {
+    getLists.mockRejectedValueOnce(new ListError('storage', 'Your browser isn’t letting us save.'))
+    const wrapper = await mountAtLists(testRouter())
+    await flushPromises()
+    expect(wrapper.text()).toContain('Your browser isn’t letting us save.')
+    expect(wrapper.text()).not.toContain('Something went wrong')
+  })
+
+  it('reloads from the new storage when the visitor signs in', async () => {
+    await mountAtLists(testRouter())
+    await flushPromises()
+    expect(getLists).toHaveBeenCalledTimes(1)
+
+    signIn()
+    await flushPromises()
+
+    expect(getLists).toHaveBeenCalledTimes(2)
+  })
+
+  it("reloads when another tab changes this device's lists", async () => {
+    await mountAtLists(testRouter())
+    await flushPromises()
+
+    window.dispatchEvent(new StorageEvent('storage', { key: 'unrelated' }))
+    await flushPromises()
+    expect(getLists).toHaveBeenCalledTimes(1)
+
+    window.dispatchEvent(new StorageEvent('storage', { key: STORAGE_KEY }))
+    await flushPromises()
+    expect(getLists).toHaveBeenCalledTimes(2)
+  })
+
+  it("ignores another tab's device changes while signed in", async () => {
+    signIn()
+    await mountAtLists(testRouter())
+    await flushPromises()
+
+    window.dispatchEvent(new StorageEvent('storage', { key: STORAGE_KEY }))
+    await flushPromises()
+
+    expect(getLists).toHaveBeenCalledTimes(1)
   })
 })

@@ -305,6 +305,18 @@ describe('storage', () => {
     await rejection(blocked.getLists(), 'storage')
     await rejection(blocked.createList('A'), 'storage')
   })
+
+  it('asks the browser to keep its storage once, after the first list is saved', async () => {
+    const requestPersistence = vi.fn()
+    const asking = createLocalListRepository({ store, limits: () => limits, requestPersistence })
+
+    await rejection(asking.createList(''), 'invalid')
+    expect(requestPersistence).not.toHaveBeenCalled()
+
+    await asking.createList('A')
+    await asking.createList('B')
+    expect(requestPersistence).toHaveBeenCalledTimes(1)
+  })
 })
 
 describe('limits', () => {

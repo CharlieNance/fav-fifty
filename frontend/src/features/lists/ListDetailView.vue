@@ -26,12 +26,20 @@ import { useDeleteList } from './useDeleteList'
 import { useListDetail } from './useListDetail'
 import { useListItems } from './useListItems'
 import { useListModalsStore } from './useListModals'
+import { useListsRefresh } from './useListsRefresh'
 import { useReorderItem } from './useReorderItem'
 
 const route = useRoute()
 const router = useRouter()
 
-const { status, list, load, updateList } = useListDetail()
+const {
+  status,
+  list,
+  error: loadError,
+  errorKind: loadErrorKind,
+  load,
+  updateList,
+} = useListDetail()
 const {
   status: itemsStatus,
   items,
@@ -88,6 +96,10 @@ onMounted(() => {
 onBeforeRouteUpdate((to) => {
   void loadAll(to.params.id as string)
 })
+
+// Sign-in/out switches storage (a device list's id then shows "not found", as a
+// stale bookmark would), and another tab can change or delete this list.
+useListsRefresh(() => void loadAll(listId.value))
 
 function handleRenamed(updated: ListSummary): void {
   updateList(updated)
@@ -198,6 +210,10 @@ function nudge(item: ListItem, direction: -1 | 1): void {
     <p v-else-if="status === 'not-found'" class="text-muted">
       This list doesn't exist, or you don't have access to it.
       <RouterLink :to="{ name: 'lists' }" class="text-ink underline">Back to my lists</RouterLink>
+    </p>
+
+    <p v-else-if="status === 'error' && loadErrorKind === 'storage'" class="text-muted">
+      {{ loadError }}
     </p>
 
     <p v-else-if="status === 'error'" class="text-muted">

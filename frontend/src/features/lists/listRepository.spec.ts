@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { createPinia, setActivePinia } from 'pinia'
+
 import { ApiError } from '@/api/client'
 import type { ListItemDraft } from './types'
 
@@ -11,7 +13,9 @@ vi.mock('@/api/client', async (importOriginal) => {
 import { apiFetch } from '@/api/client'
 import { ListError } from './listErrors'
 import { apiListRepository, type ListRepository } from './listRepository'
+import { STORAGE_KEY } from './localListDocument'
 import { setListRepository, useListRepository } from './useListRepository'
+import { useAuthStore } from '@/stores/auth'
 
 const apiFetchMock = vi.mocked(apiFetch)
 
@@ -84,15 +88,46 @@ describe('apiListRepository', () => {
 })
 
 describe('useListRepository', () => {
-  afterEach(() => {
-    setListRepository(null)
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    localStorage.clear()
+    apiFetchMock.mockReset()
   })
 
-  it('defaults to the API repository', () => {
+  afterEach(() => {
+    setListRepository(null)
+    localStorage.clear()
+  })
+
+  const signIn = () => {
+    useAuthStore().user = { id: 'u-1', display_name: 'Dev', avatar_url: null }
+  }
+
+  it('uses the API for a signed-in user', () => {
+    signIn()
     expect(useListRepository()).toBe(apiListRepository)
   })
 
+  it("keeps an anonymous visitor's lists on this device, without calling the API", async () => {
+    const repo = useListRepository()
+    expect(repo).not.toBe(apiListRepository)
+
+    await repo.createList('Device list')
+
+    expect(apiFetchMock).not.toHaveBeenCalled()
+    expect(localStorage.getItem(STORAGE_KEY)).toContain('Device list')
+  })
+
+  it('switches storage as soon as the user signs in or out', () => {
+    const anonymous = useListRepository()
+    signIn()
+    expect(useListRepository()).toBe(apiListRepository)
+    useAuthStore().user = null
+    expect(useListRepository()).toBe(anonymous)
+  })
+
   it('returns an injected repository until it is cleared', () => {
+    signIn()
     const fake = { ...apiListRepository }
     setListRepository(fake)
     expect(useListRepository()).toBe(fake)

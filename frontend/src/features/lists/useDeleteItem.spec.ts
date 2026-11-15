@@ -7,8 +7,11 @@ vi.mock('@/api/client', async (importOriginal) => {
 
 import { apiFetch } from '@/api/client'
 import { useDeleteItem } from './useDeleteItem'
+import { pinApiRepository } from './repositoryTestUtils'
 
 const apiFetchMock = vi.mocked(apiFetch)
+
+pinApiRepository()
 
 describe('useDeleteItem', () => {
   beforeEach(() => {

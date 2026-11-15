@@ -16,6 +16,11 @@
  *
  * Every call reads the document fresh from storage, applies the change, and writes
  * it back. A call that fails writes nothing.
+ *
+ * Creating a list also asks the browser, once, to keep this site's storage
+ * (`navigator.storage.persist()`), so it's less likely to be evicted. It's a
+ * request, not a guarantee, and it's made on a click rather than on page load
+ * because some browsers (Firefox) show a prompt for it.
  */
 import { getActivePinia } from 'pinia'
 
@@ -39,6 +44,13 @@ export interface LocalListRepositoryOptions {
   limits?: () => ClientLimits
   now?: () => string
   newId?: () => string
+  /** Asks the browser to keep this site's storage. Defaults to `navigator.storage.persist()`. */
+  requestPersistence?: () => void
+}
+
+function requestPersistentStorage(): void {
+  // Best effort: missing in older browsers, and a refusal changes nothing for us.
+  navigator.storage?.persist?.().catch(() => {})
 }
 
 function defaultLimits(): ClientLimits {
@@ -102,6 +114,8 @@ export function createLocalListRepository(
   const newId = options.newId ?? (() => crypto.randomUUID())
   const store = options.store ?? createDocumentStore({ now, newId })
   const limits = options.limits ?? defaultLimits
+  const requestPersistence = options.requestPersistence ?? requestPersistentStorage
+  let persistenceRequested = false
 
   /** The stored document, or an empty one (not saved until something changes). */
   function read(): LocalListsDocument {
@@ -136,7 +150,7 @@ export function createLocalListRepository(
 
     async createList(title) {
       const validTitle = validateTitle(title, limits())
-      return write((doc) => {
+      const created = write((doc) => {
         const timestamp = now()
         const list: LocalList = {
           local_id: newId(),
@@ -149,6 +163,11 @@ export function createLocalListRepository(
         doc.lists.push(list)
         return toSummary(list)
       })
+      if (!persistenceRequested) {
+        persistenceRequested = true
+        requestPersistence()
+      }
+      return created
     },
 
     async renameList(id, title) {

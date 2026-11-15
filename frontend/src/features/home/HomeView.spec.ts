@@ -10,6 +10,8 @@ vi.mock('@/api/client', async (importOriginal) => {
 
 import { apiFetch } from '@/api/client'
 import type { ListSummary } from '@/features/lists/types'
+import { useListModalsStore } from '@/features/lists/useListModals'
+import { useListRepository } from '@/features/lists/useListRepository'
 import { useAuthStore } from '@/stores/auth'
 import HomeView from './HomeView.vue'
 
@@ -54,6 +56,7 @@ describe('HomeView', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     apiFetchMock.mockReset()
+    localStorage.clear()
   })
 
   it('renders the hero headline', async () => {
@@ -61,20 +64,30 @@ describe('HomeView', () => {
     expect(wrapper.text()).toContain('Stop stopping at your top 10.')
   })
 
-  it('sends an anonymous visitor to login when they start a list', async () => {
+  it('opens the create modal for an anonymous visitor, without sending them to login', async () => {
     const { wrapper, router } = await mountHome()
 
     await wrapper.get('button').trigger('click')
     await flushPromises()
 
-    expect(router.currentRoute.value.name).toBe('login')
-    expect(router.currentRoute.value.query.redirect).toBe('/lists?openCreate=1')
+    expect(useListModalsStore().isCreateOpen).toBe(true)
+    expect(router.currentRoute.value.name).toBe('home')
   })
 
   it('pitches a first list to an anonymous visitor without asking the API', async () => {
     const { wrapper } = await mountHome()
 
     expect(wrapper.get('button').text()).toBe('Make your first list')
+    expect(apiFetchMock).not.toHaveBeenCalled()
+  })
+
+  it('invites an anonymous visitor with a list on this device to start another', async () => {
+    // Write through the same storage the page reads (the visitor is anonymous).
+    await useListRepository().createList('Saved earlier')
+
+    const { wrapper } = await mountHome()
+
+    expect(wrapper.get('button').text()).toBe('Start a new list')
     expect(apiFetchMock).not.toHaveBeenCalled()
   })
 

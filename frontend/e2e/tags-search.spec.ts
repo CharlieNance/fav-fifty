@@ -26,7 +26,7 @@ async function search(page: Page, query: string): Promise<void> {
 
 test('add a tag, see it on the index, and find the list by searching', async ({ page }) => {
   // — Sign in via the dev stub and create a fresh list —
-  await page.goto('/lists')
+  await page.goto('/login')
   await page.getByRole('button', { name: /dev login/i }).click()
   await expect(page.getByRole('heading', { name: 'My lists' })).toBeVisible()
 

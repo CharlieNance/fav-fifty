@@ -12,7 +12,7 @@ up later. This is **Track 1** in [NEXT_STEPS.md](NEXT_STEPS.md). **Decided in
 
 ## Status and where to start
 
-*Last checked against the code: 2026-11-14 (after Track 0 merged).*
+*Last checked against the code: 2026-11-14 (after PR 4).*
 
 - **PR 1 (repository refactor) is done** on `feat/track1_anon_local_list`. All 11
   call sites go through the layers described in [§Layers](#layers-as-built-in-pr-1).
@@ -23,8 +23,8 @@ up later. This is **Track 1** in [NEXT_STEPS.md](NEXT_STEPS.md). **Decided in
   The frontend reads them from the `clientConfig` store
   ([clientConfig.ts](../frontend/src/stores/clientConfig.ts)), which starts with bundled
   defaults and loads the server's values in the background from `main.ts`.
-- **PR 3 (`LocalListRepository`) is done** on the same branch, with unit tests, but
-  isn't wired up yet. It's split into three modules:
+- **PR 3 (`LocalListRepository`) is done** on the same branch, with unit tests. It's
+  split into three modules:
   - [listRules.ts](../frontend/src/features/lists/listRules.ts): the backend's
     validators, error copy included, reading the limits from the `clientConfig`
     store. Lengths count code points, as Python and Postgres do.
@@ -32,8 +32,29 @@ up later. This is **Track 1** in [NEXT_STEPS.md](NEXT_STEPS.md). **Decided in
     the format, the migrations, the untrusted-data parser and `localStorage` I/O.
   - [localListRepository.ts](../frontend/src/features/lists/localListRepository.ts):
     `createLocalListRepository()`.
-- **Next: PR 4 or 6.** PR 4 is unblocked now; PR 6 never depended on anything (see
+- **PR 4 (anonymous visitors) is done** on the same branch:
+  - `/lists` and `/lists/:id` are open to everyone. `useListRepository()` returns the
+    API when signed in and the local repository otherwise, resolved per call.
+  - "Start a list" opens the create modal for everyone. `START_LIST_REDIRECT` and the
+    `?openCreate=1` handling are gone (the login page never used them).
+  - [useListsRefresh.ts](../frontend/src/features/lists/useListsRefresh.ts) reloads the
+    lists page, the detail page and the home CTA when `isAuthenticated` changes, and
+    on another tab's `storage` event while anonymous.
+  - The header shows "My lists" to everyone. The lists page tells anonymous visitors
+    "Saved on this device only".
+  - `useListAction` always shows a `storage` error's own copy, and both pages show it
+    in place of the generic load error.
+  - The first list created on the device calls `navigator.storage.persist()`, on the
+    click rather than on page load, because Firefox prompts for it.
+  - Specs that mock `apiFetch` pin the API repository with `pinApiRepository()`
+    ([repositoryTestUtils.ts](../frontend/src/features/lists/repositoryTestUtils.ts)).
+    New Playwright spec: [anonymous-lists.spec.ts](../frontend/e2e/anonymous-lists.spec.ts).
+- **Next: PR 5 (export/import a file), then PR 6.** PR 5 is the only backup an
+  anonymous user has, so it should follow PR 4 closely (see
   [§Build order](#build-order-small-shippable-prs)).
+- **Not in PR 4, still open:** the reminder banner (2+ lists or 20+ items) and the
+  "keep your lists safe" sign-in prompt. Both point at sign-in, which only keeps device
+  lists once the claim dialog (PR 7) exists, so they wait for it.
 - **Decisions made while building PR 3:**
   - **A new `ListErrorKind`, `storage`,** for blocked storage, a full quota, or a
     document saved by a newer app version. Its `detail` is always user-facing copy,
@@ -441,7 +462,7 @@ third implementation if the Safari wipe turns out to bite real users.
 | 1 | **Repository refactor**: `ListRepository`, `ApiListRepository`, `useListRepository()`; move all 11 call sites | Frontend | No | Done |
 | 2 | **Shared limits**: backend constants module, new `ClientLimits` fields, frontend config store with bundled defaults | Both | No | Done |
 | 3 | **`LocalListRepository`** plus the storage format, schema validation and migrations, with unit tests (not wired up yet) | Frontend | No | Done |
-| 4 | **Unlock the routes for anonymous users**, `useStartList` change, repository switching, "Saved on this device" copy | Frontend | Yes | Not started |
+| 4 | **Unlock the routes for anonymous users**, `useStartList` change, repository switching, "Saved on this device" copy | Frontend | Yes | Done |
 | 5 | **Export/import a file** | Frontend | Yes | Not started |
 | 6 | **`POST /api/v1/lists/import`**, its migration, runtime setting and tests | Backend | No | Not started |
 | 7 | **Claim dialog** wired to the import, plus Playwright e2e | Frontend | Yes | Not started |
