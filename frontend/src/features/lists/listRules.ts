@@ -104,6 +104,22 @@ export function normalizeTags(names: string[], limits: ClientLimits): string[] {
   return deduped
 }
 
+/** The server's wording when an account is at `max_lists_per_user` (`POST /lists`). */
+export function listQuotaDetail(max: number): string {
+  return `You can have at most ${max} lists. Delete one to make room.`
+}
+
+/**
+ * The server's wording when an import would take an account past
+ * `max_lists_per_user` (`POST /lists/import`).
+ */
+export function importQuotaDetail(have: number, adding: number, max: number): string {
+  return (
+    `You have ${have} lists, and this would add ${adding}. The limit is ${max}, ` +
+    'so delete some lists first or upload fewer.'
+  )
+}
+
 /**
  * `title`, or `"title (2)"`, `"title (3)"`, … if a list already uses it. `taken`
  * holds the titles in use, lower-cased (the match ignores case). The base is

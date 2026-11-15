@@ -21,6 +21,11 @@ export type ListErrorKind =
    * `detail` always says which, in user-facing copy.
    */
   | 'storage'
+  /**
+   * A `429`: too many requests too fast (or too many changes today). `detail` is
+   * always the server's user-facing copy; waiting a moment fixes it.
+   */
+  | 'rate-limited'
   /** A `401`: the session ended (or was never there). Signing in again fixes it. */
   | 'unauthenticated'
   /** Anything else: network failure, server error. */
@@ -47,6 +52,7 @@ const KIND_BY_STATUS: Record<number, ListErrorKind> = {
   // The user fixes it by sending less, so it's a validation failure.
   413: 'invalid',
   422: 'invalid',
+  429: 'rate-limited',
 }
 
 /** Translate whatever the API layer threw into a `ListError` (keeping the original as `cause`). */

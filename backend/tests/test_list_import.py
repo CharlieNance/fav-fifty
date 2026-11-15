@@ -252,7 +252,9 @@ def test_import_retries_once_when_a_concurrent_request_wins_the_race(
 
     monkeypatch.setattr(list_import_service, "_write", racing_once)
 
-    [outcome] = list_import_service.import_lists(db_session, fresh_user.id, request, max_tags=25)
+    [outcome] = list_import_service.import_lists(
+        db_session, fresh_user.id, request, max_tags=25, max_lists=100
+    )
 
     assert attempts == 2
     assert outcome.already_imported
@@ -457,6 +459,52 @@ def test_an_oversized_body_is_a_413(
 
     assert response.status_code == 413
     assert fresh_user_client.get("/lists").json() == []
+
+
+def test_an_import_past_the_lists_per_user_quota_writes_nothing(
+    fresh_user_client: TestClient,
+    fresh_user: User,
+    db_session: Session,
+    set_runtime_settings: Callable[[RuntimeSettings], None],
+) -> None:
+    set_runtime_settings(RuntimeSettings(limits=Limits(max_lists_per_user=3)))
+    db_session.add(List(user_id=fresh_user.id, title="Already here"))
+    db_session.add(List(user_id=fresh_user.id, title="Deleted", deleted_at=datetime.now(UTC)))
+    db_session.commit()
+
+    response = fresh_user_client.post(
+        "/lists/import", json=_body(_list("A"), _list("B"), _list("C"))
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == (
+        "You have 1 lists, and this would add 3. The limit is 3, so delete some lists "
+        "first or upload fewer."
+    )
+    assert [row.title for row in _own_lists(db_session, fresh_user)] == ["Already here", "Deleted"]
+
+
+def test_an_import_exactly_at_the_quota_is_allowed(
+    fresh_user_client: TestClient, set_runtime_settings: Callable[[RuntimeSettings], None]
+) -> None:
+    set_runtime_settings(RuntimeSettings(limits=Limits(max_lists_per_user=2)))
+
+    response = fresh_user_client.post("/lists/import", json=_body(_list("A"), _list("B")))
+
+    assert response.status_code == 200
+
+
+def test_a_retry_doesnt_count_already_imported_lists_twice(
+    fresh_user_client: TestClient, set_runtime_settings: Callable[[RuntimeSettings], None]
+) -> None:
+    set_runtime_settings(RuntimeSettings(limits=Limits(max_lists_per_user=2)))
+    body = _body(_list("A"), _list("B"))
+    assert fresh_user_client.post("/lists/import", json=body).status_code == 200
+
+    response = fresh_user_client.post("/lists/import", json=body)
+
+    assert response.status_code == 200
+    assert [row["outcome"] for row in response.json()["lists"]] == ["already_imported"] * 2
 
 
 def test_import_requires_authentication(client: TestClient, db_session: Session) -> None:

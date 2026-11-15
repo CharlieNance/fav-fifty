@@ -25,7 +25,7 @@ def _user(db_session: Session, sub: str) -> User:
 
 
 def _list(db_session: Session, user: User, title: str = "My List") -> List:
-    return list_service.create_list(db_session, user.id, title)
+    return list_service.create_list(db_session, user.id, title, max_lists=100)
 
 
 def _items(db_session: Session, list_row: List, count: int) -> list[ListItem]:

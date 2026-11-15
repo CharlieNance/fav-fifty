@@ -14,6 +14,7 @@ const apiFetchMock = vi.mocked(apiFetch)
 
 const SERVED = {
   max_tags_per_list: 7,
+  max_lists_per_user: 12,
   max_lists_per_import: 40,
   max_import_bytes: 1_000_000,
   max_items_per_list: 50,

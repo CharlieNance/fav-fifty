@@ -10,7 +10,14 @@ from app.core.config import settings
 # pool_pre_ping checks a connection is alive before use, avoiding errors from
 # connections the database dropped while idle (relevant with Aurora Serverless v2
 # scaling down / pausing).
-engine = create_engine(settings.database_url, pool_pre_ping=True)
+#
+# statement_timeout is set per connection (libpq ``options``) so it covers every app
+# query; Alembic builds its own engine, so migrations aren't cut short by it.
+engine = create_engine(
+    settings.database_url,
+    pool_pre_ping=True,
+    connect_args={"options": f"-c statement_timeout={settings.db_statement_timeout_ms}"},
+)
 
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 

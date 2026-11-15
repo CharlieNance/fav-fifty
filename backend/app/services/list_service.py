@@ -7,11 +7,21 @@ HTTP app. Routes delegate here; the DB row is queried/mutated here and nowhere e
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from app.models.list import List
 from app.models.tag import Tag
+from app.models.user import User
+
+
+class TooManyListsError(Exception):
+    """The account is at its ``max_lists_per_user`` quota."""
+
+    def __init__(self, max_lists: int):
+        super().__init__(f"at most {max_lists} lists")
+        self.max_lists = max_lists
+
 
 # Escapes LIKE metacharacters (and the escape character itself) in user-supplied
 # search text, paired with `escape="\\"` on every `ilike()` call below — without
@@ -57,8 +67,31 @@ def list_for_user(db: Session, user_id: uuid.UUID, q: str | None = None) -> list
     return list(db.scalars(stmt.order_by(List.updated_at.desc())))
 
 
-def create_list(db: Session, user_id: uuid.UUID, title: str) -> List:
-    """Create a new list owned by ``user_id``. ``title`` is already validated/trimmed."""
+def lock_user_and_count_lists(db: Session, user_id: uuid.UUID) -> int:
+    """Lock ``user_id``'s row for this transaction and count their live lists.
+
+    The lock serializes list-creating requests per account (a double-click, or a
+    create racing an import), so two of them can't both see room under the quota
+    and together go past it. Other users are unaffected.
+    """
+    db.execute(select(User.id).where(User.id == user_id).with_for_update())
+    return (
+        db.scalar(
+            select(func.count(List.id)).where(List.user_id == user_id, List.deleted_at.is_(None))
+        )
+        or 0
+    )
+
+
+def create_list(db: Session, user_id: uuid.UUID, title: str, max_lists: int) -> List:
+    """Create a new list owned by ``user_id``. ``title`` is already validated/trimmed.
+
+    Raises ``TooManyListsError`` if the account already has ``max_lists`` live lists
+    (deleted ones don't count).
+    """
+    if lock_user_and_count_lists(db, user_id) >= max_lists:
+        db.rollback()  # Releases the row lock.
+        raise TooManyListsError(max_lists)
     row = List(user_id=user_id, title=title)
     db.add(row)
     db.commit()

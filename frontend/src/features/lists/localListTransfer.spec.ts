@@ -239,6 +239,20 @@ describe('mergeImportedLists', () => {
     ])
   })
 
+  it('refuses, changing nothing, an import past the lists-per-user quota', () => {
+    const doc = emptyDocument('this-device')
+    doc.lists.push(parse(file([list('Existing')])).lists[0]!)
+    const incoming = parse(file([list('A'), list('B', [], { local_id: 'b' })]))
+    const tight = { ...limits, max_lists_per_user: 2 }
+
+    expect(() =>
+      mergeImportedLists(doc, incoming, { newId: sequentialIds(), limits: tight }),
+    ).toThrowError(
+      'You have 1 lists, and this would add 2. The limit is 2, so delete some lists first or upload fewer.',
+    )
+    expect(doc.lists.map((l) => l.title)).toEqual(['Existing'])
+  })
+
   it('can import the same backup twice without an id clash', () => {
     const doc = emptyDocument('this-device')
     const newId = sequentialIds()

@@ -15,5 +15,11 @@ export default defineConfigWithVueTs(
   },
   pluginVue.configs['flat/essential'],
   vueTsConfigs.recommended,
+  {
+    // User content is untrusted: Vue's escaping is our XSS defence, and v-html
+    // bypasses it (docs/ABUSE_PROTECTION_PLAN.md §Layer 3).
+    name: 'app/security',
+    rules: { 'vue/no-v-html': 'error' },
+  },
   skipFormatting,
 )

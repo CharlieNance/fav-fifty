@@ -27,7 +27,7 @@ import { getActivePinia } from 'pinia'
 import { type ClientLimits, DEFAULT_LIMITS, useClientConfigStore } from '@/stores/clientConfig'
 import { ListError } from './listErrors'
 import type { ListRepository } from './listRepository'
-import { normalizeTags, validateItemDraft, validateTitle } from './listRules'
+import { listQuotaDetail, normalizeTags, validateItemDraft, validateTitle } from './listRules'
 import {
   createDocumentStore,
   type DocumentStore,
@@ -150,8 +150,13 @@ export function createLocalListRepository(
     },
 
     async createList(title) {
-      const validTitle = validateTitle(title, limits())
+      const currentLimits = limits()
+      const validTitle = validateTitle(title, currentLimits)
       const created = write((doc) => {
+        // Same quota as an account, so claiming these lists later can't fail on it.
+        if (doc.lists.length >= currentLimits.max_lists_per_user) {
+          throw new ListError('conflict', listQuotaDetail(currentLimits.max_lists_per_user))
+        }
         const timestamp = now()
         const list: LocalList = {
           local_id: newId(),

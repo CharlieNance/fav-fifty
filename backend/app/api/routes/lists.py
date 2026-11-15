@@ -2,10 +2,12 @@
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
+from app.api.rate_limits import limit_imports, limit_writes
+from app.core.limits import MAX_TITLE_LENGTH
 from app.core.runtime_settings import RuntimeSettings, get_runtime_settings
 from app.models.list import List
 from app.models.user import User
@@ -14,7 +16,8 @@ from app.schemas.list_import import ImportedListRead, ListsImport, ListsImportRe
 from app.schemas.tag import TagsUpdate
 from app.services import list_import_service, list_service, tag_service
 
-router = APIRouter(prefix="/lists", tags=["lists"])
+# Every write here counts against the user's write rate limits (reads don't).
+router = APIRouter(prefix="/lists", tags=["lists"], dependencies=[Depends(limit_writes)])
 
 
 def get_owned_list(
@@ -35,7 +38,7 @@ def get_owned_list(
 
 @router.get("", response_model=list[ListRead])
 def read_lists(
-    q: str | None = Query(default=None),
+    q: str | None = Query(default=None, max_length=MAX_TITLE_LENGTH),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> list[List]:
@@ -52,45 +55,39 @@ def create_list(
     payload: ListCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
+    runtime: RuntimeSettings = Depends(get_runtime_settings),
 ) -> List:
-    """Create a new list owned by the current user (401 if not logged in)."""
-    return list_service.create_list(db, current_user.id, payload.title)
+    """Create a new list owned by the current user (401 if not logged in).
 
-
-async def _import_body_within_limit(
-    request: Request, runtime: RuntimeSettings = Depends(get_runtime_settings)
-) -> None:
-    """413 if the import body is over ``max_import_bytes``.
-
-    By the time a dependency runs, FastAPI has already read the body, so this keeps
-    an oversized upload from reaching validation and the database, not from using
-    memory. The edge caps request size before it gets here
-    (docs/DEPLOYMENT_TOPOLOGY_PLAN.md).
+    409 if the account already has ``max_lists_per_user`` lists.
     """
-    max_bytes = runtime.limits.max_import_bytes
-    declared = request.headers.get("content-length", "")
-    if (declared.isdigit() and int(declared) > max_bytes) or len(await request.body()) > max_bytes:
-        raise HTTPException(
-            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
-            detail="That's too much to upload at once.",
+    try:
+        return list_service.create_list(
+            db, current_user.id, payload.title, max_lists=runtime.limits.max_lists_per_user
         )
+    except list_service.TooManyListsError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"You can have at most {exc.max_lists} lists. Delete one to make room.",
+        ) from None
 
 
-@router.post("/import", response_model=ListsImportResult)
+@router.post("/import", response_model=ListsImportResult, dependencies=[Depends(limit_imports)])
 def import_lists(
     payload: ListsImport,
     current_user: User = Depends(get_current_user),
-    _within_limit: None = Depends(_import_body_within_limit),
     db: Session = Depends(get_db),
     runtime: RuntimeSettings = Depends(get_runtime_settings),
 ) -> ListsImportResult:
     """Upload lists kept on a device to the current user's account (401 if not
     logged in) — the claim after sign-in. See ``list_import_service``.
 
-    All or nothing: 422 with a ``detail`` naming the list if any list breaks a rule
-    (nothing is written). 413 if the upload has more than ``max_lists_per_import``
-    lists or is over ``max_import_bytes``. Idempotent: a retry returns the lists the
-    first attempt made, as ``already_imported``.
+    All or nothing: 422 with a ``detail`` naming the list if any list breaks a rule,
+    or if the upload would take the account past ``max_lists_per_user`` (nothing is
+    written). 413 if the upload has more than ``max_lists_per_import`` lists, or the
+    body is over ``max_import_bytes`` (checked by ``BodySizeLimitMiddleware`` as it
+    arrives). Idempotent: a retry returns the lists the first attempt made, as
+    ``already_imported``.
     """
     max_lists = runtime.limits.max_lists_per_import
     if len(payload.lists) > max_lists:
@@ -100,7 +97,11 @@ def import_lists(
         )
     try:
         outcomes = list_import_service.import_lists(
-            db, current_user.id, payload, max_tags=runtime.limits.max_tags_per_list
+            db,
+            current_user.id,
+            payload,
+            max_tags=runtime.limits.max_tags_per_list,
+            max_lists=runtime.limits.max_lists_per_user,
         )
     except list_import_service.ImportRejectedError as exc:
         raise HTTPException(

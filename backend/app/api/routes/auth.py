@@ -21,6 +21,7 @@ from fastapi.responses import RedirectResponse
 from jwt import InvalidTokenError
 from sqlalchemy.orm import Session
 
+from app.api.rate_limits import limit_auth
 from app.auth.oauth import (
     OAUTH_STATE_COOKIE,
     OAuthState,
@@ -65,7 +66,7 @@ def dev_login(response: Response, db: Session = Depends(get_db)) -> User:
     return user
 
 
-@router.get("/login")
+@router.get("/login", dependencies=[Depends(limit_auth)])
 def login(redirect: str | None = None) -> RedirectResponse:
     """Begin the real login flow: redirect to Cognito's hosted UI (straight to Google).
 
@@ -109,7 +110,7 @@ def login(redirect: str | None = None) -> RedirectResponse:
     return response
 
 
-@router.get("/callback")
+@router.get("/callback", dependencies=[Depends(limit_auth)])
 async def callback(
     code: str | None = Query(default=None),
     state: str | None = Query(default=None),

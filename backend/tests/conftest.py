@@ -36,6 +36,11 @@ from app.services import user_service
 # (``"http://testserver/lists"``) bypasses the prefix when a test needs to.
 API_BASE_URL = f"http://testserver{API_V1_PREFIX}"
 
+# What a browser on our own site sends with every write. The CSRF Origin check
+# (app/core/middleware.py) refuses cookie-carrying writes without it, so every test
+# client sends it by default; tests of that check override or drop it.
+BROWSER_HEADERS = {"Origin": settings.frontend_url}
+
 
 @pytest.fixture(autouse=True)
 def _cognito_not_configured_by_default(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -85,7 +90,7 @@ def client(db_session: Session) -> Iterator[TestClient]:
     app = create_app()
     app.dependency_overrides[get_db] = lambda: db_session
     app.dependency_overrides[get_runtime_settings] = RuntimeSettings
-    with TestClient(app, base_url=API_BASE_URL) as test_client:
+    with TestClient(app, base_url=API_BASE_URL, headers=BROWSER_HEADERS) as test_client:
         yield test_client
     app.dependency_overrides.clear()
 
@@ -128,7 +133,7 @@ def fresh_user(db_session: Session) -> User:
 @pytest.fixture
 def fresh_user_client(client: TestClient, fresh_user: User) -> Iterator[TestClient]:
     """A logged-in TestClient for ``fresh_user`` — see that fixture for when to use it."""
-    with TestClient(client.app, base_url=API_BASE_URL) as fresh_client:
+    with TestClient(client.app, base_url=API_BASE_URL, headers=BROWSER_HEADERS) as fresh_client:
         fresh_client.cookies.set(settings.session_cookie_name, issue_session(fresh_user))
         yield fresh_client
 
@@ -147,6 +152,6 @@ def second_user_client(client: TestClient, db_session: Session) -> Iterator[Test
         db_session,
         Claims(sub="second-user", email="second@example.com", name="Second User"),
     )
-    with TestClient(client.app, base_url=API_BASE_URL) as other_client:
+    with TestClient(client.app, base_url=API_BASE_URL, headers=BROWSER_HEADERS) as other_client:
         other_client.cookies.set(settings.session_cookie_name, issue_session(user))
         yield other_client

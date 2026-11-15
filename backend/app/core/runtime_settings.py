@@ -56,6 +56,12 @@ class Limits(BaseModel):
     model_config = ConfigDict(frozen=True, extra="ignore")
 
     max_tags_per_list: int = Field(default=25, ge=1, le=200)
+    # Live (not deleted) lists one account may hold. Creating and importing both
+    # count against it. Served to clients.
+    max_lists_per_user: int = Field(default=100, ge=1, le=10_000)
+    # Signed-in write requests (lists, items, tags, imports) per user per rolling day.
+    # Bounds how fast one account can grow storage. Enforced by the rate limiter.
+    max_writes_per_user_per_day: int = Field(default=2000, ge=1, le=1_000_000)
     # ``POST /lists/import`` (docs/ARCHITECTURE.md). Over either is a 413. Both go to
     # clients via /config/client; the byte cap is also the frontend's import-file cap.
     # The edge should enforce one too, since the app only sees the body once it's
@@ -64,10 +70,32 @@ class Limits(BaseModel):
     max_import_bytes: int = Field(default=5 * 1024 * 1024, ge=64 * 1024, le=50 * 1024 * 1024)
 
 
+class RateLimits(BaseModel):
+    """Per-route-class request rates (docs/ABUSE_PROTECTION_PLAN.md §Rate limits),
+    enforced by ``app.core.rate_limit``. The daily write cap is a quota, in ``Limits``.
+
+    ``enabled`` is the kill switch: off only for load-free local runs (e.g. the e2e
+    suite) or an emergency. The default is on.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
+    enabled: bool = True
+    # /auth/login and /auth/callback, per client IP.
+    auth_per_minute: int = Field(default=20, ge=1, le=10_000)
+    # /config/*, per client IP.
+    config_per_minute: int = Field(default=60, ge=1, le=10_000)
+    # Signed-in writes (POST/PATCH/PUT/DELETE on lists, items, tags), per user.
+    writes_per_minute: int = Field(default=120, ge=1, le=10_000)
+    # POST /lists/import, per user (on top of the write limits).
+    imports_per_hour: int = Field(default=5, ge=1, le=10_000)
+
+
 class RuntimeSettings(BaseModel):
     model_config = ConfigDict(frozen=True, extra="ignore")
 
     limits: Limits = Limits()
+    rate_limits: RateLimits = RateLimits()
 
 
 # ─── Sources ────────────────────────────────────────────────────────────────────

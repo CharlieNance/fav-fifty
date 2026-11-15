@@ -17,12 +17,15 @@ async function rowTexts(page: Page): Promise<string[]> {
 // with manual browser testing and with backend pytest (both use the same
 // dev-login user). Sweep every list this spec ever names, pass or fail.
 // `page.request` shares the page's session cookie, so plain API calls work.
-test.afterEach(async ({ page }) => {
+test.afterEach(async ({ page, baseURL }) => {
   const response = await page.request.get('/api/v1/lists')
   if (!response.ok()) return
   for (const list of (await response.json()) as { id: string; title: string }[]) {
     if (list.title.startsWith('E2E favorites ')) {
-      await page.request.delete(`/api/v1/lists/${list.id}`)
+      // The API refuses a cookie write without our Origin (CSRF check).
+      await page.request.delete(`/api/v1/lists/${list.id}`, {
+        headers: { Origin: baseURL ?? '' },
+      })
     }
   }
 })
