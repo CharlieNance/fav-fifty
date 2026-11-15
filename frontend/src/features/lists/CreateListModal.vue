@@ -10,11 +10,13 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import BaseButton from '@/components/BaseButton.vue'
+import { useClientConfigStore } from '@/stores/clientConfig'
 import { useListModalsStore } from './useListModals'
 import { useListAction } from './useListAction'
 
 const modals = useListModalsStore()
 const router = useRouter()
+const config = useClientConfigStore()
 
 const title = ref('')
 const {
@@ -87,7 +89,7 @@ watch(
           v-model="title"
           type="text"
           placeholder="e.g. Favorite albums"
-          maxlength="200"
+          :maxlength="config.limits.max_title_length"
           class="w-full rounded-lg border border-border bg-transparent px-4 py-2 text-ink focus-visible:outline-2 focus-visible:outline-accent"
         />
 

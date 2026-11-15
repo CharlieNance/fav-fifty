@@ -15,6 +15,7 @@
 import { computed, nextTick, onMounted, ref } from 'vue'
 
 import BaseButton from '@/components/BaseButton.vue'
+import { useClientConfigStore } from '@/stores/clientConfig'
 import type { ListItem, ListItemDraft } from './types'
 import { useCreateItem } from './useCreateItem'
 import { useUpdateItem } from './useUpdateItem'
@@ -26,6 +27,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{ saved: [item: ListItem]; cancel: [] }>()
+const config = useClientConfigStore()
 
 const isEdit = computed(() => props.item != null)
 
@@ -109,7 +111,7 @@ onMounted(async () => {
             v-model="text"
             type="text"
             placeholder="e.g. The Empire Strikes Back"
-            maxlength="500"
+            :maxlength="config.limits.max_item_text_length"
             class="w-full rounded-lg border border-border bg-transparent px-4 py-2 text-ink transition-colors focus-visible:outline-2 focus-visible:outline-accent"
           />
         </div>
@@ -123,7 +125,7 @@ onMounted(async () => {
             v-model="note"
             rows="2"
             placeholder="Why it deserves the spot…"
-            maxlength="2000"
+            :maxlength="config.limits.max_note_length"
             class="w-full resize-y rounded-lg border border-border bg-transparent px-4 py-2 text-ink transition-colors focus-visible:outline-2 focus-visible:outline-accent"
           ></textarea>
         </div>
@@ -137,7 +139,7 @@ onMounted(async () => {
             v-model="imageUrl"
             type="url"
             placeholder="https://…"
-            maxlength="2048"
+            :maxlength="config.limits.max_image_url_length"
             class="w-full rounded-lg border border-border bg-transparent px-4 py-2 text-ink transition-colors focus-visible:outline-2 focus-visible:outline-accent"
           />
         </div>

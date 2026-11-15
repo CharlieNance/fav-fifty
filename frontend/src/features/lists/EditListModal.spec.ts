@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 
 import { ApiError } from '@/api/client'
 import type { ListSummary } from './types'
@@ -26,6 +27,7 @@ const LIST: ListSummary = {
 
 describe('EditListModal', () => {
   beforeEach(() => {
+    setActivePinia(createPinia())
     apiFetchMock.mockReset()
   })
 

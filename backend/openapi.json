@@ -593,7 +593,7 @@
           "list_items"
         ],
         "summary": "Create Item",
-        "description": "Append a new item to the end of one of the current user's lists.\n\n409 if the list is already at the 50-item cap, or another item in this list\nalready has this text (case-insensitive).",
+        "description": "Append a new item to the end of one of the current user's lists.\n\n409 if the list is already at the item cap, or another item in this list\nalready has this text (case-insensitive).",
         "operationId": "create_item_api_v1_lists__list_id__items_post",
         "parameters": [
           {
@@ -838,11 +838,41 @@
           "max_tags_per_list": {
             "type": "integer",
             "title": "Max Tags Per List"
+          },
+          "max_items_per_list": {
+            "type": "integer",
+            "title": "Max Items Per List"
+          },
+          "max_title_length": {
+            "type": "integer",
+            "title": "Max Title Length"
+          },
+          "max_item_text_length": {
+            "type": "integer",
+            "title": "Max Item Text Length"
+          },
+          "max_note_length": {
+            "type": "integer",
+            "title": "Max Note Length"
+          },
+          "max_image_url_length": {
+            "type": "integer",
+            "title": "Max Image Url Length"
+          },
+          "max_tag_length": {
+            "type": "integer",
+            "title": "Max Tag Length"
           }
         },
         "type": "object",
         "required": [
-          "max_tags_per_list"
+          "max_tags_per_list",
+          "max_items_per_list",
+          "max_title_length",
+          "max_item_text_length",
+          "max_note_length",
+          "max_image_url_length",
+          "max_tag_length"
         ],
         "title": "ClientLimits"
       },

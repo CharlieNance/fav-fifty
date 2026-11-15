@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, Text, func, select
 from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship
 
+from app.core.limits import MAX_TITLE_LENGTH
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 from app.models.list_item import ListItem
 from app.models.tag import list_tags
@@ -29,7 +30,7 @@ class List(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), index=True
     )
-    title: Mapped[str] = mapped_column(String(200))
+    title: Mapped[str] = mapped_column(String(MAX_TITLE_LENGTH))
     description: Mapped[str | None] = mapped_column(Text, default=None)
     # 'draft' until the user publishes the list; then 'published'.
     status: Mapped[str] = mapped_column(String(20), server_default="draft")

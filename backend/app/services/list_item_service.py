@@ -14,6 +14,7 @@ import uuid
 from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
+from app.core.limits import MAX_ITEMS_PER_LIST
 from app.models.list import List
 from app.models.list_item import ListItem
 from app.services import list_service
@@ -25,7 +26,7 @@ _SENTINEL_POSITION = -1
 
 
 class ListFullError(Exception):
-    """Raised when a list already has the maximum of 50 items."""
+    """Raised when a list already has the maximum of ``MAX_ITEMS_PER_LIST`` items."""
 
 
 class DuplicateItemTextError(Exception):
@@ -86,7 +87,7 @@ def create_item(
     already validated/trimmed.
     """
     count = _item_count(db, list_row.id)
-    if count >= 50:
+    if count >= MAX_ITEMS_PER_LIST:
         raise ListFullError
     if _text_collides(db, list_row.id, text):
         raise DuplicateItemTextError

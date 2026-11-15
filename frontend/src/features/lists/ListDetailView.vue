@@ -14,12 +14,12 @@ import { VueDraggable } from 'vue-draggable-plus'
 
 import BaseButton from '@/components/BaseButton.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
+import { useClientConfigStore } from '@/stores/clientConfig'
 import EditListModal from './EditListModal.vue'
 import ItemFormModal from './ItemFormModal.vue'
 import ListItemRow from './ListItemRow.vue'
 import ManageTagsModal from './ManageTagsModal.vue'
 import TagChip from './TagChip.vue'
-import { MAX_ITEMS } from './itemCountTier'
 import type { ListItem, ListSummary } from './types'
 import { useDeleteItem } from './useDeleteItem'
 import { useDeleteList } from './useDeleteList'
@@ -68,7 +68,9 @@ const editingItem = ref<ListItem | null>(null)
 const deletingItem = ref<ListItem | null>(null)
 
 const listId = computed(() => route.params.id as string)
-const isFull = computed(() => items.value.length >= MAX_ITEMS)
+const config = useClientConfigStore()
+const maxItems = computed(() => config.limits.max_items_per_list)
+const isFull = computed(() => items.value.length >= maxItems.value)
 
 async function loadAll(id: string): Promise<void> {
   // Items only after the list resolves: if the list 404s, the page shows
@@ -243,7 +245,7 @@ function nudge(item: ListItem, direction: -1 | 1): void {
           <div class="mt-6 flex items-center justify-between gap-4">
             <p class="text-sm text-muted">
               <span class="font-semibold text-ink tabular-nums">{{ items.length }}</span>
-              of {{ MAX_ITEMS }} ranked
+              of {{ maxItems }} ranked
               <span v-if="isFull"> — a full fifty! 🎉</span>
             </p>
             <BaseButton size="sm" :disabled="isFull" @click="isAddOpen = true">Add item</BaseButton>

@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
+from app.core.limits import MAX_TITLE_LENGTH
+
 if TYPE_CHECKING:
     from app.models.tag import Tag
 
@@ -45,8 +47,8 @@ def _validated_title(value: str) -> str:
     trimmed = value.strip()
     if not trimmed:
         raise ValueError("Title is required.")
-    if len(trimmed) > 200:
-        raise ValueError("Title must be 200 characters or fewer.")
+    if len(trimmed) > MAX_TITLE_LENGTH:
+        raise ValueError(f"Title must be {MAX_TITLE_LENGTH} characters or fewer.")
     return trimmed
 
 

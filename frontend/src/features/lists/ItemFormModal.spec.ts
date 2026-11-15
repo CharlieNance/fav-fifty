@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 
 import { ApiError } from '@/api/client'
 
@@ -21,6 +22,7 @@ function mountModal(item: ListItem | null = null) {
 
 describe('ItemFormModal', () => {
   beforeEach(() => {
+    setActivePinia(createPinia())
     apiFetchMock.mockReset()
   })
 

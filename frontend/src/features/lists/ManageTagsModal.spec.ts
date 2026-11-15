@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 
 import { ApiError } from '@/api/client'
 import type { ListSummary } from './types'
@@ -30,6 +31,7 @@ function tagChips(wrapper: VueWrapper): string[] {
 
 describe('ManageTagsModal', () => {
   beforeEach(() => {
+    setActivePinia(createPinia())
     apiFetchMock.mockReset()
   })
 

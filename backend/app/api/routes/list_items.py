@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
+from app.core.limits import MAX_ITEMS_PER_LIST
 from app.models.list import List
 from app.models.list_item import ListItem
 from app.models.user import User
@@ -67,7 +68,7 @@ def create_item(
 ) -> ListItem:
     """Append a new item to the end of one of the current user's lists.
 
-    409 if the list is already at the 50-item cap, or another item in this list
+    409 if the list is already at the item cap, or another item in this list
     already has this text (case-insensitive).
     """
     try:
@@ -76,7 +77,8 @@ def create_item(
         )
     except list_item_service.ListFullError:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="This list already has 50 items."
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"This list already has {MAX_ITEMS_PER_LIST} items.",
         ) from None
     except list_item_service.DuplicateItemTextError:
         raise HTTPException(

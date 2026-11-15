@@ -51,7 +51,7 @@ ENV_PREFIX = "RUNTIME_"
 
 class Limits(BaseModel):
     """Quotas (docs/ABUSE_PROTECTION_PLAN.md, Q25). The 50-item cap is NOT here: it's
-    the product's identity, fixed in code."""
+    the product's identity, fixed in app/core/limits.py."""
 
     model_config = ConfigDict(frozen=True, extra="ignore")
 

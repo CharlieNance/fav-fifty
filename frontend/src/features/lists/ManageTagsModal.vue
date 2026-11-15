@@ -10,12 +10,14 @@
 import { nextTick, onMounted, ref } from 'vue'
 
 import BaseButton from '@/components/BaseButton.vue'
+import { useClientConfigStore } from '@/stores/clientConfig'
 import TagChip from './TagChip.vue'
 import type { ListSummary } from './types'
 import { useListTags } from './useListTags'
 
 const props = defineProps<{ list: ListSummary }>()
 const emit = defineEmits<{ saved: [list: ListSummary]; cancel: [] }>()
+const config = useClientConfigStore()
 
 const tags = ref<string[]>([...props.list.tags])
 const draft = ref('')
@@ -92,7 +94,7 @@ onMounted(async () => {
           v-model="draft"
           type="text"
           placeholder="e.g. sci-fi"
-          maxlength="50"
+          :maxlength="config.limits.max_tag_length"
           class="w-full rounded-lg border border-border bg-transparent px-4 py-2 text-ink focus-visible:outline-2 focus-visible:outline-accent"
         />
         <BaseButton variant="secondary" size="sm" type="submit">Add</BaseButton>

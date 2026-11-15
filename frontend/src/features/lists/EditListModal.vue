@@ -11,11 +11,13 @@
 import { computed, nextTick, ref, onMounted } from 'vue'
 
 import BaseButton from '@/components/BaseButton.vue'
+import { useClientConfigStore } from '@/stores/clientConfig'
 import type { ListSummary } from './types'
 import { useListAction } from './useListAction'
 
 const props = defineProps<{ list: ListSummary }>()
 const emit = defineEmits<{ saved: [list: ListSummary]; cancel: [] }>()
+const config = useClientConfigStore()
 
 const title = ref(props.list.title)
 const {
@@ -72,7 +74,7 @@ onMounted(async () => {
           v-model="title"
           type="text"
           placeholder="e.g. Favorite albums"
-          maxlength="200"
+          :maxlength="config.limits.max_title_length"
           class="w-full rounded-lg border border-border bg-transparent px-4 py-2 text-ink focus-visible:outline-2 focus-visible:outline-accent"
         />
 

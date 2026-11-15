@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core.limits import MAX_IMAGE_URL_LENGTH, MAX_ITEM_TEXT_LENGTH
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
@@ -23,8 +24,8 @@ class ListItem(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         ForeignKey("lists.id", ondelete="CASCADE"), index=True
     )
     position: Mapped[int] = mapped_column(Integer)  # rank within the list (1..50)
-    text: Mapped[str] = mapped_column(String(500))
+    text: Mapped[str] = mapped_column(String(MAX_ITEM_TEXT_LENGTH))
     note: Mapped[str | None] = mapped_column(Text, default=None)
-    image_url: Mapped[str | None] = mapped_column(String(2048), default=None)
+    image_url: Mapped[str | None] = mapped_column(String(MAX_IMAGE_URL_LENGTH), default=None)
 
     list_: Mapped[List] = relationship(back_populates="items")

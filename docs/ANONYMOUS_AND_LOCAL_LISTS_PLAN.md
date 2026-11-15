@@ -18,10 +18,15 @@ up later. This is **Track 1** in [NEXT_STEPS.md](NEXT_STEPS.md). **Decided in
   call sites go through the layers described in [§Layers](#layers-as-built-in-pr-1).
   The repository is resolved **per request**, so PR 4 can switch implementations on
   sign-in/out without remounting anything.
-- **Next: PR 2, 3 or 6** (independent of each other, see [§Build order](#build-order-small-shippable-prs)).
+- **PR 2 (shared limits) is done** on the same branch. The fixed limits live in
+  [limits.py](../backend/app/core/limits.py) and are served by `GET /api/v1/config/client`.
+  The frontend reads them from the `clientConfig` store
+  ([clientConfig.ts](../frontend/src/stores/clientConfig.ts)), which starts with bundled
+  defaults and loads the server's values in the background from `main.ts`.
+- **Next: PR 3 or 6** (independent of each other, see [§Build order](#build-order-small-shippable-prs)).
 - **Already in place:**
-  - `GET /api/v1/config/client` ([config.py](../backend/app/api/routes/config.py)),
-    but it only serves `limits.max_tags_per_list`. PR 2 extends it.
+  - `GET /api/v1/config/client` ([config.py](../backend/app/api/routes/config.py))
+    serves every content limit (PR 2).
   - The auth store exposes `isAuthenticated`
     ([auth.ts](../frontend/src/stores/auth.ts)). The repository will be chosen from it.
   - The frontend types (`ListSummary`, `ListItem`, `ListItemDraft` in
@@ -406,7 +411,7 @@ third implementation if the Safari wipe turns out to bite real users.
 | # | PR | Side | User-visible? | Status |
 | --- | --- | --- | --- | --- |
 | 1 | **Repository refactor**: `ListRepository`, `ApiListRepository`, `useListRepository()`; move all 11 call sites | Frontend | No | Done |
-| 2 | **Shared limits**: backend constants module, new `ClientLimits` fields, frontend config store with bundled defaults | Both | No | Not started |
+| 2 | **Shared limits**: backend constants module, new `ClientLimits` fields, frontend config store with bundled defaults | Both | No | Done |
 | 3 | **`LocalListRepository`** plus the storage format, schema validation and migrations, with unit tests (not wired up yet) | Frontend | No | Not started |
 | 4 | **Unlock the routes for anonymous users**, `useStartList` change, repository switching, "Saved on this device" copy | Frontend | Yes | Not started |
 | 5 | **Export/import a file** | Frontend | Yes | Not started |

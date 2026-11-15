@@ -17,6 +17,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.limits import MAX_TAG_LENGTH
 from app.models.list import List
 from app.models.tag import Tag
 
@@ -33,13 +34,13 @@ def normalize_tag_name(name: str) -> str:
     The one normalization rule, shared by every entry point that touches tag text
     (replacing a list's tags here; matching tags in search once that lands) so
     ``"Sci-Fi"``, ``"sci-fi"``, and ``"  sci-fi  "`` are always the same tag. Enforces
-    the same length limit as the ``tags.name`` column (``String(50)``).
+    the same length limit as the ``tags.name`` column (``String(MAX_TAG_LENGTH)``).
     """
     collapsed = _WHITESPACE_RE.sub(" ", name.strip()).lower()
     if not collapsed:
         raise ValueError("Tag is required.")
-    if len(collapsed) > 50:
-        raise ValueError("Tag must be 50 characters or fewer.")
+    if len(collapsed) > MAX_TAG_LENGTH:
+        raise ValueError(f"Tag must be {MAX_TAG_LENGTH} characters or fewer.")
     return collapsed
 
 

@@ -5,6 +5,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
+from app.core.limits import MAX_IMAGE_URL_LENGTH, MAX_ITEM_TEXT_LENGTH, MAX_NOTE_LENGTH
+
 
 class ItemRead(BaseModel):
     """An item as returned by the API (e.g. ``GET /api/lists/{list_id}/items``)."""
@@ -26,8 +28,8 @@ def _validated_text(value: str) -> str:
     trimmed = value.strip()
     if not trimmed:
         raise ValueError("Text is required.")
-    if len(trimmed) > 500:
-        raise ValueError("Text must be 500 characters or fewer.")
+    if len(trimmed) > MAX_ITEM_TEXT_LENGTH:
+        raise ValueError(f"Text must be {MAX_ITEM_TEXT_LENGTH} characters or fewer.")
     return trimmed
 
 
@@ -41,8 +43,8 @@ def _validated_note(value: str | None) -> str | None:
     trimmed = value.strip()
     if not trimmed:
         return None
-    if len(trimmed) > 2000:
-        raise ValueError("Note must be 2000 characters or fewer.")
+    if len(trimmed) > MAX_NOTE_LENGTH:
+        raise ValueError(f"Note must be {MAX_NOTE_LENGTH} characters or fewer.")
     return trimmed
 
 
@@ -59,8 +61,8 @@ def _validated_image_url(value: str | None) -> str | None:
         return None
     if not (trimmed.startswith("http://") or trimmed.startswith("https://")):
         raise ValueError("Image URL must start with http:// or https://.")
-    if len(trimmed) > 2048:
-        raise ValueError("Image URL must be 2048 characters or fewer.")
+    if len(trimmed) > MAX_IMAGE_URL_LENGTH:
+        raise ValueError(f"Image URL must be {MAX_IMAGE_URL_LENGTH} characters or fewer.")
     return trimmed
 
 
