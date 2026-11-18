@@ -147,6 +147,7 @@ docker compose up -d db     # start Postgres   (down to stop, down -v to wipe)
 ./tools/run_dev.sh          # start db+backend+frontend together in the background, for manual/browser testing
 ./tools/stop_dev.sh         # stop the backend+frontend started by run_dev.sh
 ./tools/openapi_snapshot.sh # regenerate backend/openapi.json after an intended API change
+./tools/grant_admin.sh <email>  # make a signed-in-once user an admin (--revoke, --list)
 ```
 
 **Running/driving the app** (e.g. to check a change in a real browser): see the

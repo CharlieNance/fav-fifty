@@ -8,7 +8,7 @@ a breaking change goes to ``/api/v2`` alongside it.
 
 from fastapi import APIRouter
 
-from app.api.routes import auth, config, health, list_items, lists, me
+from app.api.routes import admin, auth, config, health, list_items, lists, me
 
 API_V1_PREFIX = "/api/v1"
 
@@ -21,3 +21,4 @@ api_router.include_router(auth.router)
 api_router.include_router(me.router)
 api_router.include_router(lists.router)
 api_router.include_router(list_items.router)
+api_router.include_router(admin.router)

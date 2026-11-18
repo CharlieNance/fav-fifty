@@ -11,9 +11,18 @@ redeploy. Owner direction (2026-10-13): this is **pre-launch** work. Decided in
 - **Q24:** the owner is the only admin; admins may read private lists.
 - **Q25:** limits are changeable at runtime.
 
-Built so far: the runtime settings module + `GET /api/v1/config/client` (build order
-step 1, Track 0, 2026-10-14) — limits only; each switch lands with the feature it
-gates. Related: [ABUSE_PROTECTION_PLAN.md](ABUSE_PROTECTION_PLAN.md),
+Built so far:
+
+- Step 1 (Track 0, 2026-10-14): the runtime settings module +
+  `GET /api/v1/config/client`, limits only; each switch lands with the feature it
+  gates.
+- Step 2 (2026-11-17): `users.role` (+ `ck_users_role`), `require_admin` (role +
+  12 h recent-login check from the cookie's signed timestamp,
+  `ADMIN_RECENT_LOGIN_SECONDS`), the `admin_audit_log` table and
+  `app/services/audit_service.py`, `GET /api/v1/admin/audit-log`, and the CLI
+  (`python -m app.cli grant-admin | revoke-admin | list-admins`, wrapped by
+  `tools/grant_admin.sh`; grants are audit-logged with no admin id). Tests:
+  `tests/test_admin_access.py`, `tests/test_admin_audit_and_cli.py`. Related: [ABUSE_PROTECTION_PLAN.md](ABUSE_PROTECTION_PLAN.md),
 [COST_GUARDRAILS_PLAN.md](COST_GUARDRAILS_PLAN.md).
 
 ## Scope
@@ -62,8 +71,10 @@ gates. Related: [ABUSE_PROTECTION_PLAN.md](ABUSE_PROTECTION_PLAN.md),
     credential.
 - The `/admin` route guard in the frontend is **UX only**; the backend is the real
   gate.
-- **Dev:** the dev-login stub gets an "admin" variant (dev only, hard-fails outside
-  development like the existing stub) for building and e2e-testing admin screens.
+- **Dev:** no dev-login "admin" variant (it would be an API path that grants admin).
+  Instead, `./tools/grant_admin.sh dev@example.com` against the local DB makes the
+  dev-login user an admin; pytest sets `role` directly. Playwright admin tests
+  (step 3) can do the same in their setup.
 
 ## Audit log
 
@@ -71,8 +82,8 @@ Every **mutating** admin action, and every **read of a user's private content**,
 writes a row in the same DB transaction as the action:
 
 ```text
-admin_audit_log(id, admin_user_id, action, target_type, target_id,
-                reason (nullable text), metadata (jsonb, small), created_at)
+admin_audit_log(id, admin_user_id (nullable: CLI actions), action, target_type,
+                target_id, reason (nullable text), details (jsonb, small), created_at)
 ```
 
 - Append-only: no update or delete endpoint.
@@ -235,8 +246,8 @@ These are tracked in [CONSIDERATIONS.md](CONSIDERATIONS.md) §Legal.
 1. **Runtime settings module** (SSM + env fallback, typed and validated) +
    `GET /api/v1/config/client`. The quotas, the catalog provider toggles and the cost
    breaker all depend on this, so it comes first.
-2. `users.role` migration + `require_admin` + `grant-admin` CLI +
-   `tools/grant_admin.sh` + the audit-log table.
+2. ~~`users.role` migration + `require_admin` + `grant-admin` CLI +
+   `tools/grant_admin.sh` + the audit-log table.~~ Done 2026-11-17.
 3. Admin UI v1: Users (search, detail, lock/unlock, revoke) + the Settings page.
 4. Content read/remove (audit-logged).
 5. Product dashboard + request/429 counters + CloudWatch dashboard link + the cost
