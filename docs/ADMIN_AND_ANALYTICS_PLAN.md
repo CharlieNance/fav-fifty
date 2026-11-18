@@ -56,6 +56,23 @@ Built so far:
     since it puts back a list they already had.
   - Tests: `tests/test_admin_content.py`, `AdminListView.spec.ts`, and an e2e that
     removes a second dev user's list and restores it.
+- Step 5, app side (2026-11-18): `GET /admin/dashboard` (cached 5 min,
+  `?refresh=true` skips it) and the Dashboard page, now the admin landing page.
+  - **Product:** account, signed-in-7d, list and item totals plus 30-day daily bars,
+    from existing tables. Anonymous and catalog numbers wait for `/events` (step 6).
+  - **Health:** `RequestCountMiddleware` (outermost) upserts `request_counts` (minute
+    × route class × 2xx/3xx/4xx/429/5xx; `/health` not counted); off on Lambda and
+    in-memory under pytest. The page shows the last 24 h by hour and by route.
+  - **Cost:** `python -m app.cli daily-jobs` prunes counts older than 35 days and,
+    with `COST_SNAPSHOT_ENABLED`, takes ONE Cost Explorer call (~$0.30/month) into
+    `cost_snapshots`; the forecast is a free straight-line projection, not the paid
+    forecast API.
+  - **Still deploy-side:** the CloudWatch dashboard (Terraform) and its
+    `CLOUDWATCH_DASHBOARD_URL`, the cron entry, and the IAM permission
+    (DEPLOYMENT_TOPOLOGY_PLAN.md §Sequencing). Breaker state joins the Cost panel
+    with the breaker.
+  - Charts are a hand-rolled SVG `BarChart.vue` (no chart library), each with a
+    table view.
 
 Related: [ABUSE_PROTECTION_PLAN.md](ABUSE_PROTECTION_PLAN.md),
 [COST_GUARDRAILS_PLAN.md](COST_GUARDRAILS_PLAN.md).
@@ -287,7 +304,8 @@ These are tracked in [CONSIDERATIONS.md](CONSIDERATIONS.md) §Legal.
 3. ~~Admin UI v1: Users (search, detail, lock/unlock, revoke) + the Settings
    page.~~ Done 2026-11-17 (breaker reset waits for the breaker).
 4. ~~Content read/remove (audit-logged).~~ Done 2026-11-18.
-5. Product dashboard + request/429 counters + CloudWatch dashboard link + the cost
-   snapshot job.
+5. ~~Product dashboard + request/429 counters + CloudWatch dashboard link + the cost
+   snapshot job.~~ App side done 2026-11-18; the CloudWatch dashboard, cron and IAM
+   land with the first deploy.
 6. Analytics: Cloudflare Web Analytics + `/events` + the daily rollup.
 7. The abuse view (IP block list).

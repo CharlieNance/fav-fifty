@@ -6,6 +6,7 @@
  * only: every admin API route checks for itself.
  */
 const sections = [
+  { to: { name: 'admin-dashboard' }, label: 'Dashboard' },
   { to: { name: 'admin-users' }, label: 'Users' },
   { to: { name: 'admin-settings' }, label: 'Settings' },
 ] as const

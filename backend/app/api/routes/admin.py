@@ -6,15 +6,17 @@ also gets the admin rate limit and ``Cache-Control: no-store``.
 """
 
 import logging
+import time
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, require_admin
 from app.api.rate_limits import limit_admin
+from app.core.config import settings
 from app.core.runtime_settings import (
     RuntimeSettingsProvider,
     SettingNotWritableError,
@@ -31,12 +33,13 @@ from app.schemas.admin import (
     AdminUserDetail,
     AdminUserSummary,
     AuditLogEntryRead,
+    Dashboard,
     SettingRead,
     SettingUpdate,
 )
 from app.schemas.list import ListRead
 from app.schemas.list_item import ItemRead
-from app.services import admin_service, audit_service
+from app.services import admin_service, audit_service, dashboard_service
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +56,28 @@ router = APIRouter(
     tags=["admin"],
     dependencies=[Depends(require_admin), Depends(limit_admin), Depends(_no_store)],
 )
+
+
+# ─── Dashboard ──────────────────────────────────────────────────────────────────
+
+DASHBOARD_CACHE_SECONDS = 300
+
+
+@router.get("/dashboard", response_model=Dashboard)
+def read_dashboard(
+    request: Request,
+    db: Session = Depends(get_db),
+    refresh: bool = Query(default=False, description="Skip the few-minute cache."),
+) -> Any:
+    """Product, health and cost numbers. Aggregates only; cached ~5 minutes."""
+    cached = request.app.state.dashboard_cache
+    if cached is not None and not refresh and cached[0] > time.monotonic():
+        return cached[1]
+    data = Dashboard.model_validate(
+        dashboard_service.dashboard(db, datetime.now(UTC), settings.cloudwatch_dashboard_url)
+    )
+    request.app.state.dashboard_cache = (time.monotonic() + DASHBOARD_CACHE_SECONDS, data)
+    return data
 
 
 # ─── Audit log ──────────────────────────────────────────────────────────────────

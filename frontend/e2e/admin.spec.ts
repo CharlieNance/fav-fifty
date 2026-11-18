@@ -50,8 +50,15 @@ test('the admin locks a user, whose next request is refused', async ({
   // The admin: signs in, is granted admin on the box, and reloads.
   await devLogin(page)
   grantAdmin(`dev+${devUserKey}@example.com`)
-  await page.reload()
-  await page.getByRole('link', { name: 'Admin', exact: true }).click()
+  // Straight to /admin: on a phone the header has no Admin link (no room).
+  await page.goto('/admin')
+
+  // The admin area opens on the dashboard.
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /Health, last 24 hours/ })).toBeVisible()
+  await expectAccessible(page, 'admin dashboard')
+
+  await page.getByRole('navigation', { name: 'Admin' }).getByRole('link', { name: 'Users' }).click()
   await expect(page.getByRole('heading', { name: 'Users' })).toBeVisible()
 
   await page.getByRole('searchbox', { name: 'Search users' }).fill(victimKey)

@@ -891,6 +891,52 @@
         }
       }
     },
+    "/api/v1/admin/dashboard": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Read Dashboard",
+        "description": "Product, health and cost numbers. Aggregates only; cached ~5 minutes.",
+        "operationId": "read_dashboard_api_v1_admin_dashboard_get",
+        "parameters": [
+          {
+            "name": "refresh",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Skip the few-minute cache.",
+              "default": false,
+              "title": "Refresh"
+            },
+            "description": "Skip the few-minute cache."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Dashboard"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/audit-log": {
       "get": {
         "tags": [
@@ -2136,6 +2182,137 @@
         ],
         "title": "ClientLimits"
       },
+      "CostRead": {
+        "properties": {
+          "taken_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Taken At"
+          },
+          "month": {
+            "type": "string",
+            "format": "date",
+            "title": "Month"
+          },
+          "month_to_date": {
+            "type": "string",
+            "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+            "title": "Month To Date"
+          },
+          "forecast": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Forecast"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "by_service": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "By Service"
+          }
+        },
+        "type": "object",
+        "required": [
+          "taken_at",
+          "month",
+          "month_to_date",
+          "forecast",
+          "currency",
+          "by_service"
+        ],
+        "title": "CostRead"
+      },
+      "DailyProduct": {
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date",
+            "title": "Day"
+          },
+          "users_created": {
+            "type": "integer",
+            "title": "Users Created"
+          },
+          "lists_created": {
+            "type": "integer",
+            "title": "Lists Created"
+          },
+          "lists_imported": {
+            "type": "integer",
+            "title": "Lists Imported"
+          },
+          "items_created": {
+            "type": "integer",
+            "title": "Items Created"
+          }
+        },
+        "type": "object",
+        "required": [
+          "day",
+          "users_created",
+          "lists_created",
+          "lists_imported",
+          "items_created"
+        ],
+        "title": "DailyProduct"
+      },
+      "Dashboard": {
+        "properties": {
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Generated At"
+          },
+          "product": {
+            "$ref": "#/components/schemas/ProductNumbers"
+          },
+          "health": {
+            "$ref": "#/components/schemas/HealthNumbers"
+          },
+          "cost": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CostRead"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "cloudwatch_dashboard_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cloudwatch Dashboard Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "generated_at",
+          "product",
+          "health",
+          "cost",
+          "cloudwatch_dashboard_url"
+        ],
+        "title": "Dashboard"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -2148,6 +2325,39 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "HealthNumbers": {
+        "properties": {
+          "window_hours": {
+            "type": "integer",
+            "title": "Window Hours"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/RequestCounts"
+          },
+          "by_route": {
+            "items": {
+              "$ref": "#/components/schemas/RouteCounts"
+            },
+            "type": "array",
+            "title": "By Route"
+          },
+          "hourly": {
+            "items": {
+              "$ref": "#/components/schemas/HourlyCounts"
+            },
+            "type": "array",
+            "title": "Hourly"
+          }
+        },
+        "type": "object",
+        "required": [
+          "window_hours",
+          "totals",
+          "by_route",
+          "hourly"
+        ],
+        "title": "HealthNumbers"
       },
       "HealthRead": {
         "properties": {
@@ -2177,6 +2387,40 @@
           "git_sha"
         ],
         "title": "HealthRead"
+      },
+      "HourlyCounts": {
+        "properties": {
+          "requests": {
+            "type": "integer",
+            "title": "Requests"
+          },
+          "client_errors": {
+            "type": "integer",
+            "title": "Client Errors"
+          },
+          "server_errors": {
+            "type": "integer",
+            "title": "Server Errors"
+          },
+          "rate_limited": {
+            "type": "integer",
+            "title": "Rate Limited"
+          },
+          "hour": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Hour"
+          }
+        },
+        "type": "object",
+        "required": [
+          "requests",
+          "client_errors",
+          "server_errors",
+          "rate_limited",
+          "hour"
+        ],
+        "title": "HourlyCounts"
       },
       "ImportedItem": {
         "properties": {
@@ -2616,6 +2860,118 @@
           "lists"
         ],
         "title": "ListsImportResult"
+      },
+      "ProductNumbers": {
+        "properties": {
+          "users_total": {
+            "type": "integer",
+            "title": "Users Total"
+          },
+          "users_new_7d": {
+            "type": "integer",
+            "title": "Users New 7D"
+          },
+          "users_new_30d": {
+            "type": "integer",
+            "title": "Users New 30D"
+          },
+          "users_signed_in_7d": {
+            "type": "integer",
+            "title": "Users Signed In 7D"
+          },
+          "users_locked": {
+            "type": "integer",
+            "title": "Users Locked"
+          },
+          "lists_live": {
+            "type": "integer",
+            "title": "Lists Live"
+          },
+          "items_live": {
+            "type": "integer",
+            "title": "Items Live"
+          },
+          "daily": {
+            "items": {
+              "$ref": "#/components/schemas/DailyProduct"
+            },
+            "type": "array",
+            "title": "Daily"
+          }
+        },
+        "type": "object",
+        "required": [
+          "users_total",
+          "users_new_7d",
+          "users_new_30d",
+          "users_signed_in_7d",
+          "users_locked",
+          "lists_live",
+          "items_live",
+          "daily"
+        ],
+        "title": "ProductNumbers"
+      },
+      "RequestCounts": {
+        "properties": {
+          "requests": {
+            "type": "integer",
+            "title": "Requests"
+          },
+          "client_errors": {
+            "type": "integer",
+            "title": "Client Errors"
+          },
+          "server_errors": {
+            "type": "integer",
+            "title": "Server Errors"
+          },
+          "rate_limited": {
+            "type": "integer",
+            "title": "Rate Limited"
+          }
+        },
+        "type": "object",
+        "required": [
+          "requests",
+          "client_errors",
+          "server_errors",
+          "rate_limited"
+        ],
+        "title": "RequestCounts"
+      },
+      "RouteCounts": {
+        "properties": {
+          "requests": {
+            "type": "integer",
+            "title": "Requests"
+          },
+          "client_errors": {
+            "type": "integer",
+            "title": "Client Errors"
+          },
+          "server_errors": {
+            "type": "integer",
+            "title": "Server Errors"
+          },
+          "rate_limited": {
+            "type": "integer",
+            "title": "Rate Limited"
+          },
+          "route_class": {
+            "type": "string",
+            "title": "Route Class"
+          }
+        },
+        "type": "object",
+        "required": [
+          "requests",
+          "client_errors",
+          "server_errors",
+          "rate_limited",
+          "route_class"
+        ],
+        "title": "RouteCounts"
       },
       "SettingRead": {
         "properties": {

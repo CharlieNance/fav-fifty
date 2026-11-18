@@ -25,6 +25,7 @@ from app.api.router import API_V1_PREFIX
 from app.auth.claims import Claims
 from app.auth.session import issue_session
 from app.core.config import settings
+from app.core.request_counts import MemoryRequestCounter
 from app.core.runtime_settings import RuntimeSettings, get_runtime_settings
 from app.db.session import engine, get_db
 from app.main import create_app
@@ -88,6 +89,8 @@ def client(db_session: Session) -> Iterator[TestClient]:
     ``set_runtime_settings`` to test other values.
     """
     app = create_app()
+    # Count in memory: the real counter commits to the developer's database.
+    app.state.request_counter = MemoryRequestCounter()
     app.dependency_overrides[get_db] = lambda: db_session
     app.dependency_overrides[get_runtime_settings] = RuntimeSettings
     with TestClient(app, base_url=API_BASE_URL, headers=BROWSER_HEADERS) as test_client:

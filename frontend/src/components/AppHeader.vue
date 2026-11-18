@@ -70,11 +70,12 @@ watch(
         My lists
       </RouterLink>
 
-      <!-- Owner only (the API is the real gate). -->
+      <!-- Owner only (the API is the real gate). From sm: up: a phone-width header
+           has no room for a fifth control; there, /admin is typed directly. -->
       <RouterLink
         v-if="isAdmin"
         to="/admin"
-        class="rounded text-sm font-medium whitespace-nowrap text-muted transition-colors hover:text-ink [&.router-link-active]:text-ink [&.router-link-active]:underline [&.router-link-active]:decoration-accent [&.router-link-active]:decoration-2 [&.router-link-active]:underline-offset-8"
+        class="hidden rounded text-sm sm:inline font-medium whitespace-nowrap text-muted transition-colors hover:text-ink [&.router-link-active]:text-ink [&.router-link-active]:underline [&.router-link-active]:decoration-accent [&.router-link-active]:decoration-2 [&.router-link-active]:underline-offset-8"
       >
         Admin
       </RouterLink>

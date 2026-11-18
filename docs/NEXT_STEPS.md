@@ -90,9 +90,9 @@ absorb a surprise bill, so these **block launch**. All decided (Q16, Q21–Q25 i
   - ~~read/remove lists~~ (done 2026-11-18);
   - the breaker reset button (with the breaker).
 - [ ] **Dashboards + analytics** (same plan):
-  - product numbers from Postgres;
-  - request/429 counters;
-  - a CloudWatch health dashboard and a daily cost snapshot;
+  - ~~product numbers from Postgres; request/429 counters; the daily cost-snapshot
+    job~~ (app side done 2026-11-18);
+  - the CloudWatch health dashboard, cron and IAM for the snapshot (first deploy);
   - Cloudflare Web Analytics and the `/events` stream.
 - [ ] **Apple device testing** ([MOBILE_READINESS.md](MOBILE_READINESS.md) §6). Every
       iPhone/iPad browser is WebKit, and e2e runs only Chromium today:

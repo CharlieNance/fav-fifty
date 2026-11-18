@@ -218,7 +218,16 @@ the box becomes a real limitation. At ≤10 concurrent users it won't be.
      docker compose exec api python -m app.cli list-admins   # verify
      ```
 
-     Reload the site and the Admin link appears. `tools/grant_admin.sh` is the
+     Reload the site and the Admin link appears.
+   - **Admin dashboard wiring** (ADMIN_AND_ANALYTICS_PLAN.md step 5):
+     - cron on the box, once a day:
+       `docker compose exec -T api python -m app.cli daily-jobs` (prunes request
+       counts, takes the cost snapshot);
+     - the box's IAM user gets `ce:GetCostAndUsage` (the account must allow IAM
+       access to billing data), then set `COST_SNAPSHOT_ENABLED=true`;
+     - Terraform creates the CloudWatch dashboard (CloudFront, WAF, Lambda,
+       Lightsail, the Route 53 health check); put its console URL in
+       `CLOUDWATCH_DASHBOARD_URL`. `tools/grant_admin.sh` is the
      local-dev wrapper for the same CLI; it needs the repo checkout and `uv`, which
      the box doesn't have.
 3. **Cost guardrails + game day** (COST_GUARDRAILS_PLAN.md) before announcing.

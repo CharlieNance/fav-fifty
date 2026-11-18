@@ -51,6 +51,51 @@ export interface Setting {
 
 export type UserAction = 'lock' | 'unlock' | 'revoke-sessions'
 
+/** `GET /admin/dashboard` (backend app/schemas/admin.py `Dashboard`). */
+export interface RequestCounts {
+  requests: number
+  /** 4xx other than 429. */
+  client_errors: number
+  server_errors: number
+  rate_limited: number
+}
+
+export interface Dashboard {
+  generated_at: string
+  product: {
+    users_total: number
+    users_new_7d: number
+    users_new_30d: number
+    users_signed_in_7d: number
+    users_locked: number
+    lists_live: number
+    items_live: number
+    daily: {
+      day: string
+      users_created: number
+      lists_created: number
+      lists_imported: number
+      items_created: number
+    }[]
+  }
+  health: {
+    window_hours: number
+    totals: RequestCounts
+    by_route: (RequestCounts & { route_class: string })[]
+    hourly: (RequestCounts & { hour: string })[]
+  }
+  /** Null until the daily job has taken a snapshot. Amounts are decimal strings. */
+  cost: {
+    taken_at: string
+    month: string
+    month_to_date: string
+    forecast: string | null
+    currency: string
+    by_service: Record<string, string>
+  } | null
+  cloudwatch_dashboard_url: string | null
+}
+
 /** Any user's list, deleted ones included (backend AdminListSummary). */
 export interface AdminListSummary extends ListSummary {
   deleted_at: string | null
@@ -74,6 +119,9 @@ function post<T>(path: string, body: unknown): Promise<T> {
 }
 
 export const adminApi = {
+  dashboard(refresh = false): Promise<Dashboard> {
+    return apiFetch(`/admin/dashboard${refresh ? '?refresh=true' : ''}`)
+  },
   searchUsers(query: string, offset = 0): Promise<AdminUserSummary[]> {
     const params = new URLSearchParams({ limit: String(USER_PAGE_SIZE), offset: String(offset) })
     if (query.trim()) params.set('q', query.trim())
