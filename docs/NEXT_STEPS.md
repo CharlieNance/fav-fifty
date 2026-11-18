@@ -13,9 +13,10 @@ Last updated: 2026-11-17
 1. **Pre-launch hardening, app layer:**
    - quotas, rate limits, request hygiene and CSRF
      ([ABUSE_PROTECTION_PLAN.md](ABUSE_PROTECTION_PLAN.md));
-   - the admin portal is done through content read/remove
-     ([ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md)); the breaker reset
-     waits for the breaker.
+   - the admin portal is done through the dashboard's app side
+     ([ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md) steps 1–5); the
+     breaker reset waits for the breaker, and `/events` + Cloudflare Web Analytics
+     (step 6) are next.
 2. **Remaining Phase 2:** publish/unpublish, list-title dedup.
 3. **First deploy** (Terraform: box, S3, CloudFront + WAF on the flat-rate plan,
    backups) → **breaker + game day**.
