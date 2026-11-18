@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, Integer, String
+from sqlalchemy import Boolean, CheckConstraint, DateTime, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -14,8 +14,13 @@ if TYPE_CHECKING:
     from app.models.list import List
 
 
+ROLE_USER = "user"
+ROLE_ADMIN = "admin"
+
+
 class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     __tablename__ = "users"
+    __table_args__ = (CheckConstraint("role in ('user', 'admin')", name="ck_users_role"),)
 
     # Cognito's stable subject identifier — how a social login maps to this user.
     cognito_sub: Mapped[str] = mapped_column(String(255), unique=True, index=True)
@@ -35,7 +40,15 @@ class User(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     is_active: Mapped[bool] = mapped_column(Boolean, server_default="true", default=True)
     session_token_version: Mapped[int] = mapped_column(Integer, server_default="0", default=0)
 
+    # 'user' or 'admin'. Only the CLI on the box (``python -m app.cli grant-admin``)
+    # sets it: no API path reads it as input (a test enforces this).
+    role: Mapped[str] = mapped_column(String(16), server_default=ROLE_USER, default=ROLE_USER)
+
     # Cheapest durable signal for usage trends; a full event log can follow later.
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
 
     lists: Mapped[list[List]] = relationship(back_populates="owner", cascade="all, delete-orphan")
+
+    @property
+    def is_admin(self) -> bool:
+        return self.role == ROLE_ADMIN

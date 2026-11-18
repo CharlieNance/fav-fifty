@@ -2,6 +2,7 @@ import {
   createRouter,
   createWebHistory,
   type RouteLocationNormalizedGeneric,
+  type RouteLocationRaw,
   type RouteRecordRaw,
 } from 'vue-router'
 
@@ -13,6 +14,8 @@ declare module 'vue-router' {
     /** Tab title (see pageTitle.ts); omitted = just the site name. */
     title?: string
     requiresAuth?: boolean
+    /** Owner-only (docs/ADMIN_AND_ANALYTICS_PLAN.md). UX only; the API is the gate. */
+    requiresAdmin?: boolean
   }
 }
 
@@ -55,6 +58,45 @@ const routes: RouteRecordRaw[] = [
     // Replaced by the list's own title once it loads (ListDetailView).
     meta: { title: 'List' },
   },
+  // The admin area: its own lazy chunk, so the public bundle doesn't carry it.
+  {
+    path: '/admin',
+    component: () => import('@/features/admin/AdminLayout.vue'),
+    meta: { requiresAdmin: true },
+    children: [
+      { path: '', name: 'admin', redirect: { name: 'admin-dashboard' } },
+      {
+        path: 'dashboard',
+        name: 'admin-dashboard',
+        component: () => import('@/features/admin/AdminDashboardView.vue'),
+        meta: { title: 'Admin: dashboard' },
+      },
+      {
+        path: 'users',
+        name: 'admin-users',
+        component: () => import('@/features/admin/AdminUsersView.vue'),
+        meta: { title: 'Admin: users' },
+      },
+      {
+        path: 'users/:id',
+        name: 'admin-user',
+        component: () => import('@/features/admin/AdminUserView.vue'),
+        meta: { title: 'Admin: user' },
+      },
+      {
+        path: 'lists/:id',
+        name: 'admin-list',
+        component: () => import('@/features/admin/AdminListView.vue'),
+        meta: { title: 'Admin: list' },
+      },
+      {
+        path: 'settings',
+        name: 'admin-settings',
+        component: () => import('@/features/admin/AdminSettingsView.vue'),
+        meta: { title: 'Admin: settings' },
+      },
+    ],
+  },
 ]
 
 export const router = createRouter({
@@ -79,27 +121,30 @@ router.beforeEach(async (to) => {
     }
   }
 
-  // If the route requires auth and the user isn't logged in, redirect to login.
-  if (isRouteRequiresAuth(to, auth)) {
-    return { name: 'login', query: { redirect: to.fullPath } }
-  }
-
-  return true
+  return accessRedirect(to, auth) ?? true
 })
 
 router.afterEach((to) => {
   setPageTitle(to.meta.title)
 })
 
-function isRouteRequiresAuth(
-  to: RouteLocationNormalizedGeneric,
-  auth: ReturnType<typeof useAuthStore>,
-): boolean {
-  const requiresAuth = to.meta.requiresAuth === true
+type AccessCheck = Pick<ReturnType<typeof useAuthStore>, 'isAuthenticated' | 'isAdmin'>
 
-  if (requiresAuth && !auth.isAuthenticated) {
-    return true
+/**
+ * Where to send someone who can't see `to`, or null if they can. Signed out on a
+ * page that needs an account (admin included): sign in, then come back. Signed
+ * in but not an admin: home, as if the admin area weren't there.
+ */
+export function accessRedirect(
+  to: Pick<RouteLocationNormalizedGeneric, 'meta' | 'fullPath'>,
+  auth: AccessCheck,
+): RouteLocationRaw | null {
+  const needsAccount = to.meta.requiresAuth === true || to.meta.requiresAdmin === true
+  if (needsAccount && !auth.isAuthenticated) {
+    return { name: 'login', query: { redirect: to.fullPath } }
   }
-
-  return false
+  if (to.meta.requiresAdmin === true && !auth.isAdmin) {
+    return { name: 'home' }
+  }
+  return null
 }

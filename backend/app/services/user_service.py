@@ -8,12 +8,13 @@ here and nowhere else.
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.auth.claims import Claims
-from app.models.user import User
+from app.models.user import ROLE_ADMIN, ROLE_USER, User
+from app.services import audit_service
 
 
 def _apply_login(user: User, claims: Claims) -> None:
@@ -91,3 +92,33 @@ def revoke_all_sessions(db: Session, user_id: uuid.UUID) -> None:
     if user is not None:
         user.session_token_version += 1
         db.commit()
+
+
+def get_users_by_email(db: Session, email: str) -> list[User]:
+    """Every user with this email, case-insensitively (email isn't unique)."""
+    return list(db.scalars(select(User).where(func.lower(User.email) == email.lower())))
+
+
+def list_admins(db: Session) -> list[User]:
+    return list(db.scalars(select(User).where(User.role == ROLE_ADMIN).order_by(User.created_at)))
+
+
+def set_role(db: Session, user: User, role: str) -> None:
+    """Make ``user`` an admin or a regular user, audit-logged as a CLI action.
+
+    Called only from ``app/cli.py``: no API path may grant or revoke admin. Takes
+    effect on the user's next request, since ``get_current_user`` reloads the row.
+    """
+    if role not in (ROLE_USER, ROLE_ADMIN):
+        raise ValueError(f"unknown role {role!r}")
+    previous = user.role
+    user.role = role
+    audit_service.record(
+        db,
+        admin_user_id=None,
+        action="grant_admin" if role == ROLE_ADMIN else "revoke_admin",
+        target_type="user",
+        target_id=str(user.id),
+        details={"via": "cli", "from": previous, "to": role},
+    )
+    db.commit()

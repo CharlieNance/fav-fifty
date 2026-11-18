@@ -34,11 +34,13 @@ not app code) and **Q25** (quota defaults, changeable at runtime). Related: [COS
 - Supply chain (2026-11-17): `tools/audit.sh` (pip-audit + npm audit, commented
   allowlist) runs in `.github/workflows/audit.yml` on PRs and weekly; Dependabot and
   `uv` (`exclude-newer = "7 days"`) both wait a week before taking a new release.
+  GitHub secret scanning + push protection and Dependabot alerts are on (repo
+  settings).
 
 **Still to do:** Layer 1 (WAF) and the security-headers policy (with the first deploy),
 the sign-up alarm/switch, 429 counters into Postgres for the dashboard, description
-length (when descriptions get an API), turning on GitHub secret scanning + push
-protection (repo setting), and the backup restore test.
+length (when descriptions get an API), and the backup restore test (with the first
+deploy).
 **Deploy note:** run Uvicorn with **one worker** (the limiter is per process).
 
 ## What we're defending against (at our scale)
@@ -216,4 +218,5 @@ lists per request.
 3. App-level rate limiter (in-process store) plus 429 UX.
 4. Origin-check CSRF middleware; the router-walk auth test; `vue/no-v-html`.
 5. Edge: WAF rules plus the security-headers policy, with the first deploy.
-6. Supply-chain items (Dependabot, secret scanning, audits); a backup restore test.
+6. ~~Supply-chain items (Dependabot, secret scanning, audits)~~ (done 2026-11-17); a
+   backup restore test.

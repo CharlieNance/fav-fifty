@@ -11,9 +11,70 @@ redeploy. Owner direction (2026-10-13): this is **pre-launch** work. Decided in
 - **Q24:** the owner is the only admin; admins may read private lists.
 - **Q25:** limits are changeable at runtime.
 
-Built so far: the runtime settings module + `GET /api/v1/config/client` (build order
-step 1, Track 0, 2026-10-14) — limits only; each switch lands with the feature it
-gates. Related: [ABUSE_PROTECTION_PLAN.md](ABUSE_PROTECTION_PLAN.md),
+Built so far:
+
+- Step 1 (Track 0, 2026-10-14): the runtime settings module +
+  `GET /api/v1/config/client`, limits only; each switch lands with the feature it
+  gates.
+- Step 2 (2026-11-17): `users.role` (+ `ck_users_role`), `require_admin` (role +
+  12 h recent-login check from the cookie's signed timestamp,
+  `ADMIN_RECENT_LOGIN_SECONDS`), the `admin_audit_log` table and
+  `app/services/audit_service.py`, `GET /api/v1/admin/audit-log`, and the CLI
+  (`python -m app.cli grant-admin | revoke-admin | list-admins`, wrapped by
+  `tools/grant_admin.sh`; grants are audit-logged with no admin id). Tests:
+  `tests/test_admin_access.py`, `tests/test_admin_audit_and_cli.py`.
+- Step 3 (2026-11-17): the web admin area at `/admin` (lazy chunk; header link and
+  router guard for admins, from `is_admin` on `GET /me`).
+  - **Users:** search by name/email (`GET /admin/users`), detail with list/item
+    counts and that user's audit entries, lock (also ends their sessions, so an
+    unlock doesn't revive an old cookie; you can't lock yourself), unlock, and
+    sign out everywhere. Each takes an optional audit reason.
+  - **Settings:** every runtime setting with its value, default and bounds
+    (`GET /admin/settings`), change (`PUT /admin/settings/{key}`, strict
+    validation) or reset to default (`POST …/reset`). Writes go to SSM
+    (`PutParameter`/`DeleteParameter`), or to the `RUNTIME_*` lines of
+    `backend/.env` locally (refused, 409, for a key pinned by a real env var). The
+    audit row commits only if the store write succeeds. The process's cache is
+    dropped, so a change applies here at once and elsewhere within ~30 s.
+  - The admin router also carries the `rate_limits.admin_per_minute` limit (60) and
+    `Cache-Control: no-store`.
+  - Tests: `tests/test_admin_portal.py`, `src/features/admin/*.spec.ts`,
+    `e2e/admin.spec.ts` (grants admin with the real CLI, locks a second dev user,
+    checks their next request is a 401).
+  - **Not yet:** the breaker reset button (lands with the breaker, COST_GUARDRAILS_PLAN.md),
+    and an audit-log page (the API exists; each user page shows its own entries).
+- Step 4 (2026-11-18): content read/remove.
+  - **Read:** `GET /admin/users/{id}/lists` (deleted lists included, audit
+    `read_lists`) and `GET /admin/lists/{id}` (items and tags, audit `read_list`).
+    The user page loads lists only when you click "Show lists", so opening a profile
+    never reads content implicitly. Item image URLs show as text, never loaded.
+  - **Remove:** `POST /admin/lists/{id}/remove`, reason required (blank → 422). It
+    reuses the owner's soft delete; the audit row names the owner, not the title.
+  - **Restore:** `POST /admin/lists/{id}/restore` undoes only an admin removal (the
+    latest `remove_list`/`restore_list` for that list decides); a list its owner
+    deleted can't be restored here (409). Restore ignores the owner's list quota,
+    since it puts back a list they already had.
+  - Tests: `tests/test_admin_content.py`, `AdminListView.spec.ts`, and an e2e that
+    removes a second dev user's list and restores it.
+- Step 5, app side (2026-11-18): `GET /admin/dashboard` (cached 5 min,
+  `?refresh=true` skips it) and the Dashboard page, now the admin landing page.
+  - **Product:** account, signed-in-7d, list and item totals plus 30-day daily bars,
+    from existing tables. Anonymous and catalog numbers wait for `/events` (step 6).
+  - **Health:** `RequestCountMiddleware` (outermost) upserts `request_counts` (minute
+    × route class × 2xx/3xx/4xx/429/5xx; `/health` not counted); off on Lambda and
+    in-memory under pytest. The page shows the last 24 h by hour and by route.
+  - **Cost:** `python -m app.cli daily-jobs` prunes counts older than 35 days and,
+    with `COST_SNAPSHOT_ENABLED`, takes ONE Cost Explorer call (~$0.30/month) into
+    `cost_snapshots`; the forecast is a free straight-line projection, not the paid
+    forecast API.
+  - **Still deploy-side:** the CloudWatch dashboard (Terraform) and its
+    `CLOUDWATCH_DASHBOARD_URL`, the cron entry, and the IAM permission
+    (DEPLOYMENT_TOPOLOGY_PLAN.md §Sequencing). Breaker state joins the Cost panel
+    with the breaker.
+  - Charts are a hand-rolled SVG `BarChart.vue` (no chart library), each with a
+    table view.
+
+Related: [ABUSE_PROTECTION_PLAN.md](ABUSE_PROTECTION_PLAN.md),
 [COST_GUARDRAILS_PLAN.md](COST_GUARDRAILS_PLAN.md).
 
 ## Scope
@@ -62,8 +123,10 @@ gates. Related: [ABUSE_PROTECTION_PLAN.md](ABUSE_PROTECTION_PLAN.md),
     credential.
 - The `/admin` route guard in the frontend is **UX only**; the backend is the real
   gate.
-- **Dev:** the dev-login stub gets an "admin" variant (dev only, hard-fails outside
-  development like the existing stub) for building and e2e-testing admin screens.
+- **Dev:** no dev-login "admin" variant (it would be an API path that grants admin).
+  Instead, `./tools/grant_admin.sh dev@example.com` against the local DB makes the
+  dev-login user an admin; pytest sets `role` directly. Playwright admin tests
+  (step 3) can do the same in their setup.
 
 ## Audit log
 
@@ -71,8 +134,8 @@ Every **mutating** admin action, and every **read of a user's private content**,
 writes a row in the same DB transaction as the action:
 
 ```text
-admin_audit_log(id, admin_user_id, action, target_type, target_id,
-                reason (nullable text), metadata (jsonb, small), created_at)
+admin_audit_log(id, admin_user_id (nullable: CLI actions), action, target_type,
+                target_id, reason (nullable text), details (jsonb, small), created_at)
 ```
 
 - Append-only: no update or delete endpoint.
@@ -133,7 +196,8 @@ shared with the cost breaker (which flips switches) and the quotas (Q25).
   **fails safe**: optional features off, core lists on, limits at their defaults.
   The cache is an optimization only, consistent with the portability rules.
 - **Locally,** the same settings can be overridden by env vars / `backend/.env`. No
-  AWS is needed in dev, so this stays a "config file" in development as well.
+  AWS is needed in dev, so this stays a "config file" in development as well. The
+  Settings page writes those `.env` lines.
 - **Public `GET /api/v1/config/client`** exposes the user-facing subset (maintenance
   banner, catalog/showcase on or off, the limits the clients validate against), so web
   and mobile degrade gracefully and validate consistently.
@@ -235,11 +299,13 @@ These are tracked in [CONSIDERATIONS.md](CONSIDERATIONS.md) §Legal.
 1. **Runtime settings module** (SSM + env fallback, typed and validated) +
    `GET /api/v1/config/client`. The quotas, the catalog provider toggles and the cost
    breaker all depend on this, so it comes first.
-2. `users.role` migration + `require_admin` + `grant-admin` CLI +
-   `tools/grant_admin.sh` + the audit-log table.
-3. Admin UI v1: Users (search, detail, lock/unlock, revoke) + the Settings page.
-4. Content read/remove (audit-logged).
-5. Product dashboard + request/429 counters + CloudWatch dashboard link + the cost
-   snapshot job.
+2. ~~`users.role` migration + `require_admin` + `grant-admin` CLI +
+   `tools/grant_admin.sh` + the audit-log table.~~ Done 2026-11-17.
+3. ~~Admin UI v1: Users (search, detail, lock/unlock, revoke) + the Settings
+   page.~~ Done 2026-11-17 (breaker reset waits for the breaker).
+4. ~~Content read/remove (audit-logged).~~ Done 2026-11-18.
+5. ~~Product dashboard + request/429 counters + CloudWatch dashboard link + the cost
+   snapshot job.~~ App side done 2026-11-18; the CloudWatch dashboard, cron and IAM
+   land with the first deploy.
 6. Analytics: Cloudflare Web Analytics + `/events` + the daily rollup.
 7. The abuse view (IP block list).

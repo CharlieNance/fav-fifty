@@ -14,6 +14,12 @@ export interface User {
   id: string
   display_name: string
   avatar_url: string | null
+  /**
+   * Shows the Admin link and lets the router into `/admin`. UX only: every admin
+   * API route checks for itself. Optional so test fixtures can leave it out
+   * (absent = not an admin).
+   */
+  is_admin?: boolean
 }
 
 /**
@@ -27,6 +33,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isReady = ref(false)
 
   const isAuthenticated = computed(() => user.value !== null)
+  const isAdmin = computed(() => user.value?.is_admin === true)
 
   async function fetchMe(): Promise<void> {
     try {
@@ -79,5 +86,5 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { user, isReady, isAuthenticated, fetchMe, devLogin, loginWithGoogle, logout }
+  return { user, isReady, isAuthenticated, isAdmin, fetchMe, devLogin, loginWithGoogle, logout }
 })

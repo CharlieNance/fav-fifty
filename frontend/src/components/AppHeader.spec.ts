@@ -48,6 +48,16 @@ describe('AppHeader', () => {
     expect(wrapper.text()).not.toContain('Log in')
   })
 
+  it('shows the Admin link only to an admin', () => {
+    const auth = useAuthStore()
+    auth.user = { id: 'u1', display_name: 'Shaggy', avatar_url: null }
+    expect(mountHeader(testRouter()).text()).not.toContain('Admin')
+
+    auth.user = { id: 'u1', display_name: 'Shaggy', avatar_url: null, is_admin: true }
+    const link = mountHeader(testRouter()).find('a[href="/admin"]')
+    expect(link.text()).toBe('Admin')
+  })
+
   it('shows the avatar image when the user has one', () => {
     const auth = useAuthStore()
     auth.user = { id: 'u1', display_name: 'Shaggy', avatar_url: 'https://example.com/s.png' }

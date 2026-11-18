@@ -7,6 +7,7 @@
 | ``limit_writes`` | user id   | ``rate_limits.writes_per_minute`` **and**               |
 |                 |           | ``limits.max_writes_per_user_per_day``; unsafe methods  |
 | ``limit_imports``| user id   | ``rate_limits.imports_per_hour``                        |
+| ``limit_admin``  | user id   | ``rate_limits.admin_per_minute`` (all methods)          |
 
 A refused request gets ``429`` with ``Retry-After`` and a human ``detail`` (the
 frontend shows it). Every 429 is logged with its rule, so the dashboards and the cost
@@ -103,3 +104,15 @@ def limit_imports(
         rate = Rate(rules.imports_per_hour, HOUR)
         check = Check(f"imports:{current_user.id}", rate)
         _enforce(request, [check], {"imports": TOO_MANY_IMPORTS})
+
+
+def limit_admin(
+    request: Request,
+    current_user: User = Depends(get_current_user),
+    runtime: RuntimeSettings = Depends(get_runtime_settings),
+) -> None:
+    """For the admin router (after ``require_admin``): reads count too."""
+    rules = runtime.rate_limits
+    if rules.enabled:
+        rate = Rate(rules.admin_per_minute, MINUTE)
+        _enforce(request, [Check(f"admin:{current_user.id}", rate)], {})

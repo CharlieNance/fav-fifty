@@ -4,7 +4,7 @@ The living plan for building Fav Fifty. Each step is meant to be small and shipp
 Decisions live in [DECISIONS.md](DECISIONS.md); how the built parts work is in
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
-Last updated: 2026-11-15
+Last updated: 2026-11-17
 
 ---
 
@@ -13,16 +13,17 @@ Last updated: 2026-11-15
 1. **Pre-launch hardening, app layer:**
    - quotas, rate limits, request hygiene and CSRF
      ([ABUSE_PROTECTION_PLAN.md](ABUSE_PROTECTION_PLAN.md));
-   - `users.role`, the audit log and the admin Users/Settings pages
-     ([ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md)).
+   - the admin portal is done through the dashboard's app side
+     ([ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md) steps 1–5); the
+     breaker reset waits for the breaker, and `/events` + Cloudflare Web Analytics
+     (step 6) are next.
 2. **Remaining Phase 2:** publish/unpublish, list-title dedup.
 3. **First deploy** (Terraform: box, S3, CloudFront + WAF on the flat-rate plan,
    backups) → **breaker + game day**.
 4. **Tracks 2–3** (catalog lookup, margin showcase) and dashboards/analytics, just
    before or just after launch (owner's call). Catalog moves to Lambda with its AWS
    protections when it ships.
-5. **Launch** = steps 1–3 done, plus at least the admin lock/unlock and Settings pages,
-   a real contact email in the [privacy policy](legal/PRIVACY_POLICY.md) and
+5. **Launch** = steps 1–3 done, plus a real contact email in the [privacy policy](legal/PRIVACY_POLICY.md) and
    [terms](legal/TERMS_OF_SERVICE.md), both hosted at public URLs, and Apple device
    testing (WebKit e2e + a real-iPhone pass, under Pre-launch hardening below).
 
@@ -80,18 +81,19 @@ absorb a surprise bill, so these **block launch**. All decided (Q16, Q21–Q25 i
   - app rate limits for signed-in writes + 429 UX;
   - quotas (100 lists, 25 tags, …, runtime-configurable);
   - body-size limits, DB statement timeout, Origin-check CSRF, security headers;
-  - supply-chain checks.
+  - ~~supply-chain checks~~ (done 2026-11-17: audits in CI, Dependabot, secret
+    scanning + push protection).
 - [ ] **Runtime settings + admin portal**
       ([ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md)):
   - SSM-backed switches, limits and provider toggles;
-  - `users.role` + a CLI-only admin grant;
-  - the audit log;
-  - lock/unlock/revoke, read/remove lists;
-  - the Settings page with breaker reset.
+  - ~~`users.role` + a CLI-only admin grant; the audit log~~ (done 2026-11-17);
+  - ~~lock/unlock/revoke; the Settings page~~ (done 2026-11-17);
+  - ~~read/remove lists~~ (done 2026-11-18);
+  - the breaker reset button (with the breaker).
 - [ ] **Dashboards + analytics** (same plan):
-  - product numbers from Postgres;
-  - request/429 counters;
-  - a CloudWatch health dashboard and a daily cost snapshot;
+  - ~~product numbers from Postgres; request/429 counters; the daily cost-snapshot
+    job~~ (app side done 2026-11-18);
+  - the CloudWatch health dashboard, cron and IAM for the snapshot (first deploy);
   - Cloudflare Web Analytics and the `/events` stream.
 - [ ] **Apple device testing** ([MOBILE_READINESS.md](MOBILE_READINESS.md) §6). Every
       iPhone/iPad browser is WebKit, and e2e runs only Chromium today:

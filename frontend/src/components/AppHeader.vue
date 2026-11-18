@@ -17,7 +17,7 @@ import { useStartList } from '@/features/lists/useStartList'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
-const { user, isAuthenticated } = storeToRefs(auth)
+const { user, isAuthenticated, isAdmin } = storeToRefs(auth)
 const { startList } = useStartList()
 // Logging out is more than clearing the session (navigate + confirm) — see useLogout.
 const { logout } = useLogout()
@@ -68,6 +68,16 @@ watch(
         class="rounded text-sm font-medium whitespace-nowrap text-muted transition-colors hover:text-ink aria-[current=page]:text-ink aria-[current=page]:underline aria-[current=page]:decoration-accent aria-[current=page]:decoration-2 aria-[current=page]:underline-offset-8"
       >
         My lists
+      </RouterLink>
+
+      <!-- Owner only (the API is the real gate). From sm: up: a phone-width header
+           has no room for a fifth control; there, /admin is typed directly. -->
+      <RouterLink
+        v-if="isAdmin"
+        to="/admin"
+        class="hidden rounded text-sm sm:inline font-medium whitespace-nowrap text-muted transition-colors hover:text-ink [&.router-link-active]:text-ink [&.router-link-active]:underline [&.router-link-active]:decoration-accent [&.router-link-active]:decoration-2 [&.router-link-active]:underline-offset-8"
+      >
+        Admin
       </RouterLink>
 
       <template v-if="isAuthenticated">

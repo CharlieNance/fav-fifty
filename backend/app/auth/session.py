@@ -9,6 +9,8 @@ Stateless: nothing is stored server-side, so horizontal scale needs no shared
 session store — every container verifies the same ``SECRET_KEY``.
 """
 
+from datetime import datetime
+
 from fastapi import Response
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from pydantic import BaseModel, ValidationError
@@ -26,6 +28,9 @@ class SessionData(BaseModel):
 
     uid: str  # User.id (UUID as string)
     tv: int  # User.session_token_version at issue time
+    # When the cookie was signed (itsdangerous's signed timestamp, not the payload,
+    # so it can't be forged). Admin routes require a recent one.
+    issued_at: datetime
 
 
 def issue_session(user: User) -> str:
@@ -36,13 +41,15 @@ def issue_session(user: User) -> str:
 def read_session(token: str) -> SessionData | None:
     """Verify and decode a session token, or ``None`` if invalid/expired/malformed."""
     try:
-        raw = _serializer.loads(token, max_age=settings.session_max_age_seconds)
+        raw, issued_at = _serializer.loads(
+            token, max_age=settings.session_max_age_seconds, return_timestamp=True
+        )
     except (BadSignature, SignatureExpired):
         return None
     if not isinstance(raw, dict):
         return None
     try:
-        return SessionData(**raw)
+        return SessionData(**{**raw, "issued_at": issued_at})
     except ValidationError:
         return None
 

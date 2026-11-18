@@ -47,6 +47,19 @@ class Settings(BaseSettings):
     # Session cookie: name, lifetime, and (implicitly) the Secure flag via app_env.
     session_cookie_name: str = "favfifty_session"
     session_max_age_seconds: int = 60 * 60 * 24 * 14  # 14 days
+    # Admin routes also need a *recent* sign-in: the session must have been issued
+    # within this window (docs/ADMIN_AND_ANALYTICS_PLAN.md §Access control). Kept out
+    # of runtime settings on purpose: an SSM write shouldn't be able to weaken it.
+    admin_recent_login_seconds: int = 60 * 60 * 12  # 12 hours
+
+    # Admin dashboard (docs/ADMIN_AND_ANALYTICS_PLAN.md §Dashboards).
+    # Per-minute request counts into Postgres. Always off on Lambda (no database).
+    request_counts_enabled: bool = True
+    # Link to the CloudWatch health dashboard (created by Terraform); empty = no link.
+    cloudwatch_dashboard_url: str = ""
+    # The daily job's Cost Explorer snapshot. Off until the box's IAM user has
+    # ce:GetCostAndUsage (each call is $0.01; the job makes one a day).
+    cost_snapshot_enabled: bool = False
 
     # Where the SPA lives — used to resolve post-login redirects to an absolute URL
     # and as the default landing page after a successful sign-in.

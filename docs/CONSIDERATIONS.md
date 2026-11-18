@@ -11,9 +11,9 @@ extensibility, scalability.**
 
 - **No secrets in git, ever.** Real values live in the per-app `.env` files locally
   (`backend/.env`, `frontend/.env.local` — git-ignored) and in AWS Secrets Manager / SSM
-  in deployed environments. Each app's `.env.example` documents its keys only. Consider a
-  pre-commit secret scanner (e.g. `gitleaks`) and enable GitHub secret scanning + push
-  protection.
+  in deployed environments. Each app's `.env.example` documents its keys only. GitHub
+  secret scanning + push protection are on (2026-11-17); a local pre-commit scanner
+  (e.g. `gitleaks`) remains optional.
 - **OAuth done right.** Use the provider/Cognito SDKs; validate `state` (CSRF) and `nonce`,
   verify ID token signatures and audience, and store as little PII as possible (provider
   user id + display name + avatar URL, plus email, kept deliberately as a relinking
@@ -33,7 +33,8 @@ extensibility, scalability.**
   [ABUSE_PROTECTION_PLAN.md](ABUSE_PROTECTION_PLAN.md). Voting/comment-specific limits
   (one vote per user) still arrive with Phase 3/4.
 - **HTTPS only.** TLS via CloudFront / ACM. Set sensible security headers (CSP, HSTS).
-- **Dependencies.** Enable Dependabot; keep frontend and backend deps patched.
+- **Dependencies.** Dependabot (7-day cooldown) plus `tools/audit.sh` (pip-audit + npm
+  audit) in CI on PRs and weekly.
 - **Anonymous use (2026-10 scope expansion).** First endpoints callable without a session
   (catalog lookup, showcase). Rate-limit per IP, cap request sizes, and never let a public
   endpoint burn a third-party quota unchecked — see
