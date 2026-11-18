@@ -1,0 +1,40 @@
+name: Dependency audit
+
+# Known-vulnerability check for both apps' locked dependencies (tools/audit.sh).
+# Runs on PRs and pushes to main like CI, and also weekly: advisories get
+# published against code nobody has touched, so a quiet week still gets checked.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 14 * * 1" # Mondays 14:17 UTC
+  workflow_dispatch:
+
+concurrency:
+  group: audit-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Audit (pip-audit + npm audit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up uv + Python
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      # npm audit reads package-lock.json only, so no `npm ci` is needed.
+      - name: Audit dependencies
+        run: ./tools/audit.sh

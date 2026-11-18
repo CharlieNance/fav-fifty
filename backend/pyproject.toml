@@ -13,8 +13,8 @@ dependencies = [
     "itsdangerous>=2.2",
     # Real auth: HTTP client for the Cognito token exchange (httpx2 = Pydantic's
     # maintained continuation of httpx) and JWT verification for the id token.
-    "httpx2>=2.9.1",
-    "pyjwt[crypto]>=2.9",
+    "httpx2>=2.12",
+    "pyjwt[crypto]>=2.15",
     # Runtime settings in SSM Parameter Store (app/core/runtime_settings.py); only
     # imported when RUNTIME_SETTINGS_SOURCE=ssm.
     "boto3>=1.40",
@@ -35,6 +35,11 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
+
+[tool.uv]
+# Supply-chain cooldown: only resolve releases at least a week old, so a hijacked
+# release is usually caught and yanked before `uv lock` can pick it up.
+exclude-newer = "7 days"
 
 [tool.ruff]
 line-length = 100
