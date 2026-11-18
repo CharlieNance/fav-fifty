@@ -127,6 +127,8 @@ Planning doc for how Fav Fifty runs in AWS. **Decided 2026-10-13**
   the box needs an **IAM user access key** to read SSM parameters and write backups
   to S3. Give that user a **narrow** policy (only `/favfifty/*` parameters and the
   backup bucket prefix), store the key only on the box (never in git), and rotate it.
+  The admin Settings page also needs `ssm:PutParameter` and `ssm:DeleteParameter`,
+  scoped to `/favfifty/settings/*` only.
   It's the main credential to protect.
 - **Logs stay on the box:** Docker's json-file driver with rotation (`max-size`,
   `max-file`), so there's **no CloudWatch Logs ingestion cost** and no disk-full
@@ -207,6 +209,18 @@ the box becomes a real limitation. At ≤10 concurrent users it won't be.
    - Terraform: the box, S3, distribution #1 on the Free plan with WAF; update the
      Cognito callback URL.
    - Get backups running and do the test restore.
+   - **Make the owner an admin** (one time; the role persists in the DB). Sign in once
+     on the live site so the account exists, then on the box run the CLI inside the
+     API container (service name per the compose file):
+
+     ```bash
+     docker compose exec api python -m app.cli grant-admin --email <owner email>
+     docker compose exec api python -m app.cli list-admins   # verify
+     ```
+
+     Reload the site and the Admin link appears. `tools/grant_admin.sh` is the
+     local-dev wrapper for the same CLI; it needs the repo checkout and `uv`, which
+     the box doesn't have.
 3. **Cost guardrails + game day** (COST_GUARDRAILS_PLAN.md) before announcing.
 4. **Hybrid:** when catalog lookup lands, route catalog and showcase to Lambda with
    reserved concurrency; add distribution #2 for images.

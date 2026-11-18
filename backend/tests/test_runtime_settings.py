@@ -9,8 +9,11 @@ from app.core.runtime_settings import (
     EnvSource,
     RuntimeSettings,
     RuntimeSettingsProvider,
+    SettingNotWritableError,
     SsmSource,
     parse_runtime_settings,
+    setting_specs,
+    validate_setting,
 )
 
 
@@ -158,3 +161,116 @@ def test_provider_fails_safe_to_defaults_when_the_source_is_unreachable() -> Non
     source.values = {"limits.max_tags_per_list": "40"}
     clock.now += 30
     assert provider.get().limits.max_tags_per_list == 40
+
+
+# ─── Writes (the admin Settings page) ─────────────────────────────────────────
+
+
+def test_specs_cover_every_leaf_with_its_bounds() -> None:
+    specs = setting_specs()
+    tags = specs["limits.max_tags_per_list"]
+    assert (tags.kind, tags.default, tags.minimum, tags.maximum) == ("int", 25, 1, 200)
+    assert tags.description
+    assert specs["rate_limits.enabled"].kind == "bool"
+    assert all(spec.description for spec in specs.values()), "every setting needs a description"
+
+
+@pytest.mark.parametrize(
+    ("key", "value", "stored"),
+    [("limits.max_tags_per_list", 30, "30"), ("rate_limits.enabled", False, "false")],
+)
+def test_validate_setting_returns_the_stored_text(key: str, value: int | bool, stored: str) -> None:
+    assert validate_setting(key, value) == stored
+
+
+@pytest.mark.parametrize(
+    ("key", "value"),
+    [
+        ("limits.max_tags_per_list", 0),  # under the minimum
+        ("limits.max_tags_per_list", 201),  # over the maximum
+        ("limits.max_tags_per_list", True),  # a bool is not an int here
+        ("rate_limits.enabled", 1),  # nor an int a bool
+    ],
+)
+def test_validate_setting_rejects_bad_values(key: str, value: int | bool) -> None:
+    with pytest.raises(ValueError):
+        validate_setting(key, value)
+
+
+def test_validate_setting_rejects_unknown_keys() -> None:
+    with pytest.raises(KeyError):
+        validate_setting("limits.nope", 1)
+
+
+def test_env_source_writes_and_deletes_lines_in_the_env_file(tmp_path: Path) -> None:
+    env_file = tmp_path / ".env"
+    env_file.write_bytes(b"DATABASE_URL=postgres://x" + bytes([10]))
+    source = EnvSource(env_file=str(env_file), environ={})
+
+    source.write("limits.max_tags_per_list", "30")
+    assert source.fetch() == {"limits.max_tags_per_list": "30"}
+    source.write("limits.max_tags_per_list", "31")
+    assert source.fetch() == {"limits.max_tags_per_list": "31"}
+
+    source.delete("limits.max_tags_per_list")
+    assert source.fetch() == {}
+    source.delete("limits.max_tags_per_list")  # already gone: fine
+    assert "DATABASE_URL=postgres://x" in env_file.read_text()
+
+
+def test_env_source_refuses_a_key_pinned_by_the_real_environment(tmp_path: Path) -> None:
+    env_file = tmp_path / ".env"
+    env_file.write_bytes(b"")
+    source = EnvSource(env_file=str(env_file), environ={"RUNTIME_LIMITS__MAX_TAGS_PER_LIST": "40"})
+    with pytest.raises(SettingNotWritableError):
+        source.write("limits.max_tags_per_list", "30")
+
+
+class FakeSsmWriteClient:
+    class exceptions:  # noqa: N801 - mirrors boto3's client.exceptions
+        class ParameterNotFound(Exception):
+            pass
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, dict[str, Any]]] = []
+
+    def put_parameter(self, **kwargs: Any) -> None:
+        self.calls.append(("put", kwargs))
+
+    def delete_parameter(self, **kwargs: Any) -> None:
+        self.calls.append(("delete", kwargs))
+        raise self.exceptions.ParameterNotFound()
+
+
+def test_ssm_source_writes_and_deletes_parameters() -> None:
+    client = FakeSsmWriteClient()
+    source = SsmSource("/favfifty/settings/", client=client)
+
+    source.write("limits.max_tags_per_list", "30")
+    source.delete("limits.max_tags_per_list")  # ParameterNotFound is swallowed
+
+    name = "/favfifty/settings/limits/max_tags_per_list"
+    assert client.calls == [
+        ("put", {"Name": name, "Value": "30", "Type": "String", "Overwrite": True}),
+        ("delete", {"Name": name}),
+    ]
+
+
+class WritableSource(FakeSource):
+    def write(self, key: str, value: str) -> None:
+        self.values[key] = value
+
+    def delete(self, key: str) -> None:
+        self.values.pop(key, None)
+
+
+def test_provider_write_applies_at_once_despite_the_cache() -> None:
+    source = WritableSource()
+    provider = RuntimeSettingsProvider(source, ttl_seconds=30, clock=FakeClock())
+    assert provider.get().limits.max_tags_per_list == 25
+
+    provider.write("limits.max_tags_per_list", "30")
+    assert provider.get().limits.max_tags_per_list == 30
+
+    provider.delete("limits.max_tags_per_list")
+    assert provider.get().limits.max_tags_per_list == 25

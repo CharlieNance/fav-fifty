@@ -13,17 +13,16 @@ Last updated: 2026-11-17
 1. **Pre-launch hardening, app layer:**
    - quotas, rate limits, request hygiene and CSRF
      ([ABUSE_PROTECTION_PLAN.md](ABUSE_PROTECTION_PLAN.md));
-   - the admin Users/Settings pages
-     ([ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md); `users.role`, the
-     CLI grant and the audit log are done).
+   - admin content read/remove
+     ([ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md); roles, the CLI
+     grant, the audit log and the Users/Settings pages are done).
 2. **Remaining Phase 2:** publish/unpublish, list-title dedup.
 3. **First deploy** (Terraform: box, S3, CloudFront + WAF on the flat-rate plan,
    backups) → **breaker + game day**.
 4. **Tracks 2–3** (catalog lookup, margin showcase) and dashboards/analytics, just
    before or just after launch (owner's call). Catalog moves to Lambda with its AWS
    protections when it ships.
-5. **Launch** = steps 1–3 done, plus at least the admin lock/unlock and Settings pages,
-   a real contact email in the [privacy policy](legal/PRIVACY_POLICY.md) and
+5. **Launch** = steps 1–3 done, plus a real contact email in the [privacy policy](legal/PRIVACY_POLICY.md) and
    [terms](legal/TERMS_OF_SERVICE.md), both hosted at public URLs, and Apple device
    testing (WebKit e2e + a real-iPhone pass, under Pre-launch hardening below).
 
@@ -87,8 +86,9 @@ absorb a surprise bill, so these **block launch**. All decided (Q16, Q21–Q25 i
       ([ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md)):
   - SSM-backed switches, limits and provider toggles;
   - ~~`users.role` + a CLI-only admin grant; the audit log~~ (done 2026-11-17);
-  - lock/unlock/revoke, read/remove lists;
-  - the Settings page with breaker reset.
+  - ~~lock/unlock/revoke; the Settings page~~ (done 2026-11-17);
+  - read/remove lists;
+  - the breaker reset button (with the breaker).
 - [ ] **Dashboards + analytics** (same plan):
   - product numbers from Postgres;
   - request/429 counters;

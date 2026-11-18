@@ -22,7 +22,29 @@ Built so far:
   `app/services/audit_service.py`, `GET /api/v1/admin/audit-log`, and the CLI
   (`python -m app.cli grant-admin | revoke-admin | list-admins`, wrapped by
   `tools/grant_admin.sh`; grants are audit-logged with no admin id). Tests:
-  `tests/test_admin_access.py`, `tests/test_admin_audit_and_cli.py`. Related: [ABUSE_PROTECTION_PLAN.md](ABUSE_PROTECTION_PLAN.md),
+  `tests/test_admin_access.py`, `tests/test_admin_audit_and_cli.py`.
+- Step 3 (2026-11-17): the web admin area at `/admin` (lazy chunk; header link and
+  router guard for admins, from `is_admin` on `GET /me`).
+  - **Users:** search by name/email (`GET /admin/users`), detail with list/item
+    counts and that user's audit entries, lock (also ends their sessions, so an
+    unlock doesn't revive an old cookie; you can't lock yourself), unlock, and
+    sign out everywhere. Each takes an optional audit reason.
+  - **Settings:** every runtime setting with its value, default and bounds
+    (`GET /admin/settings`), change (`PUT /admin/settings/{key}`, strict
+    validation) or reset to default (`POST …/reset`). Writes go to SSM
+    (`PutParameter`/`DeleteParameter`), or to the `RUNTIME_*` lines of
+    `backend/.env` locally (refused, 409, for a key pinned by a real env var). The
+    audit row commits only if the store write succeeds. The process's cache is
+    dropped, so a change applies here at once and elsewhere within ~30 s.
+  - The admin router also carries the `rate_limits.admin_per_minute` limit (60) and
+    `Cache-Control: no-store`.
+  - Tests: `tests/test_admin_portal.py`, `src/features/admin/*.spec.ts`,
+    `e2e/admin.spec.ts` (grants admin with the real CLI, locks a second dev user,
+    checks their next request is a 401).
+  - **Not yet:** the breaker reset button (lands with the breaker, COST_GUARDRAILS_PLAN.md),
+    and an audit-log page (the API exists; each user page shows its own entries).
+
+Related: [ABUSE_PROTECTION_PLAN.md](ABUSE_PROTECTION_PLAN.md),
 [COST_GUARDRAILS_PLAN.md](COST_GUARDRAILS_PLAN.md).
 
 ## Scope
@@ -144,7 +166,8 @@ shared with the cost breaker (which flips switches) and the quotas (Q25).
   **fails safe**: optional features off, core lists on, limits at their defaults.
   The cache is an optimization only, consistent with the portability rules.
 - **Locally,** the same settings can be overridden by env vars / `backend/.env`. No
-  AWS is needed in dev, so this stays a "config file" in development as well.
+  AWS is needed in dev, so this stays a "config file" in development as well. The
+  Settings page writes those `.env` lines.
 - **Public `GET /api/v1/config/client`** exposes the user-facing subset (maintenance
   banner, catalog/showcase on or off, the limits the clients validate against), so web
   and mobile degrade gracefully and validate consistently.
@@ -248,7 +271,8 @@ These are tracked in [CONSIDERATIONS.md](CONSIDERATIONS.md) §Legal.
    breaker all depend on this, so it comes first.
 2. ~~`users.role` migration + `require_admin` + `grant-admin` CLI +
    `tools/grant_admin.sh` + the audit-log table.~~ Done 2026-11-17.
-3. Admin UI v1: Users (search, detail, lock/unlock, revoke) + the Settings page.
+3. ~~Admin UI v1: Users (search, detail, lock/unlock, revoke) + the Settings
+   page.~~ Done 2026-11-17 (breaker reset waits for the breaker).
 4. Content read/remove (audit-logged).
 5. Product dashboard + request/429 counters + CloudWatch dashboard link + the cost
    snapshot job.

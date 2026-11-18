@@ -8,7 +8,7 @@ log). Nothing updates or deletes these rows.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import DateTime, ForeignKey, Index, String, Text, func
@@ -38,4 +38,8 @@ class AdminAuditLog(Base, UUIDPrimaryKeyMixin):
     # Small structured context (old/new value, counts). Named ``details`` because
     # ``metadata`` is reserved on SQLAlchemy declarative models.
     details: Mapped[dict[str, Any]] = mapped_column(JSONB, server_default="{}", default=dict)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # Stamped in Python (wall clock), not by now(), which is fixed for a whole
+    # transaction: several actions in one transaction still sort in order.
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), default=lambda: datetime.now(UTC)
+    )
