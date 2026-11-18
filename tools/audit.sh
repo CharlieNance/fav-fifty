@@ -20,9 +20,8 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # --- Backend allowlist (pip-audit IDs) --------------------------------------
-# PYSEC-2026-4146  pyjwt: decode() mutates a reused `options` dict. No fix yet.
-#                  We pass a fresh dict literal per call (app/auth/providers.py).
-PY_IGNORE=(PYSEC-2026-4146)
+# Empty. Add an ID with a comment saying why, e.g. PY_IGNORE=(PYSEC-2026-1234).
+PY_IGNORE=()
 
 # --- Frontend allowlist (GHSA IDs) ------------------------------------------
 # GHSA-fc5q-39xc-vjpf  picomatch ReDoS. No fixed release. Build/test tooling
@@ -47,9 +46,11 @@ echo
 echo "### Frontend: npm audit ###"
 (
   cd "$REPO_ROOT/frontend"
-  # npm audit exits non-zero whenever it finds anything, so take its JSON and
-  # decide pass/fail ourselves against the allowlist.
-  npm audit --json 2>/dev/null | node -e '
+  # npm audit exits non-zero whenever it finds anything, so ignore its exit code
+  # (pipefail would otherwise fail the step) and decide pass/fail ourselves
+  # against the allowlist. If npm itself breaks (e.g. no network), the JSON is
+  # an error object or empty, and the script below fails on that.
+  { npm audit --json 2>/dev/null || true; } | node -e '
     const allow = new Set(process.argv[1].split(" "));
     const report = JSON.parse(require("fs").readFileSync(0, "utf8"));
     if (report.error) { console.error(report.error); process.exit(2); }
