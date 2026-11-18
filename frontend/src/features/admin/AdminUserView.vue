@@ -18,6 +18,7 @@ import {
   adminApi,
   adminProblem,
   formatWhen,
+  type AdminListSummary,
   type AdminProblem as Problem,
   type AdminUserDetail,
   type UserAction,
@@ -32,7 +33,33 @@ const problem = ref<Problem | null>(null)
 
 const isSelf = computed(() => user.value?.id === auth.user?.id)
 
+// Their lists load only when asked: each look is an audit-logged read of
+// private content, so opening someone's profile shouldn't do it implicitly.
+const lists = ref<AdminListSummary[] | null>(null)
+const listsLoading = ref(false)
+const listsProblem = ref<Problem | null>(null)
+
+async function showLists(): Promise<void> {
+  if (!user.value) return
+  listsLoading.value = true
+  listsProblem.value = null
+  try {
+    lists.value = await adminApi.userLists(user.value.id)
+  } catch (error) {
+    listsProblem.value = adminProblem(error)
+  } finally {
+    listsLoading.value = false
+  }
+}
+
+function listState(list: AdminListSummary): string | null {
+  if (list.removed_by_admin) return 'Removed by admin'
+  if (list.deleted_at) return 'Deleted by owner'
+  return null
+}
+
 async function load(id: string): Promise<void> {
+  lists.value = null
   user.value = null
   problem.value = null
   try {
@@ -165,6 +192,39 @@ async function confirm(reason: string): Promise<void> {
       >
     </div>
     <p v-if="isSelf" class="mt-2 text-xs text-muted">This is you, so it can’t be locked here.</p>
+
+    <h2 class="mt-10 font-display text-xl font-bold text-ink">Lists</h2>
+    <template v-if="lists === null">
+      <p class="mt-2 text-sm text-muted">
+        Their lists are private. Viewing them is recorded in the audit log.
+      </p>
+      <BaseButton
+        class="mt-3"
+        variant="secondary"
+        size="sm"
+        :disabled="listsLoading"
+        @click="showLists()"
+        >{{ listsLoading ? 'Loading…' : 'Show lists' }}</BaseButton
+      >
+      <AdminProblem v-if="listsProblem" :problem="listsProblem" />
+    </template>
+    <p v-else-if="lists.length === 0" class="mt-2 text-sm text-muted">No lists.</p>
+    <ul v-else class="mt-2 divide-y divide-border text-sm" aria-label="Their lists">
+      <li v-for="list in lists" :key="list.id" class="py-2">
+        <RouterLink
+          :to="{ name: 'admin-list', params: { id: list.id } }"
+          class="group flex flex-wrap items-baseline gap-x-3"
+        >
+          <span class="font-medium text-ink group-hover:text-accent">{{ list.title }}</span>
+          <span class="text-muted">{{ list.item_count }} items</span>
+          <span
+            v-if="listState(list)"
+            class="rounded-full border border-border px-2 py-0.5 text-xs text-muted"
+            >{{ listState(list) }}</span
+          >
+        </RouterLink>
+      </li>
+    </ul>
 
     <h2 class="mt-10 font-display text-xl font-bold text-ink">Admin actions</h2>
     <p v-if="user.recent_actions.length === 0" class="mt-2 text-sm text-muted">None yet.</p>

@@ -9,7 +9,10 @@ import uuid
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.schemas.list import ListRead
+from app.schemas.list_item import ItemRead
 
 MAX_REASON_LENGTH = 500
 
@@ -33,6 +36,20 @@ class AdminAction(BaseModel):
     """Body of a mutating admin action: an optional note for the audit log."""
 
     reason: str | None = Field(default=None, max_length=MAX_REASON_LENGTH)
+
+
+class AdminReasonRequired(BaseModel):
+    """Body of an action that must say why (removing someone's content)."""
+
+    reason: str = Field(max_length=MAX_REASON_LENGTH)
+
+    @field_validator("reason")
+    @classmethod
+    def _not_blank(cls, value: str) -> str:
+        trimmed = value.strip()
+        if not trimmed:
+            raise ValueError("A reason is required.")
+        return trimmed
 
 
 class AdminUserSummary(BaseModel):
@@ -78,3 +95,18 @@ class SettingUpdate(BaseModel):
 
     value: int | bool
     reason: str | None = Field(default=None, max_length=MAX_REASON_LENGTH)
+
+
+class AdminListSummary(ListRead):
+    """A list as the admin sees it: deleted ones included, and who deleted them."""
+
+    deleted_at: datetime | None
+    # Deleted by an admin (restorable here), not by its owner.
+    removed_by_admin: bool
+
+
+class AdminListDetail(AdminListSummary):
+    user_id: uuid.UUID
+    owner_display_name: str
+    items: list[ItemRead]
+    recent_actions: list[AuditLogEntryRead]

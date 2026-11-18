@@ -21,15 +21,21 @@ from app.core.runtime_settings import (
     get_runtime_settings_provider,
 )
 from app.models.admin_audit_log import AdminAuditLog
+from app.models.list import List
 from app.models.user import User
 from app.schemas.admin import (
     AdminAction,
+    AdminListDetail,
+    AdminListSummary,
+    AdminReasonRequired,
     AdminUserDetail,
     AdminUserSummary,
     AuditLogEntryRead,
     SettingRead,
     SettingUpdate,
 )
+from app.schemas.list import ListRead
+from app.schemas.list_item import ItemRead
 from app.services import admin_service, audit_service
 
 logger = logging.getLogger(__name__)
@@ -164,6 +170,90 @@ def revoke_sessions(
 ) -> Any:
     """Sign the user out on every device (they can sign back in)."""
     return _act(admin_service.revoke_sessions, db, admin, user, body)
+
+
+# ─── Lists (content; every read is audit-logged) ──────────────────────────────
+
+
+def _list_summary(row: List, removed_by_admin: bool) -> AdminListSummary:
+    return AdminListSummary.model_validate(
+        {
+            **ListRead.model_validate(row).model_dump(),
+            "deleted_at": row.deleted_at,
+            "removed_by_admin": removed_by_admin,
+        }
+    )
+
+
+@router.get("/users/{user_id}/lists", response_model=list[AdminListSummary])
+def read_user_lists(
+    user: User = Depends(_target_user),
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> Any:
+    """Every list the user has, deleted ones included. Audit-logged as a read."""
+    return [
+        _list_summary(row, removed) for row, removed in admin_service.user_lists(db, admin, user)
+    ]
+
+
+def _target_list(list_id: uuid.UUID, db: Session = Depends(get_db)) -> List:
+    row = admin_service.get_list(db, list_id)
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="List not found")
+    return row
+
+
+def _list_detail(db: Session, row: List) -> AdminListDetail:
+    extra = admin_service.list_detail(db, row)
+    return AdminListDetail(
+        **_list_summary(row, extra["removed_by_admin"]).model_dump(),
+        user_id=row.user_id,
+        owner_display_name=row.owner.display_name,
+        items=[ItemRead.model_validate(item) for item in row.items],
+        recent_actions=[AuditLogEntryRead.model_validate(e) for e in extra["recent_actions"]],
+    )
+
+
+@router.get("/lists/{list_id}", response_model=AdminListDetail)
+def read_list(
+    row: List = Depends(_target_list),
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> Any:
+    """One list with its items, deleted or not. Audit-logged as a read."""
+    admin_service.record_list_read(db, admin, row)
+    return _list_detail(db, row)
+
+
+def _act_on_list(action: Any, db: Session, admin: User, row: List, reason: str | None) -> Any:
+    try:
+        action(db, admin, row, reason)
+    except admin_service.AdminActionError as error:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(error)) from None
+    return _list_detail(db, row)
+
+
+@router.post("/lists/{list_id}/remove", response_model=AdminListDetail)
+def remove_list(
+    body: AdminReasonRequired,
+    row: List = Depends(_target_list),
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> Any:
+    """Remove a list for moderation (soft delete, so reversible). Needs a reason."""
+    return _act_on_list(admin_service.remove_list, db, admin, row, body.reason)
+
+
+@router.post("/lists/{list_id}/restore", response_model=AdminListDetail)
+def restore_list(
+    body: AdminAction,
+    row: List = Depends(_target_list),
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+) -> Any:
+    """Undo an admin's removal. A list its owner deleted can't be restored here."""
+    return _act_on_list(admin_service.restore_list, db, admin, row, body.reason)
 
 
 # ─── Runtime settings ───────────────────────────────────────────────────────────

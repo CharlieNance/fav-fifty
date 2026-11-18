@@ -78,3 +78,53 @@ test('the admin locks a user, whose next request is refused', async ({
   await expect(page.getByText('limits.max_tags_per_list')).toBeVisible()
   await expectAccessible(page, 'admin settings')
 })
+
+test('the admin reads a user’s list, removes it, then restores it', async ({
+  page,
+  browser,
+  devUserKey,
+  baseURL,
+}) => {
+  // The owner, with a list of their own.
+  const ownerKey = `e2e-owner-${randomUUID()}`
+  const ownerContext = await browser.newContext({ baseURL })
+  await useDevUser(ownerContext, ownerKey)
+  const owner = await ownerContext.newPage()
+  await devLogin(owner)
+  const created = await owner.request.post('/api/v1/lists', {
+    data: { title: 'Best sandwiches' },
+    headers: { Origin: baseURL! },
+  })
+  expect(created.status()).toBe(201)
+  const listId = ((await created.json()) as { id: string }).id
+
+  await devLogin(page)
+  grantAdmin(`dev+${devUserKey}@example.com`)
+  await page.goto('/admin/users')
+  await page.getByRole('searchbox', { name: 'Search users' }).fill(ownerKey)
+  await page.getByRole('link', { name: new RegExp(`Dev User ${ownerKey}`) }).click()
+
+  // Their lists load only on request.
+  await page.getByRole('button', { name: 'Show lists' }).click()
+  await page.getByRole('link', { name: /Best sandwiches/ }).click()
+  await expect(page.getByRole('heading', { name: 'Best sandwiches' })).toBeVisible()
+  await expectAccessible(page, 'admin list detail')
+
+  await page.getByRole('button', { name: 'Remove list' }).click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByRole('button', { name: 'Remove list' })).toBeDisabled()
+  await dialog.getByLabel(/Reason/).fill('e2e: testing removal')
+  await dialog.getByRole('button', { name: 'Remove list' }).click()
+  await expect(page.getByText('Removed by admin')).toBeVisible()
+  await expectAccessible(page, 'admin list detail, removed')
+
+  // Gone for its owner…
+  expect((await owner.request.get(`/api/v1/lists/${listId}`)).status()).toBe(404)
+
+  // …until it's restored.
+  await page.getByRole('button', { name: 'Restore list' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Restore list' }).click()
+  await expect(page.getByRole('button', { name: 'Remove list' })).toBeVisible()
+  expect((await owner.request.get(`/api/v1/lists/${listId}`)).status()).toBe(200)
+  await ownerContext.close()
+})

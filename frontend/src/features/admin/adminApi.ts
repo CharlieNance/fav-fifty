@@ -4,6 +4,7 @@
  * here can grant admin, which only the CLI on the box can do.
  */
 import { ApiError, apiFetch } from '@/api/client'
+import type { ListItem, ListSummary } from '@/features/lists/types'
 
 export interface AuditLogEntry {
   id: string
@@ -50,6 +51,20 @@ export interface Setting {
 
 export type UserAction = 'lock' | 'unlock' | 'revoke-sessions'
 
+/** Any user's list, deleted ones included (backend AdminListSummary). */
+export interface AdminListSummary extends ListSummary {
+  deleted_at: string | null
+  /** Deleted by an admin (restorable), not by its owner. */
+  removed_by_admin: boolean
+}
+
+export interface AdminListDetail extends AdminListSummary {
+  user_id: string
+  owner_display_name: string
+  items: ListItem[]
+  recent_actions: AuditLogEntry[]
+}
+
 export const USER_PAGE_SIZE = 25
 /** The Users search waits for typing to pause this long. */
 export const SEARCH_DEBOUNCE_MS = 300
@@ -69,6 +84,21 @@ export const adminApi = {
   },
   actOnUser(id: string, action: UserAction, reason: string): Promise<AdminUserDetail> {
     return post(`/admin/users/${encodeURIComponent(id)}/${action}`, { reason: reason || null })
+  },
+  /** Audit-logged on the server: reading someone's lists is reading their content. */
+  userLists(userId: string): Promise<AdminListSummary[]> {
+    return apiFetch(`/admin/users/${encodeURIComponent(userId)}/lists`)
+  },
+  /** Audit-logged on the server, like {@link adminApi.userLists}. */
+  getList(id: string): Promise<AdminListDetail> {
+    return apiFetch(`/admin/lists/${encodeURIComponent(id)}`)
+  },
+  /** The reason is required for a removal. */
+  removeList(id: string, reason: string): Promise<AdminListDetail> {
+    return post(`/admin/lists/${encodeURIComponent(id)}/remove`, { reason })
+  },
+  restoreList(id: string, reason: string): Promise<AdminListDetail> {
+    return post(`/admin/lists/${encodeURIComponent(id)}/restore`, { reason: reason || null })
   },
   listSettings(): Promise<Setting[]> {
     return apiFetch('/admin/settings')
@@ -121,6 +151,10 @@ const ACTION_LABELS: Record<string, string> = {
   revoke_sessions: 'Signed out everywhere',
   grant_admin: 'Made admin (CLI)',
   revoke_admin: 'Admin removed (CLI)',
+  read_lists: 'Viewed their lists',
+  read_list: 'Viewed',
+  remove_list: 'Removed',
+  restore_list: 'Restored',
   update_setting: 'Changed',
   reset_setting: 'Reset to default',
 }

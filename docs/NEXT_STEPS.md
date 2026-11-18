@@ -13,9 +13,9 @@ Last updated: 2026-11-17
 1. **Pre-launch hardening, app layer:**
    - quotas, rate limits, request hygiene and CSRF
      ([ABUSE_PROTECTION_PLAN.md](ABUSE_PROTECTION_PLAN.md));
-   - admin content read/remove
-     ([ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md); roles, the CLI
-     grant, the audit log and the Users/Settings pages are done).
+   - the admin portal is done through content read/remove
+     ([ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md)); the breaker reset
+     waits for the breaker.
 2. **Remaining Phase 2:** publish/unpublish, list-title dedup.
 3. **First deploy** (Terraform: box, S3, CloudFront + WAF on the flat-rate plan,
    backups) → **breaker + game day**.
@@ -87,7 +87,7 @@ absorb a surprise bill, so these **block launch**. All decided (Q16, Q21–Q25 i
   - SSM-backed switches, limits and provider toggles;
   - ~~`users.role` + a CLI-only admin grant; the audit log~~ (done 2026-11-17);
   - ~~lock/unlock/revoke; the Settings page~~ (done 2026-11-17);
-  - read/remove lists;
+  - ~~read/remove lists~~ (done 2026-11-18);
   - the breaker reset button (with the breaker).
 - [ ] **Dashboards + analytics** (same plan):
   - product numbers from Postgres;

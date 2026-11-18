@@ -14,7 +14,7 @@ import { apiFetch } from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toasts'
 import AdminUserView from './AdminUserView.vue'
-import { makeUserDetail } from './adminTestUtils'
+import { makeListDetail, makeUserDetail } from './adminTestUtils'
 
 const apiFetchMock = vi.mocked(apiFetch)
 const stub = { template: '<div />' }
@@ -25,6 +25,7 @@ function testRouter(): Router {
     routes: [
       { path: '/admin/users', name: 'admin-users', component: stub },
       { path: '/admin/users/:id', name: 'admin-user', component: AdminUserView },
+      { path: '/admin/lists/:id', name: 'admin-list', component: stub },
       { path: '/login', name: 'login', component: stub },
     ],
   })
@@ -113,6 +114,29 @@ describe('AdminUserView', () => {
     await flushPromises()
 
     expect(wrapper.find('[role="dialog"] [role="alert"]').text()).toBe('Already gone.')
+  })
+
+  it('loads their lists only when asked', async () => {
+    apiFetchMock.mockResolvedValueOnce(makeUserDetail())
+    const wrapper = await mountUser()
+    expect(apiFetchMock).toHaveBeenCalledTimes(1)
+    expect(wrapper.text()).toContain('Viewing them is recorded in the audit log.')
+
+    apiFetchMock.mockResolvedValueOnce([
+      { ...makeListDetail(), deleted_at: null, removed_by_admin: false },
+      { ...makeListDetail({ id: 'list-9', title: 'Gone', deleted_at: '2026-11-18T00:00:00Z' }) },
+    ])
+    await wrapper
+      .findAll('button')
+      .find((b) => b.text() === 'Show lists')!
+      .trigger('click')
+    await flushPromises()
+
+    expect(apiFetchMock).toHaveBeenLastCalledWith('/admin/users/user-2/lists')
+    const rows = wrapper.findAll('[aria-label="Their lists"] li').map((li) => li.text())
+    expect(rows[0]).toContain('Secret sandwiches')
+    expect(rows[1]).toContain('Deleted by owner')
+    expect(wrapper.find('a[href="/admin/lists/list-1"]').exists()).toBe(true)
   })
 
   it('offers no lock button on your own account', async () => {

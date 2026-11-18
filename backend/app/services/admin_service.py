@@ -7,11 +7,12 @@ errors below to HTTP statuses.
 
 import uuid
 from collections.abc import Callable
+from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import ValidationError
 from sqlalchemy import Select, func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.core.runtime_settings import (
     RuntimeSettingsProvider,
@@ -247,3 +248,128 @@ def _store_then_commit(db: Session, change: Callable[[], None]) -> None:
 
 def get_user(db: Session, user_id: uuid.UUID) -> User | None:
     return db.get(User, user_id)
+
+
+# ─── Lists (content) ────────────────────────────────────────────────────────────
+# Reading someone's lists is reading private content, so every read is audit-logged
+# (docs/ADMIN_AND_ANALYTICS_PLAN.md §Content). Removal reuses the owner's soft
+# delete, so it's reversible; restore only undoes an admin's removal, never the
+# owner's own delete.
+
+_MODERATION_ACTIONS = ("remove_list", "restore_list")
+
+
+def _removed_by_admin(db: Session, lists: list[List]) -> set[uuid.UUID]:
+    """The deleted lists among ``lists`` whose latest moderation action is a removal."""
+    deleted = {str(row.id): row.id for row in lists if row.deleted_at is not None}
+    if not deleted:
+        return set()
+    latest = (
+        select(AdminAuditLog.target_id, AdminAuditLog.action)
+        .where(
+            AdminAuditLog.target_type == "list",
+            AdminAuditLog.target_id.in_(deleted),
+            AdminAuditLog.action.in_(_MODERATION_ACTIONS),
+        )
+        .order_by(AdminAuditLog.target_id, AdminAuditLog.created_at.desc())
+        .distinct(AdminAuditLog.target_id)
+    )
+    return {deleted[target] for target, action in db.execute(latest) if action == "remove_list"}
+
+
+def user_lists(db: Session, admin: User, user: User) -> list[tuple[List, bool]]:
+    """All of ``user``'s lists, deleted included (newest first), audit-logged as a read.
+
+    Each pair is the list and whether an admin removed it.
+    """
+    rows = list(
+        db.scalars(
+            select(List)
+            .where(List.user_id == user.id)
+            .options(selectinload(List.tags))
+            .order_by(List.created_at.desc(), List.id)
+        )
+    )
+    audit_service.record(
+        db,
+        admin_user_id=admin.id,
+        action="read_lists",
+        target_type="user",
+        target_id=str(user.id),
+        details={"count": len(rows)},
+    )
+    db.commit()
+    removed = _removed_by_admin(db, rows)
+    return [(row, row.id in removed) for row in rows]
+
+
+def get_list(db: Session, list_id: uuid.UUID) -> List | None:
+    """Any list by id, deleted or not, with its items and tags."""
+    return db.scalar(
+        select(List)
+        .where(List.id == list_id)
+        .options(selectinload(List.items), selectinload(List.tags), selectinload(List.owner))
+    )
+
+
+def record_list_read(db: Session, admin: User, row: List) -> None:
+    audit_service.record(
+        db,
+        admin_user_id=admin.id,
+        action="read_list",
+        target_type="list",
+        target_id=str(row.id),
+        details={"owner_id": str(row.user_id)},
+    )
+    db.commit()
+
+
+def list_detail(db: Session, row: List) -> dict[str, Any]:
+    """The fields of ``AdminListDetail`` beyond the list row itself."""
+    recent_actions = audit_service.list_entries(
+        db, limit=RECENT_ACTIONS, target_type="list", target_id=str(row.id)
+    )
+    return {
+        "removed_by_admin": row.id in _removed_by_admin(db, [row]),
+        "recent_actions": recent_actions,
+    }
+
+
+def remove_list(db: Session, admin: User, row: List, reason: str) -> None:
+    """Soft-delete someone's list for moderation. Reversible with ``restore_list``."""
+    if row.deleted_at is not None:
+        raise AdminActionError("This list is already deleted.")
+    row.deleted_at = datetime.now(UTC)
+    audit_service.record(
+        db,
+        admin_user_id=admin.id,
+        action="remove_list",
+        target_type="list",
+        target_id=str(row.id),
+        reason=reason,
+        # The owner, not the title: the log shouldn't copy private content.
+        details={"owner_id": str(row.user_id)},
+    )
+    db.commit()
+
+
+def restore_list(db: Session, admin: User, row: List, reason: str | None) -> None:
+    """Undo an admin's removal. A list its owner deleted stays deleted.
+
+    Bypasses the owner's list quota: it puts back a list they already had.
+    """
+    if row.deleted_at is None:
+        raise AdminActionError("This list isn't deleted.")
+    if row.id not in _removed_by_admin(db, [row]):
+        raise AdminActionError("Its owner deleted this list, so it can't be restored here.")
+    row.deleted_at = None
+    audit_service.record(
+        db,
+        admin_user_id=admin.id,
+        action="restore_list",
+        target_type="list",
+        target_id=str(row.id),
+        reason=reason,
+        details={"owner_id": str(row.user_id)},
+    )
+    db.commit()

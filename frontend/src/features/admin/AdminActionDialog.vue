@@ -12,15 +12,17 @@ import BaseDialog from '@/components/BaseDialog.vue'
 /** Matches the backend's cap (app/schemas/admin.py MAX_REASON_LENGTH). */
 const MAX_REASON_LENGTH = 500
 
-withDefaults(
+const props = withDefaults(
   defineProps<{
     title: string
     message: string
     confirmLabel: string
     pending?: boolean
     error?: string | null
+    /** The action can't go ahead without a reason (e.g. removing someone's list). */
+    reasonRequired?: boolean
   }>(),
-  { pending: false, error: null },
+  { pending: false, error: null, reasonRequired: false },
 )
 
 const emit = defineEmits<{ confirm: [reason: string]; cancel: [] }>()
@@ -29,6 +31,12 @@ const reason = ref('')
 
 function cancel(): void {
   emit('cancel')
+}
+
+function submit(): void {
+  const trimmed = reason.value.trim()
+  if (props.pending || (props.reasonRequired && !trimmed)) return
+  emit('confirm', trimmed)
 }
 </script>
 
@@ -39,20 +47,24 @@ function cancel(): void {
     panel-class="max-w-md"
     @close="cancel"
   >
-    <form @submit.prevent="emit('confirm', reason.trim())">
+    <form @submit.prevent="submit">
       <h2 id="admin-action-heading" class="font-display text-xl font-bold text-ink">
         {{ title }}
       </h2>
       <p id="admin-action-message" class="mt-2 text-sm text-muted">{{ message }}</p>
 
       <label for="admin-action-reason" class="mt-4 block text-sm font-medium text-ink">
-        Reason <span class="font-normal text-muted">(optional, kept in the audit log)</span>
+        Reason
+        <span class="font-normal text-muted"
+          >({{ reasonRequired ? 'required' : 'optional' }}, kept in the audit log)</span
+        >
       </label>
       <textarea
         id="admin-action-reason"
         v-model="reason"
         rows="2"
         :maxlength="MAX_REASON_LENGTH"
+        :required="reasonRequired"
         class="mt-1 w-full rounded-lg border border-control bg-transparent px-3 py-2 text-sm text-ink focus-visible:outline-2 focus-visible:outline-accent"
       ></textarea>
 
@@ -62,7 +74,11 @@ function cancel(): void {
         <BaseButton variant="secondary" size="sm" type="button" :disabled="pending" @click="cancel">
           Cancel
         </BaseButton>
-        <BaseButton size="sm" type="submit" :disabled="pending">
+        <BaseButton
+          size="sm"
+          type="submit"
+          :disabled="pending || (reasonRequired && !reason.trim())"
+        >
           {{ pending ? 'Working…' : confirmLabel }}
         </BaseButton>
       </div>

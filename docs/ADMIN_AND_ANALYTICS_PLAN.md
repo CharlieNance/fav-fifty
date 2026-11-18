@@ -43,6 +43,19 @@ Built so far:
     checks their next request is a 401).
   - **Not yet:** the breaker reset button (lands with the breaker, COST_GUARDRAILS_PLAN.md),
     and an audit-log page (the API exists; each user page shows its own entries).
+- Step 4 (2026-11-18): content read/remove.
+  - **Read:** `GET /admin/users/{id}/lists` (deleted lists included, audit
+    `read_lists`) and `GET /admin/lists/{id}` (items and tags, audit `read_list`).
+    The user page loads lists only when you click "Show lists", so opening a profile
+    never reads content implicitly. Item image URLs show as text, never loaded.
+  - **Remove:** `POST /admin/lists/{id}/remove`, reason required (blank → 422). It
+    reuses the owner's soft delete; the audit row names the owner, not the title.
+  - **Restore:** `POST /admin/lists/{id}/restore` undoes only an admin removal (the
+    latest `remove_list`/`restore_list` for that list decides); a list its owner
+    deleted can't be restored here (409). Restore ignores the owner's list quota,
+    since it puts back a list they already had.
+  - Tests: `tests/test_admin_content.py`, `AdminListView.spec.ts`, and an e2e that
+    removes a second dev user's list and restores it.
 
 Related: [ABUSE_PROTECTION_PLAN.md](ABUSE_PROTECTION_PLAN.md),
 [COST_GUARDRAILS_PLAN.md](COST_GUARDRAILS_PLAN.md).
@@ -273,7 +286,7 @@ These are tracked in [CONSIDERATIONS.md](CONSIDERATIONS.md) §Legal.
    `tools/grant_admin.sh` + the audit-log table.~~ Done 2026-11-17.
 3. ~~Admin UI v1: Users (search, detail, lock/unlock, revoke) + the Settings
    page.~~ Done 2026-11-17 (breaker reset waits for the breaker).
-4. Content read/remove (audit-logged).
+4. ~~Content read/remove (audit-logged).~~ Done 2026-11-18.
 5. Product dashboard + request/429 counters + CloudWatch dashboard link + the cost
    snapshot job.
 6. Analytics: Cloudflare Web Analytics + `/events` + the daily rollup.

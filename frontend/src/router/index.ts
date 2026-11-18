@@ -78,6 +78,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: 'Admin: user' },
       },
       {
+        path: 'lists/:id',
+        name: 'admin-list',
+        component: () => import('@/features/admin/AdminListView.vue'),
+        meta: { title: 'Admin: list' },
+      },
+      {
         path: 'settings',
         name: 'admin-settings',
         component: () => import('@/features/admin/AdminSettingsView.vue'),

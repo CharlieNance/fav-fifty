@@ -10,6 +10,7 @@ from typing import cast
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.auth.claims import Claims
@@ -20,6 +21,7 @@ from app.core.runtime_settings import (
     SettingNotWritableError,
     get_runtime_settings_provider,
 )
+from app.models.admin_audit_log import AdminAuditLog
 from app.models.list import List
 from app.models.list_item import ListItem
 from app.models.user import ROLE_ADMIN, User
@@ -267,13 +269,15 @@ def test_reset_returns_to_the_default(admin_client: TestClient, store: MemorySou
 
 
 def test_a_pinned_setting_is_409_and_not_audited(
-    admin_client: TestClient, store: MemorySource
+    admin_client: TestClient, store: MemorySource, admin: User, db_session: Session
 ) -> None:
     store.read_only = True
     response = admin_client.put("/admin/settings/limits.max_tags_per_list", json={"value": 40})
     assert response.status_code == 409
-    rows = admin_client.get("/admin/settings").json()
-    assert _row(rows, "limits.max_tags_per_list")["last_change"] is None
+    # Nothing logged by this admin (a fresh user per test, so changes made by hand
+    # on the local dev database don't count).
+    by_admin = select(AdminAuditLog).where(AdminAuditLog.admin_user_id == admin.id)
+    assert list(db_session.scalars(by_admin)) == []
 
 
 def test_an_unreachable_store_is_503(admin_client: TestClient, store: MemorySource) -> None:
