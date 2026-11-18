@@ -31,9 +31,14 @@ not app code) and **Q25** (quota defaults, changeable at runtime). Related: [COS
 - Tests: every non-public route answers 401 without a session (behavioral walk of the
   OpenAPI operations); ESLint `vue/no-v-html` is an error.
 
+- Supply chain (2026-11-17): `tools/audit.sh` (pip-audit + npm audit, commented
+  allowlist) runs in `.github/workflows/audit.yml` on PRs and weekly; Dependabot and
+  `uv` (`exclude-newer = "7 days"`) both wait a week before taking a new release.
+
 **Still to do:** Layer 1 (WAF) and the security-headers policy (with the first deploy),
 the sign-up alarm/switch, 429 counters into Postgres for the dashboard, description
-length (when descriptions get an API), supply-chain checks, and the backup restore test.
+length (when descriptions get an API), turning on GitHub secret scanning + push
+protection (repo setting), and the backup restore test.
 **Deploy note:** run Uvicorn with **one worker** (the limiter is per process).
 
 ## What we're defending against (at our scale)
@@ -176,9 +181,9 @@ lists per request.
       keep its test).
 - [ ] Session cookie: `HttpOnly`, `Secure` (prod), `SameSite=Lax`, signed, versioned
       (done).
-- [ ] Dependencies: **Dependabot**, **GitHub secret scanning + push protection**,
-      `npm audit` / `pip-audit` in CI, lockfiles committed (already in
-      CONSIDERATIONS.md; make them real before launch).
+- [ ] Dependencies: **Dependabot** (done, 7-day cooldown), `npm audit` / `pip-audit`
+      in CI (done, `tools/audit.sh`), lockfiles committed (done); **GitHub secret
+      scanning + push protection** still to switch on in the repo settings.
 - [ ] **Backups:** a nightly `pg_dump` to S3 plus Lightsail snapshots
       (DEPLOYMENT_TOPOLOGY_PLAN.md §Running the box); **do one test restore** before
       launch.

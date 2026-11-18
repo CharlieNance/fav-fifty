@@ -8,6 +8,10 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    # Supply-chain cooldown: wait a week after a release before proposing it
+    # (matches exclude-newer in backend/pyproject.toml). Security updates skip this.
+    cooldown:
+      default-days: 7
 
   # Frontend npm packages.
   - package-ecosystem: "npm"
@@ -15,6 +19,10 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    # Supply-chain cooldown: wait a week after a release before proposing it
+    # (matches exclude-newer in backend/pyproject.toml). Security updates skip this.
+    cooldown:
+      default-days: 7
 
   # Backend Python deps (uv). If your Dependabot doesn't yet support the "uv"
   # ecosystem, delete this block — it won't affect the two above.
@@ -23,3 +31,7 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    # Supply-chain cooldown: wait a week after a release before proposing it
+    # (matches exclude-newer in backend/pyproject.toml). Security updates skip this.
+    cooldown:
+      default-days: 7
