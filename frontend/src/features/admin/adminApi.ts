@@ -15,6 +15,19 @@ export interface AuditLogEntry {
   reason: string | null
   details: Record<string, unknown>
   created_at: string
+  /** Filled in by the audit-log page's endpoint only; null for a deleted account. */
+  admin_display_name?: string | null
+  /** The user this is about: the target user, or a target list's owner. */
+  subject_user_id?: string | null
+  subject_display_name?: string | null
+}
+
+/** Filters for the audit-log page. Empty means no filter. */
+export interface AuditFilters {
+  action?: string
+  target_type?: string
+  /** Everything about one user: their account and their lists. */
+  subject_user_id?: string
 }
 
 export interface AdminUserSummary {
@@ -119,6 +132,7 @@ export interface AdminListDetail extends AdminListSummary {
 }
 
 export const USER_PAGE_SIZE = 25
+export const AUDIT_PAGE_SIZE = 50
 /** The Users search waits for typing to pause this long. */
 export const SEARCH_DEBOUNCE_MS = 300
 
@@ -155,6 +169,13 @@ export const adminApi = {
   },
   restoreList(id: string, reason: string): Promise<AdminListDetail> {
     return post(`/admin/lists/${encodeURIComponent(id)}/restore`, { reason: reason || null })
+  },
+  /** Newest first; pass the last entry's `created_at` as `before` for the next page. */
+  auditLog(filters: AuditFilters, before?: string): Promise<AuditLogEntry[]> {
+    const params = new URLSearchParams({ limit: String(AUDIT_PAGE_SIZE) })
+    for (const [key, value] of Object.entries(filters)) if (value) params.set(key, value)
+    if (before) params.set('before', before)
+    return apiFetch(`/admin/audit-log?${params}`)
   },
   listSettings(): Promise<Setting[]> {
     return apiFetch('/admin/settings')
@@ -217,4 +238,20 @@ const ACTION_LABELS: Record<string, string> = {
 
 export function actionLabel(action: string): string {
   return ACTION_LABELS[action] ?? action
+}
+
+/** Every action the backend records, for the audit-log filter. */
+export const AUDIT_ACTIONS = Object.keys(ACTION_LABELS)
+
+export const TARGET_TYPE_LABELS: Record<string, string> = {
+  user: 'Accounts',
+  list: 'Lists',
+  setting: 'Settings',
+}
+
+/** A setting change as `25 → 30`; "default" stands for no override. */
+export function settingChange(details: Record<string, unknown>): string | null {
+  if (!('from' in details) || !('to' in details)) return null
+  const show = (value: unknown) => (value === null ? 'default' : String(value))
+  return `${show(details.from)} → ${show(details.to)}`
 }

@@ -31,6 +31,12 @@ class AuditLogEntryRead(BaseModel):
     reason: str | None
     details: dict[str, Any]
     created_at: datetime
+    # Filled in by GET /admin/audit-log only (null elsewhere, and for deleted users).
+    admin_display_name: str | None = None
+    subject_user_id: uuid.UUID | None = Field(
+        default=None, description="The user this is about: the target, or the list's owner."
+    )
+    subject_display_name: str | None = None
 
 
 class AdminAction(BaseModel):

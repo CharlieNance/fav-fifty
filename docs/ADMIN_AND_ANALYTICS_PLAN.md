@@ -41,8 +41,15 @@ Built so far:
   - Tests: `tests/test_admin_portal.py`, `src/features/admin/*.spec.ts`,
     `e2e/admin.spec.ts` (grants admin with the real CLI, locks a second dev user,
     checks their next request is a 401).
-  - **Not yet:** the breaker reset button (lands with the breaker, COST_GUARDRAILS_PLAN.md),
-    and an audit-log page (the API exists; each user page shows its own entries).
+  - **Not yet:** the breaker reset button (lands with the breaker, COST_GUARDRAILS_PLAN.md).
+- Audit-log page (2026-11-18): `/admin/audit`, filter by action, by target type, or
+  (the "Full history" link on a user page) everything about one user, their lists
+  included (`subject_user_id`, matching a list row's `details.owner_id`). Filters live
+  in the URL; "Load older" pages with `before`. Entries now carry
+  `admin_display_name`, `subject_user_id` and `subject_display_name` (additive, filled
+  only by this route). A list shows as "a list of <owner>", never its title. Tests:
+  `tests/test_admin_audit_and_cli.py`, `AdminAuditView.spec.ts`, and the e2e
+  remove/restore flow ends on the owner's history.
 - Step 4 (2026-11-18): content read/remove.
   - **Read:** `GET /admin/users/{id}/lists` (deleted lists included, audit
     `read_lists`) and `GET /admin/lists/{id}` (items and tags, audit `read_list`).

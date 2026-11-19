@@ -134,4 +134,15 @@ test('the admin reads a user’s list, removes it, then restores it', async ({
   await expect(page.getByRole('button', { name: 'Remove list' })).toBeVisible()
   expect((await owner.request.get(`/api/v1/lists/${listId}`)).status()).toBe(200)
   await ownerContext.close()
+
+  // The audit log has all of it, from the owner's page: the reads, the removal, the restore.
+  await page.getByRole('link', { name: new RegExp(`Dev User ${ownerKey}`) }).click()
+  await page.getByRole('link', { name: 'Full history, lists included' }).click()
+  await expect(page.getByText(`Only entries about Dev User ${ownerKey}`)).toBeVisible()
+  const entries = page.getByRole('list', { name: 'Audit log' }).getByRole('listitem')
+  await expect(entries.nth(0)).toContainText('Restored')
+  await expect(entries.nth(1)).toContainText('Removed')
+  await expect(entries.nth(1)).toContainText('e2e: testing removal')
+  await expect(entries.filter({ hasText: 'Viewed their lists' })).toHaveCount(1)
+  await expectAccessible(page, 'admin audit log')
 })

@@ -943,7 +943,7 @@
           "admin"
         ],
         "summary": "Read Audit Log",
-        "description": "The audit log, newest first, optionally filtered by action or target.",
+        "description": "The audit log, newest first, filterable by action, target or subject user.\n\nEach entry carries the acting admin's and the subject user's display names. List\ntitles are left out on purpose: the log names a list's owner, not its content.",
         "operationId": "read_audit_log_api_v1_admin_audit_log_get",
         "parameters": [
           {
@@ -996,6 +996,25 @@
               ],
               "title": "Target Id"
             }
+          },
+          {
+            "name": "subject_user_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Everything about one user: their account and their lists.",
+              "title": "Subject User Id"
+            },
+            "description": "Everything about one user: their account and their lists."
           },
           {
             "name": "before",
@@ -2165,6 +2184,41 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "admin_display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Admin Display Name"
+          },
+          "subject_user_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject User Id",
+            "description": "The user this is about: the target, or the list's owner."
+          },
+          "subject_display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subject Display Name"
           }
         },
         "type": "object",

@@ -88,6 +88,7 @@ absorb a surprise bill, so these **block launch**. All decided (Q16, Q21–Q25 i
   - ~~`users.role` + a CLI-only admin grant; the audit log~~ (done 2026-11-17);
   - ~~lock/unlock/revoke; the Settings page~~ (done 2026-11-17);
   - ~~read/remove lists~~ (done 2026-11-18);
+  - ~~the audit-log page~~ (done 2026-11-18);
   - the breaker reset button (with the breaker).
 - [ ] **Dashboards + analytics** (same plan):
   - ~~product numbers from Postgres; request/429 counters; the daily cost-snapshot

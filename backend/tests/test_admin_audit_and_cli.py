@@ -136,3 +136,52 @@ def test_audit_log_is_newest_first_and_filterable(
 
 def test_audit_log_page_size_is_capped(admin_client: TestClient) -> None:
     assert admin_client.get("/admin/audit-log", params={"limit": 101}).status_code == 422
+
+
+def test_audit_log_names_the_admin_and_the_subject_user(
+    admin_client: TestClient, db_session: Session
+) -> None:
+    owner = _user(db_session, "list.owner@example.com")
+    owner.display_name = "List Owner"
+    db_session.commit()
+    me = admin_client.get("/me").json()
+    list_id = str(uuid.uuid4())
+    audit_service.record(
+        db_session,
+        admin_user_id=uuid.UUID(me["id"]),
+        action="remove_list",
+        target_type="list",
+        target_id=list_id,
+        reason="spam",
+        details={"owner_id": str(owner.id)},
+    )
+    db_session.commit()
+
+    [row] = admin_client.get("/admin/audit-log", params={"target_id": list_id}).json()
+    assert row["admin_display_name"] == me["display_name"]
+    assert row["subject_user_id"] == str(owner.id)
+    assert row["subject_display_name"] == "List Owner"
+
+
+def test_audit_log_filters_by_subject_user(admin_client: TestClient, db_session: Session) -> None:
+    subject = _user(db_session, "subject@example.com")
+    other = str(uuid.uuid4())
+    now = datetime.now(UTC)
+    _seed(db_session, str(subject.id), "lock_user", now - timedelta(minutes=3))
+    for owner, minutes in ((str(subject.id), 2), (other, 1)):
+        entry = audit_service.record(
+            db_session,
+            admin_user_id=None,
+            action="read_list",
+            target_type="list",
+            target_id=str(uuid.uuid4()),
+            details={"owner_id": owner},
+        )
+        entry.created_at = now - timedelta(minutes=minutes)
+        db_session.commit()
+
+    rows = admin_client.get("/admin/audit-log", params={"subject_user_id": str(subject.id)}).json()
+    assert [row["action"] for row in rows] == ["read_list", "lock_user"]
+    assert all(row["subject_user_id"] == str(subject.id) for row in rows)
+    # A CLI action has no admin, so no admin name.
+    assert rows[1]["admin_display_name"] is None
