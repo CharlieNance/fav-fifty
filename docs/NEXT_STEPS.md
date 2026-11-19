@@ -13,10 +13,9 @@ Last updated: 2026-11-17
 1. **Pre-launch hardening, app layer:**
    - quotas, rate limits, request hygiene and CSRF
      ([ABUSE_PROTECTION_PLAN.md](ABUSE_PROTECTION_PLAN.md));
-   - the admin portal is done through the dashboard's app side
-     ([ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md) steps 1–5); the
-     breaker reset waits for the breaker, and `/events` + Cloudflare Web Analytics
-     (step 6) are next.
+   - the admin portal and analytics are done app-side
+     ([ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md) steps 1–6); the
+     breaker reset waits for the breaker, and the abuse view (step 7) is next.
 2. **Remaining Phase 2:** publish/unpublish, list-title dedup.
 3. **First deploy** (Terraform: box, S3, CloudFront + WAF on the flat-rate plan,
    backups) → **breaker + game day**.
@@ -89,12 +88,15 @@ absorb a surprise bill, so these **block launch**. All decided (Q16, Q21–Q25 i
   - ~~`users.role` + a CLI-only admin grant; the audit log~~ (done 2026-11-17);
   - ~~lock/unlock/revoke; the Settings page~~ (done 2026-11-17);
   - ~~read/remove lists~~ (done 2026-11-18);
+  - ~~the audit-log page~~ (done 2026-11-18);
   - the breaker reset button (with the breaker).
 - [ ] **Dashboards + analytics** (same plan):
   - ~~product numbers from Postgres; request/429 counters; the daily cost-snapshot
     job~~ (app side done 2026-11-18);
   - the CloudWatch health dashboard, cron and IAM for the snapshot (first deploy);
-  - Cloudflare Web Analytics and the `/events` stream.
+  - ~~the `/events` stream, its rollup, and the Cloudflare Web Analytics beacon~~
+    (app side done 2026-11-18);
+  - the Cloudflare site token and its CSP hosts (first deploy).
 - [ ] **Apple device testing** ([MOBILE_READINESS.md](MOBILE_READINESS.md) §6). Every
       iPhone/iPad browser is WebKit, and e2e runs only Chromium today:
   - Playwright WebKit projects (`iPhone 15`, `iPad Pro 11`), in CI too;

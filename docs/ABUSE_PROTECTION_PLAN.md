@@ -159,8 +159,9 @@ lists per request.
   same-site subdomains.
 - **Security headers** via a CloudFront response-headers policy: HSTS,
   `X-Content-Type-Options`, `Referrer-Policy`, `frame-ancestors 'none'`, and a
-  **CSP** (`img-src` allowlists the catalog image hosts; `script-src 'self'`, plus
-  the analytics script host if Q23 picks one).
+  **CSP** (`img-src` allowlists the catalog image hosts; `script-src 'self'
+  https://static.cloudflareinsights.com` and `connect-src 'self'
+  https://cloudflareinsights.com` for Cloudflare Web Analytics, Q23).
 
 ### Accounts
 

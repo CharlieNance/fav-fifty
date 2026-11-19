@@ -11,6 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.router import API_V1_PREFIX, api_router
+from app.api.routes.events import MAX_EVENTS_BODY_BYTES
 from app.core.config import settings
 from app.core.middleware import (
     BodySizeLimitMiddleware,
@@ -23,6 +24,7 @@ from app.core.runtime_settings import get_runtime_settings
 from app.db.session import SessionLocal
 
 IMPORT_PATH = f"{API_V1_PREFIX}/lists/import"
+EVENTS_PATH = f"{API_V1_PREFIX}/events"
 HEALTH_PATH = f"{API_V1_PREFIX}/health"
 
 
@@ -53,11 +55,14 @@ def create_app() -> FastAPI:
     app.state.dashboard_cache = None
 
     def body_limit_for(path: str) -> int | None:
-        """The import takes whole device documents; everything else gets the default.
+        """The import takes whole device documents and events get a small cap;
+        everything else gets the default.
 
         Read through ``dependency_overrides`` so a test's runtime settings apply here
         the same way they do in routes.
         """
+        if path == EVENTS_PATH:
+            return MAX_EVENTS_BODY_BYTES
         if path != IMPORT_PATH:
             return None
         resolve = app.dependency_overrides.get(get_runtime_settings, get_runtime_settings)

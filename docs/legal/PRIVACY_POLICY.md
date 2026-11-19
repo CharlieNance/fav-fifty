@@ -1,6 +1,6 @@
 # Privacy Policy
 
-Last updated: 2026-11-14
+Last updated: 2026-11-18
 
 Fav Fifty ("the app", "we") is a small personal project, not a company. This policy
 explains what we collect and why, in plain language. It is not a substitute for legal
@@ -22,6 +22,34 @@ The app also keeps a couple of small notes in your browser so it doesn't nag you
 when you last dismissed the "keep your lists safe" reminder, and, for the current
 browser session only, that you chose "Not now" on the offer to add your lists to your
 account. These aren't cookies, aren't used for tracking, and aren't sent to us.
+
+The app does tell us, without any list content, *that* certain things happened (for
+example "a list was created"), so we can see whether people use it. See
+[Usage statistics](#usage-statistics) below.
+
+## Usage statistics
+
+We count how the app is used, in two ways. Neither uses cookies or advertising
+identifiers, and neither is used for anything but understanding and improving Fav
+Fifty.
+
+- **Page visits, through Cloudflare Web Analytics.** A small script from Cloudflare
+  counts page views, which site sent you (e.g. Discord), your country, and your
+  browser and device type. Cloudflare sees your IP address to do this, as any website
+  you load does, and gives us only totals; it doesn't use cookies or track you across
+  sites. See [Cloudflare's privacy policy](https://www.cloudflare.com/privacypolicy/).
+- **App events, sent to our own server.** When you open the app, create a list, add
+  an item, export or import lists, or start and finish signing in, the app sends us a
+  short note saying so. Each note has the event's name, the time, a random ID the app
+  makes up for your browser tab (it's forgotten when you close the tab), whether
+  you're on the web or a phone app, the app's version and, for a few events, a fixed
+  label (such as whether an import went to your device or your account, or which
+  sign-in button you used).
+  - **Never included:** the titles or contents of your lists, anything you type,
+    search text, or your IP address.
+  - **If you're signed in,** the note is linked to your account. If you aren't, it
+    isn't linked to anything that identifies you.
+  - **Kept 90 days,** then only daily totals remain (counts, not individual notes).
 
 ## Adding your on-device lists to an account
 
@@ -108,6 +136,7 @@ Anyone with access to your device and browser can see lists saved on it.
 If this policy changes in a meaningful way, we'll update the date above and, where
 practical, note what changed.
 
+- **2026-11-18:** usage statistics (Cloudflare Web Analytics and app events).
 - **2026-11-14:** using the app without an account, lists saved on your device, and
   adding them to an account.
 - **2026-10-13:** the operator's access to stored content.

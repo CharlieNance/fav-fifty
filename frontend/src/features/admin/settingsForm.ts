@@ -16,6 +16,7 @@ export interface DraftCheck {
 }
 
 const GROUP_TITLES: Record<string, string> = {
+  features: 'Features',
   limits: 'Limits',
   rate_limits: 'Rate limits',
 }

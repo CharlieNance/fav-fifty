@@ -4,6 +4,7 @@
 | --------------- | --------- | ------------------------------------------------------- |
 | ``limit_auth``   | client IP | ``rate_limits.auth_per_minute``                         |
 | ``limit_config`` | client IP | ``rate_limits.config_per_minute``                       |
+| ``limit_events`` | client IP | ``rate_limits.events_per_minute``                       |
 | ``limit_writes`` | user id   | ``rate_limits.writes_per_minute`` **and**               |
 |                 |           | ``limits.max_writes_per_user_per_day``; unsafe methods  |
 | ``limit_imports``| user id   | ``rate_limits.imports_per_hour``                        |
@@ -75,6 +76,15 @@ def limit_config(
     if rules.enabled:
         rate = Rate(rules.config_per_minute, MINUTE)
         _enforce(request, [Check(f"config:{client_ip(request)}", rate)], {})
+
+
+def limit_events(
+    request: Request, runtime: RuntimeSettings = Depends(get_runtime_settings)
+) -> None:
+    rules = runtime.rate_limits
+    if rules.enabled:
+        rate = Rate(rules.events_per_minute, MINUTE)
+        _enforce(request, [Check(f"events:{client_ip(request)}", rate)], {})
 
 
 def limit_writes(

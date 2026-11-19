@@ -27,7 +27,9 @@ def test_client_config_is_public_and_serves_the_defaults(client: TestClient) -> 
             "max_note_length": 2000,
             "max_image_url_length": 2048,
             "max_tag_length": 50,
-        }
+        },
+        # Optional features start off (app/core/runtime_settings.py Features).
+        "features": {"events_enabled": False},
     }
 
 

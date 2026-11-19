@@ -22,6 +22,7 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
+import { track } from '@/analytics/events'
 import { useClientConfigStore } from '@/stores/clientConfig'
 import { useToastStore } from '@/stores/toasts'
 import { type ListError, toListError } from './listErrors'
@@ -176,6 +177,7 @@ export const useListClaimStore = defineStore('listClaim', () => {
 
     pending.value = true
     error.value = null
+    track('import_started', { target: 'claim' })
     try {
       // Read fresh: another (anonymous) tab may have changed the device's lists
       // since the dialog opened.
@@ -190,6 +192,7 @@ export const useListClaimStore = defineStore('listClaim', () => {
       const result = await account.importLists({ device_id: doc.device_id, lists })
       clearClaimed(store, new Set(result.lists.map((outcome) => outcome.local_id)), now)
 
+      track('import_succeeded', { target: 'claim' })
       close()
       // Whatever is still on the device was left unchecked: offer it next sign-in.
       writeDismissed(userId)

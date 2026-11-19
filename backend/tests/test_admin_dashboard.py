@@ -178,7 +178,14 @@ def test_the_dashboard_route_is_cached_until_refreshed(
     monkeypatch.setattr(settings, "cloudwatch_dashboard_url", "https://console.aws/x")
     first = admin_client.get("/admin/dashboard").json()
     assert first["cloudwatch_dashboard_url"] == "https://console.aws/x"
-    assert set(first) == {"generated_at", "product", "health", "cost", "cloudwatch_dashboard_url"}
+    assert set(first) == {
+        "generated_at",
+        "product",
+        "analytics",
+        "health",
+        "cost",
+        "cloudwatch_dashboard_url",
+    }
 
     _new_user(db_session)
     cached = admin_client.get("/admin/dashboard").json()

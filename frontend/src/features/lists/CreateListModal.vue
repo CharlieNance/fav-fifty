@@ -9,6 +9,7 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
+import { track } from '@/analytics/events'
 import BaseButton from '@/components/BaseButton.vue'
 import BaseDialog from '@/components/BaseDialog.vue'
 import { useClientConfigStore } from '@/stores/clientConfig'
@@ -52,6 +53,7 @@ async function save(): Promise<void> {
 
   const created = await run((repo) => repo.createList(trimmed))
   if (!created) return
+  track('list_created')
   modals.closeCreate()
   reset()
   await router.push({ name: 'list-detail', params: { id: created.id } })

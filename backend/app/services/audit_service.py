@@ -10,10 +10,11 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
 from sqlalchemy.orm import Session
 
 from app.models.admin_audit_log import AdminAuditLog
+from app.models.user import User
 
 
 def record(
@@ -46,10 +47,26 @@ def list_entries(
     action: str | None = None,
     target_type: str | None = None,
     target_id: str | None = None,
+    subject_user_id: uuid.UUID | None = None,
     before: datetime | None = None,
 ) -> list[AdminAuditLog]:
-    """Newest first, optionally filtered. ``before`` pages back through older rows."""
+    """Newest first, optionally filtered. ``before`` pages back through older rows.
+
+    ``subject_user_id`` matches everything about one user: actions on the account
+    and on any of their lists.
+    """
     query = select(AdminAuditLog)
+    if subject_user_id is not None:
+        subject = str(subject_user_id)
+        query = query.where(
+            or_(
+                and_(AdminAuditLog.target_type == "user", AdminAuditLog.target_id == subject),
+                and_(
+                    AdminAuditLog.target_type == "list",
+                    AdminAuditLog.details["owner_id"].astext == subject,
+                ),
+            )
+        )
     if action is not None:
         query = query.where(AdminAuditLog.action == action)
     if target_type is not None:
@@ -60,3 +77,26 @@ def list_entries(
         query = query.where(AdminAuditLog.created_at < before)
     query = query.order_by(AdminAuditLog.created_at.desc(), AdminAuditLog.id.desc()).limit(limit)
     return list(db.scalars(query))
+
+
+def subject_user_id(entry: AdminAuditLog) -> uuid.UUID | None:
+    """The user an entry is about: the target user, or a target list's owner."""
+    raw: object = None
+    if entry.target_type == "user":
+        raw = entry.target_id
+    elif entry.target_type == "list":
+        raw = entry.details.get("owner_id")
+    try:
+        return uuid.UUID(str(raw)) if raw is not None else None
+    except ValueError:
+        return None
+
+
+def display_names(db: Session, entries: list[AdminAuditLog]) -> dict[uuid.UUID, str]:
+    """Display names for the admins and subject users in ``entries``, in one query."""
+    ids = {entry.admin_user_id for entry in entries if entry.admin_user_id is not None}
+    ids |= {sid for entry in entries if (sid := subject_user_id(entry)) is not None}
+    if not ids:
+        return {}
+    rows = db.execute(select(User.id, User.display_name).where(User.id.in_(ids)))
+    return {user_id: name for user_id, name in rows}

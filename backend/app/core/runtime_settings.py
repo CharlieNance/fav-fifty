@@ -133,6 +133,13 @@ class RateLimits(BaseModel):
         le=10_000,
         description="Client-config requests per IP per minute.",
     )
+    # POST /events, per client IP. Clients batch, flushing every ~15 s at most.
+    events_per_minute: int = Field(
+        default=20,
+        ge=1,
+        le=10_000,
+        description="Analytics event batches per IP per minute.",
+    )
     # Signed-in writes (POST/PATCH/PUT/DELETE on lists, items, tags), per user.
     writes_per_minute: int = Field(
         default=120,
@@ -149,9 +156,25 @@ class RateLimits(BaseModel):
     )
 
 
+class Features(BaseModel):
+    """On/off switches for optional features (docs/ADMIN_AND_ANALYTICS_PLAN.md
+    §Runtime settings). Each lands with the feature it gates. Defaults are off: an
+    optional feature stays off if the settings source can't be read (fail safe).
+    """
+
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
+    # POST /events (app/api/routes/events.py). Off: clients don't send, the server
+    # drops anything that arrives anyway. Served to clients.
+    events_enabled: bool = Field(
+        default=False, description="Record first-party analytics events (POST /events)."
+    )
+
+
 class RuntimeSettings(BaseModel):
     model_config = ConfigDict(frozen=True, extra="ignore")
 
+    features: Features = Features()
     limits: Limits = Limits()
     rate_limits: RateLimits = RateLimits()
 

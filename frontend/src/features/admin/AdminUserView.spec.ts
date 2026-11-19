@@ -26,6 +26,7 @@ function testRouter(): Router {
       { path: '/admin/users', name: 'admin-users', component: stub },
       { path: '/admin/users/:id', name: 'admin-user', component: AdminUserView },
       { path: '/admin/lists/:id', name: 'admin-list', component: stub },
+      { path: '/admin/audit', name: 'admin-audit', component: stub },
       { path: '/login', name: 'login', component: stub },
     ],
   })

@@ -15,6 +15,7 @@
  */
 import { ref } from 'vue'
 
+import { track } from '@/analytics/events'
 import { useAuthStore } from '@/stores/auth'
 import { useClientConfigStore } from '@/stores/clientConfig'
 import { useToastStore } from '@/stores/toasts'
@@ -112,6 +113,7 @@ export function useListTransfer(options: ListTransferOptions = {}) {
         return
       }
       saveFile(exportFileName(new Date(now())), serializeExport(doc))
+      track('export_file')
     } catch (caught) {
       showError(caught, EXPORT_FAILED_MESSAGE)
     } finally {
@@ -148,13 +150,16 @@ export function useListTransfer(options: ListTransferOptions = {}) {
    */
   async function importFile(file: File): Promise<boolean> {
     importing.value = true
+    const target = isSignedIn() ? 'account' : 'device'
+    track('import_started', { target })
     try {
       if (file.size > config.limits.max_import_bytes) {
         toasts.show(IMPORT_TOO_LARGE_DETAIL, { variant: 'error', duration: ERROR_TOAST_MS })
         return false
       }
       const parsed = parseImportFile(await file.text(), { limits: config.limits, now, newId })
-      const summary = isSignedIn() ? await importToAccount(parsed) : importToDevice(parsed)
+      const summary = target === 'account' ? await importToAccount(parsed) : importToDevice(parsed)
+      track('import_succeeded', { target })
 
       // Something in the file was left out, so it's worth a second look: a warning.
       toasts.show(importSummaryMessage(summary), {

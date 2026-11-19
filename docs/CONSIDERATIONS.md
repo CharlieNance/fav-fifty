@@ -155,11 +155,12 @@ extensibility, scalability.**
   - **Updated 2026-10-13:** operator access to stored content (Q24).
   - **Updated 2026-11-14:** use without an account, on-device lists, export/import, and
     what the claim uploads (including the random `device_id` kept with each list).
-  - **Still owed when each piece ships:**
-    - search text is relayed by our server to third-party catalogs (images come
-      through our own proxy, so providers don't see visitors);
-    - Cloudflare Web Analytics;
-    - first-party `/events` (account id attached when signed in).
+  - **Updated 2026-11-18:** Cloudflare Web Analytics and first-party `/events`
+    (what's sent, never list content or IPs, account id attached when signed in,
+    90-day retention).
+  - **Still owed when it ships:** search text is relayed by our server to
+    third-party catalogs (images come through our own proxy, so providers don't
+    see visitors).
 - **Backups:** there's no managed DB, so this is on us:
   - a nightly `pg_dump` to S3 plus Lightsail automatic snapshots;
   - **a test restore before launch**, then quarterly;

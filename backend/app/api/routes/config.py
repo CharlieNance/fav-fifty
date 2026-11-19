@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends
 from app.api.rate_limits import limit_config
 from app.core import limits
 from app.core.runtime_settings import RuntimeSettings, get_runtime_settings
-from app.schemas.config import ClientConfig, ClientLimits
+from app.schemas.config import ClientConfig, ClientFeatures, ClientLimits
 
 router = APIRouter(prefix="/config", tags=["config"], dependencies=[Depends(limit_config)])
 
@@ -26,4 +26,5 @@ def client_config(runtime: RuntimeSettings = Depends(get_runtime_settings)) -> C
             max_image_url_length=limits.MAX_IMAGE_URL_LENGTH,
             max_tag_length=limits.MAX_TAG_LENGTH,
         ),
+        features=ClientFeatures(events_enabled=runtime.features.events_enabled),
     )

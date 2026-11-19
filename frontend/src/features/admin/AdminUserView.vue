@@ -226,7 +226,14 @@ async function confirm(reason: string): Promise<void> {
       </li>
     </ul>
 
-    <h2 class="mt-10 font-display text-xl font-bold text-ink">Admin actions</h2>
+    <div class="mt-10 flex flex-wrap items-baseline justify-between gap-x-4">
+      <h2 class="font-display text-xl font-bold text-ink">Admin actions</h2>
+      <RouterLink
+        :to="{ name: 'admin-audit', query: { user: user.id } }"
+        class="rounded text-sm font-medium text-accent hover:underline"
+        >Full history, lists included</RouterLink
+      >
+    </div>
     <p v-if="user.recent_actions.length === 0" class="mt-2 text-sm text-muted">None yet.</p>
     <ul v-else class="mt-2 divide-y divide-border text-sm">
       <li v-for="entry in user.recent_actions" :key="entry.id" class="flex flex-wrap gap-x-3 py-2">

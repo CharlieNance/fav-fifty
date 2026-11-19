@@ -25,6 +25,9 @@ PUBLIC_ROUTES = {
     ("GET", "/auth/login"),
     ("GET", "/auth/callback"),
     ("POST", "/auth/logout"),  # only clears a cookie
+    # Analytics: anonymous visitors' events are the point. Rate-limited, size-capped,
+    # allowlisted, and the user id comes only from a session (routes/events.py).
+    ("POST", "/events"),
 }
 
 _PATH_PARAM = re.compile(r"\{[^}]+\}")

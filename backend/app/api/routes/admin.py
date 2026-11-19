@@ -18,11 +18,12 @@ from app.api.deps import get_db, require_admin
 from app.api.rate_limits import limit_admin
 from app.core.config import settings
 from app.core.runtime_settings import (
+    RuntimeSettings,
     RuntimeSettingsProvider,
     SettingNotWritableError,
+    get_runtime_settings,
     get_runtime_settings_provider,
 )
-from app.models.admin_audit_log import AdminAuditLog
 from app.models.list import List
 from app.models.user import User
 from app.schemas.admin import (
@@ -68,13 +69,19 @@ def read_dashboard(
     request: Request,
     db: Session = Depends(get_db),
     refresh: bool = Query(default=False, description="Skip the few-minute cache."),
+    runtime: RuntimeSettings = Depends(get_runtime_settings),
 ) -> Any:
-    """Product, health and cost numbers. Aggregates only; cached ~5 minutes."""
+    """Product, analytics, health and cost numbers. Aggregates only; cached ~5 minutes."""
     cached = request.app.state.dashboard_cache
     if cached is not None and not refresh and cached[0] > time.monotonic():
         return cached[1]
     data = Dashboard.model_validate(
-        dashboard_service.dashboard(db, datetime.now(UTC), settings.cloudwatch_dashboard_url)
+        dashboard_service.dashboard(
+            db,
+            datetime.now(UTC),
+            settings.cloudwatch_dashboard_url,
+            runtime.features.events_enabled,
+        )
     )
     request.app.state.dashboard_cache = (time.monotonic() + DASHBOARD_CACHE_SECONDS, data)
     return data
@@ -89,20 +96,38 @@ def read_audit_log(
     action: str | None = Query(default=None, max_length=64),
     target_type: str | None = Query(default=None, max_length=32),
     target_id: str | None = Query(default=None, max_length=255),
+    subject_user_id: uuid.UUID | None = Query(
+        default=None, description="Everything about one user: their account and their lists."
+    ),
     before: datetime | None = Query(
         default=None, description="Only entries older than this (to page back)."
     ),
     limit: int = Query(default=50, ge=1, le=MAX_AUDIT_PAGE),
-) -> list[AdminAuditLog]:
-    """The audit log, newest first, optionally filtered by action or target."""
-    return audit_service.list_entries(
+) -> list[AuditLogEntryRead]:
+    """The audit log, newest first, filterable by action, target or subject user.
+
+    Each entry carries the acting admin's and the subject user's display names. List
+    titles are left out on purpose: the log names a list's owner, not its content.
+    """
+    entries = audit_service.list_entries(
         db,
         limit=limit,
         action=action,
         target_type=target_type,
         target_id=target_id,
+        subject_user_id=subject_user_id,
         before=before,
     )
+    names = audit_service.display_names(db, entries)
+    rows = []
+    for entry in entries:
+        subject = audit_service.subject_user_id(entry)
+        row = AuditLogEntryRead.model_validate(entry)
+        row.admin_display_name = names.get(entry.admin_user_id) if entry.admin_user_id else None
+        row.subject_user_id = subject
+        row.subject_display_name = names.get(subject) if subject else None
+        rows.append(row)
+    return rows
 
 
 # ─── Users ──────────────────────────────────────────────────────────────────────

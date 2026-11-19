@@ -25,7 +25,7 @@ from app.core.config import settings
 from app.db.session import SessionLocal
 from app.models.metrics import RequestCount
 from app.models.user import ROLE_ADMIN, ROLE_USER
-from app.services import cost_service, user_service
+from app.services import analytics_service, cost_service, user_service
 
 
 class CliError(Exception):
@@ -61,14 +61,16 @@ COUNT_RETENTION_DAYS = 35
 def daily_jobs(db: Session, today: date | None = None, cost_client: Any = None) -> list[str]:
     """Once a day, from cron on the box: housekeeping for the admin dashboard.
 
-    Prunes request counts past ``COUNT_RETENTION_DAYS`` and, when
-    ``COST_SNAPSHOT_ENABLED``, records one Cost Explorer snapshot ($0.01).
+    Prunes request counts past ``COUNT_RETENTION_DAYS``, rolls up the last few days
+    of analytics events and prunes old ones (app/services/analytics_service.py), and,
+    when ``COST_SNAPSHOT_ENABLED``, records one Cost Explorer snapshot ($0.01).
     """
     today = today or datetime.now(UTC).date()
     cutoff = datetime.combine(today - timedelta(days=COUNT_RETENTION_DAYS), time(), UTC)
     pruned = db.execute(delete(RequestCount).where(RequestCount.minute < cutoff)).rowcount
     db.commit()
     report = [f"Pruned {pruned} request-count rows older than {cutoff.date()}."]
+    report.extend(analytics_service.daily_jobs(db, today))
 
     if settings.cost_snapshot_enabled or cost_client is not None:
         client = cost_client or cost_service.cost_explorer_client()
@@ -93,7 +95,8 @@ def main(argv: Sequence[str] | None = None, db: Session | None = None) -> int:
         command.add_argument("--email", required=True)
     commands.add_parser("list-admins", help="Show every admin.")
     commands.add_parser(
-        "daily-jobs", help="Prune old request counts; take the cost snapshot if enabled."
+        "daily-jobs",
+        help="Prune old counts, roll up analytics, take the cost snapshot if enabled.",
     )
     args = parser.parse_args(argv)
 

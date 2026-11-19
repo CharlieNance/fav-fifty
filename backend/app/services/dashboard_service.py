@@ -4,8 +4,9 @@ Aggregates only, never content. Product numbers come from the existing tables;
 health from ``request_counts``; cost from the latest ``cost_snapshots`` row. The
 route caches the result for a few minutes (an optimization only).
 
-Anonymous visitors' activity and catalog numbers arrive with the ``/events``
-stream (build-order step 6); "active" here means *signed in* in the window.
+Anonymous visitors' activity (sessions, events) comes from the ``/events``
+stream (app/services/analytics_service.py); "active" in the product numbers means
+*signed in* in the window.
 """
 
 from datetime import UTC, date, datetime, timedelta
@@ -18,7 +19,7 @@ from app.models.list import List
 from app.models.list_item import ListItem
 from app.models.metrics import RequestCount
 from app.models.user import User
-from app.services import cost_service
+from app.services import analytics_service, cost_service
 
 DAILY_WINDOW_DAYS = 30
 HEALTH_WINDOW_HOURS = 24
@@ -126,10 +127,13 @@ def health(db: Session, now: datetime) -> dict[str, Any]:
     }
 
 
-def dashboard(db: Session, now: datetime, cloudwatch_dashboard_url: str) -> dict[str, Any]:
+def dashboard(
+    db: Session, now: datetime, cloudwatch_dashboard_url: str, events_enabled: bool
+) -> dict[str, Any]:
     return {
         "generated_at": now,
         "product": product(db, now),
+        "analytics": analytics_service.dashboard(db, now, events_enabled),
         "health": health(db, now),
         "cost": cost_service.latest_snapshot(db),
         "cloudwatch_dashboard_url": cloudwatch_dashboard_url or None,

@@ -37,6 +37,15 @@ function makeDashboard(overrides: Partial<Dashboard> = {}): Dashboard {
         },
       ],
     },
+    analytics: {
+      enabled: true,
+      window_days: 30,
+      daily: [{ day: '2026-11-18', anonymous_sessions: 7, signed_in_sessions: 2 }],
+      by_name: [
+        { name: 'session_start', anonymous: 7, signed_in: 2 },
+        { name: 'import_succeeded', anonymous: 0, signed_in: 3 },
+      ],
+    },
     health: {
       window_hours: 24,
       totals: { requests: 1000, client_errors: 20, server_errors: 2, rate_limited: 5 },
@@ -60,7 +69,10 @@ function makeDashboard(overrides: Partial<Dashboard> = {}): Dashboard {
 async function mountDashboard() {
   const router = createRouter({
     history: createMemoryHistory(),
-    routes: [{ path: '/', component: AdminDashboardView }],
+    routes: [
+      { path: '/', component: AdminDashboardView },
+      { path: '/settings', name: 'admin-settings', component: { template: '<p />' } },
+    ],
   })
   router.push('/')
   await router.isReady()
@@ -88,7 +100,36 @@ describe('AdminDashboardView', () => {
     expect(text).toContain('1 locked')
     expect(text).toContain('812')
     expect(text).toContain('0.2%') // 2 server errors in 1,000 requests
-    expect(wrapper.find('table caption').text()).toBe('By route')
+    const captions = wrapper.findAll('table caption').map((caption) => caption.text())
+    expect(captions).toContain('By route')
+  })
+
+  it('shows sessions and per-event totals, anonymous and signed in', async () => {
+    apiFetchMock.mockResolvedValueOnce(makeDashboard())
+    const wrapper = await mountDashboard()
+
+    const events = wrapper
+      .findAll('table')
+      .find((table) => table.find('caption').exists() && table.find('caption').text() === 'Events')!
+    const rows = events.findAll('tbody tr').map((row) => row.findAll('th, td').map((c) => c.text()))
+    expect(rows).toEqual([
+      ['Session start', '7', '2'],
+      ['Import succeeded', '0', '3'],
+    ])
+    expect(wrapper.text()).not.toContain('Event collection is off')
+  })
+
+  it('says when event collection is switched off, with a way to turn it on', async () => {
+    apiFetchMock.mockResolvedValueOnce(
+      makeDashboard({
+        analytics: { enabled: false, window_days: 30, daily: [], by_name: [] },
+      }),
+    )
+    const wrapper = await mountDashboard()
+
+    expect(wrapper.text()).toContain('Event collection is off')
+    const link = wrapper.findAll('a').find((a) => a.text() === 'Events enabled')!
+    expect(link.attributes('href')).toBe('/settings')
   })
 
   it('says when there is no cost snapshot or CloudWatch link yet', async () => {

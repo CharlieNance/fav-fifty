@@ -8,6 +8,7 @@ Alembic autogenerate see the complete schema. Import models from here, e.g.::
 
 from app.db.base import Base
 from app.models.admin_audit_log import AdminAuditLog
+from app.models.analytics import AnalyticsDaily, AnalyticsEvent
 from app.models.list import List
 from app.models.list_item import ListItem
 from app.models.metrics import CostSnapshot, RequestCount
@@ -17,6 +18,8 @@ from app.models.user import User
 __all__ = [
     "Base",
     "AdminAuditLog",
+    "AnalyticsDaily",
+    "AnalyticsEvent",
     "User",
     "List",
     "ListItem",
