@@ -14,7 +14,7 @@ declare module 'vue-router' {
     /** Tab title (see pageTitle.ts); omitted = just the site name. */
     title?: string
     requiresAuth?: boolean
-    /** Owner-only (docs/ADMIN_AND_ANALYTICS_PLAN.md). UX only; the API is the gate. */
+    /** Owner-only (docs/ARCHITECTURE.md §Access control). UX only; the API is the gate. */
     requiresAdmin?: boolean
   }
 }
@@ -88,6 +88,12 @@ const routes: RouteRecordRaw[] = [
         name: 'admin-list',
         component: () => import('@/features/admin/AdminListView.vue'),
         meta: { title: 'Admin: list' },
+      },
+      {
+        path: 'abuse',
+        name: 'admin-abuse',
+        component: () => import('@/features/admin/AdminAbuseView.vue'),
+        meta: { title: 'Admin: abuse' },
       },
       {
         path: 'audit',

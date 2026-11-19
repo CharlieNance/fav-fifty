@@ -1697,6 +1697,156 @@
         }
       }
     },
+    "/api/v1/admin/abuse": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Read Abuse",
+        "description": "429s by route class and the busiest client IPs over the last ``hours``.",
+        "operationId": "read_abuse_api_v1_admin_abuse_get",
+        "parameters": [
+          {
+            "name": "hours",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 168,
+              "minimum": 1,
+              "default": 24,
+              "title": "Hours"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AbuseOverview"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/blocked-ips": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Read Blocked Ips",
+        "description": "The block list, each entry with who added it, when and why.",
+        "operationId": "read_blocked_ips_api_v1_admin_blocked_ips_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlockListRead"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Block Ip",
+        "description": "Block an address or range (at most a /24 or /48) at the edge. Reason required.",
+        "operationId": "block_ip_api_v1_admin_blocked_ips_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BlockIpRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlockListRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/blocked-ips/remove": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Unblock Ip",
+        "description": "Take an entry off the block list.",
+        "operationId": "unblock_ip_api_v1_admin_blocked_ips_remove_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnblockIpRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlockListRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/events": {
       "post": {
         "tags": [
@@ -1735,6 +1885,47 @@
   },
   "components": {
     "schemas": {
+      "AbuseOverview": {
+        "properties": {
+          "window_hours": {
+            "type": "integer",
+            "title": "Window Hours"
+          },
+          "your_ip": {
+            "type": "string",
+            "title": "Your Ip",
+            "description": "The address this request came from (never block it)."
+          },
+          "rate_limited_total": {
+            "type": "integer",
+            "title": "Rate Limited Total"
+          },
+          "by_route": {
+            "items": {
+              "$ref": "#/components/schemas/RouteRateLimits"
+            },
+            "type": "array",
+            "title": "By Route"
+          },
+          "top_ips": {
+            "items": {
+              "$ref": "#/components/schemas/IpActivity"
+            },
+            "type": "array",
+            "title": "Top Ips"
+          }
+        },
+        "type": "object",
+        "required": [
+          "window_hours",
+          "your_ip",
+          "rate_limited_total",
+          "by_route",
+          "top_ips"
+        ],
+        "title": "AbuseOverview",
+        "description": "``GET /admin/abuse``: who's being rate limited, and the busiest IPs."
+      },
       "AdminAction": {
         "properties": {
           "reason": {
@@ -2234,6 +2425,110 @@
         ],
         "title": "AuditLogEntryRead",
         "description": "One admin audit-log row."
+      },
+      "BlockIpRequest": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "maxLength": 500,
+            "title": "Reason"
+          },
+          "network": {
+            "type": "string",
+            "maxLength": 64,
+            "title": "Network",
+            "description": "An IPv4/IPv6 address or a CIDR range."
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason",
+          "network"
+        ],
+        "title": "BlockIpRequest"
+      },
+      "BlockListRead": {
+        "properties": {
+          "source": {
+            "type": "string",
+            "enum": [
+              "waf",
+              "local",
+              "memory"
+            ],
+            "title": "Source"
+          },
+          "enforced": {
+            "type": "boolean",
+            "title": "Enforced",
+            "description": "True when the WAF enforces this list at the edge."
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/BlockedIp"
+            },
+            "type": "array",
+            "title": "Entries"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source",
+          "enforced",
+          "entries"
+        ],
+        "title": "BlockListRead",
+        "description": "``GET /admin/blocked-ips``."
+      },
+      "BlockedIp": {
+        "properties": {
+          "network": {
+            "type": "string",
+            "title": "Network"
+          },
+          "blocked_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blocked At"
+          },
+          "blocked_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blocked By"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "type": "object",
+        "required": [
+          "network",
+          "blocked_at",
+          "blocked_by",
+          "reason"
+        ],
+        "title": "BlockedIp"
       },
       "ClientConfig": {
         "properties": {
@@ -2856,6 +3151,42 @@
         "title": "ImportedListRead",
         "description": "What became of one uploaded list, in the order they were sent."
       },
+      "IpActivity": {
+        "properties": {
+          "ip": {
+            "type": "string",
+            "title": "Ip"
+          },
+          "requests": {
+            "type": "integer",
+            "title": "Requests"
+          },
+          "rate_limited": {
+            "type": "integer",
+            "title": "Rate Limited"
+          },
+          "blocked_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blocked By",
+            "description": "The block-list entry covering this IP, if any."
+          }
+        },
+        "type": "object",
+        "required": [
+          "ip",
+          "requests",
+          "rate_limited",
+          "blocked_by"
+        ],
+        "title": "IpActivity"
+      },
       "ItemCreate": {
         "properties": {
           "text": {
@@ -3241,6 +3572,29 @@
         ],
         "title": "RouteCounts"
       },
+      "RouteRateLimits": {
+        "properties": {
+          "route_class": {
+            "type": "string",
+            "title": "Route Class"
+          },
+          "requests": {
+            "type": "integer",
+            "title": "Requests"
+          },
+          "rate_limited": {
+            "type": "integer",
+            "title": "Rate Limited"
+          }
+        },
+        "type": "object",
+        "required": [
+          "route_class",
+          "requests",
+          "rate_limited"
+        ],
+        "title": "RouteRateLimits"
+      },
       "SettingRead": {
         "properties": {
           "key": {
@@ -3394,6 +3748,32 @@
         ],
         "title": "TagsUpdate",
         "description": "Body for ``PUT /api/lists/{list_id}/tags`` — replaces a list's full tag set.\n\nEach entry is normalized (trimmed, whitespace-collapsed, lower-cased) the same\nway ``tag_service.set_list_tags`` would need to anyway, so the set that reaches\nthe service is already de-dupeable by plain equality."
+      },
+      "UnblockIpRequest": {
+        "properties": {
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "network": {
+            "type": "string",
+            "maxLength": 64,
+            "title": "Network"
+          }
+        },
+        "type": "object",
+        "required": [
+          "network"
+        ],
+        "title": "UnblockIpRequest"
       },
       "UserRead": {
         "properties": {

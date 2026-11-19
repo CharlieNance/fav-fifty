@@ -1,4 +1,4 @@
-"""Admin actions on users and runtime settings (docs/ADMIN_AND_ANALYTICS_PLAN.md).
+"""Admin actions on users and runtime settings (docs/ARCHITECTURE.md §Admin and analytics).
 
 Every mutating function stages its audit row (``audit_service.record``) and commits
 once, so the action and its audit row land together. Routes stay thin and map the
@@ -252,7 +252,7 @@ def get_user(db: Session, user_id: uuid.UUID) -> User | None:
 
 # ─── Lists (content) ────────────────────────────────────────────────────────────
 # Reading someone's lists is reading private content, so every read is audit-logged
-# (docs/ADMIN_AND_ANALYTICS_PLAN.md §Content). Removal reuses the owner's soft
+# (docs/ARCHITECTURE.md §Content). Removal reuses the owner's soft
 # delete, so it's reversible; restore only undoes an admin's removal, never the
 # owner's own delete.
 

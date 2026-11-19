@@ -8,7 +8,7 @@ the Discord community, the owner doesn't know everyone, and a public link travel
 **pre-launch** (owner, 2026-10-13). Nothing is built yet. Decided in
 [DECISIONS.md](DECISIONS.md): **Q16** (catalog and showcase limits are enforced by AWS,
 not app code) and **Q25** (quota defaults, changeable at runtime). Related: [COST_GUARDRAILS_PLAN.md](COST_GUARDRAILS_PLAN.md)
-(the last line of defence for cost), [ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md)
+(the last line of defence for cost), [ARCHITECTURE.md](ARCHITECTURE.md#admin-and-analytics)
 (the lock/block UI), and [CONSIDERATIONS.md](CONSIDERATIONS.md) §Security.
 
 ## Status (2026-11-14)
@@ -73,7 +73,7 @@ count against the plan's allowance. Proposed rule set (5 slots):
 | 2 | **IP rate limit, sensitive paths** (`/api/v1/auth/*`, `/api/v1/catalog/*`, `/api/v1/events`; e.g. 200 / 5 min / IP) | Protects login and the endpoints that cost third-party quota |
 | 3 | **AWS managed: Core rule set** | Common exploit patterns (path traversal, bad bots, …) |
 | 4 | **AWS managed: Amazon IP reputation list** | Known-bad sources |
-| 5 | **Block-list IP set** (managed from the admin portal or `tools/`) | Manual "block this IP now" |
+| 5 | **Block-list IP sets** (IPv4 + IPv6, managed from the admin Abuse page; app side done 2026-11-18) | Manual "block this IP now" |
 
 The cost breaker's Level 1 tightens rule 2 (COST_GUARDRAILS_PLAN.md).
 
@@ -117,7 +117,7 @@ lists per request.
 - **Changeable without a deploy** (owner: "in config files so I can change them on the
   fly"). Each limit has a **code default** and an optional override in the **runtime
   settings** (SSM-backed, editable from the admin portal; see
-  [ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md) §Runtime settings). A
+  [ARCHITECTURE.md](ARCHITECTURE.md#runtime-settings)). A
   change applies within ~30 s.
 - **The tag cap already exists:** `limits.max_tags_per_list` in the runtime settings
   (`backend/app/core/runtime_settings.py`; SSM `/favfifty/settings/limits/max_tags_per_list`,
@@ -167,7 +167,7 @@ lists per request.
 
 - **Lock/unlock and revoke sessions** already exist as service functions
   (`deactivate_user`, `revoke_all_sessions`; there's no `reactivate_user` yet). The
-  admin portal adds the UI ([ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md)).
+  admin portal adds the UI ([ARCHITECTURE.md](ARCHITECTURE.md#admin-and-analytics)).
 - **Sign-up spike alarm** and a **"new sign-ups off" switch** (same switches as the
   breaker). Existing users keep signing in.
 - Owner's own Google account: 2-step verification on, since it's the admin

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Shell for the owner-only admin area (docs/ADMIN_AND_ANALYTICS_PLAN.md): a
+ * Shell for the owner-only admin area (docs/ARCHITECTURE.md §Admin and analytics): a
  * section nav over the current admin page. Lazy-loaded, so none of the admin code
  * is in the public bundle. The router guard keeps non-admins out, but that's UX
  * only: every admin API route checks for itself.
@@ -8,6 +8,7 @@
 const sections = [
   { to: { name: 'admin-dashboard' }, label: 'Dashboard' },
   { to: { name: 'admin-users' }, label: 'Users' },
+  { to: { name: 'admin-abuse' }, label: 'Abuse' },
   { to: { name: 'admin-settings' }, label: 'Settings' },
   { to: { name: 'admin-audit' }, label: 'Audit log' },
 ] as const

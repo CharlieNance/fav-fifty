@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * Admin → Audit log: every admin action and every read of someone's lists, newest
- * first (docs/ADMIN_AND_ANALYTICS_PLAN.md §Audit log). Filter by action, by what
+ * first (docs/ARCHITECTURE.md §Audit log). Filter by action, by what
  * it was done to, or (from a user's page) by everything about one user. Filters
  * live in the URL, so a filtered view can be bookmarked or linked to.
  *
@@ -155,9 +155,11 @@ function byWhom(entry: AuditLogEntry): string {
       <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span class="font-medium text-ink">{{ actionLabel(entry.action) }}</span>
 
-        <span v-if="entry.target_type === 'setting'" class="font-mono text-xs text-ink">{{
-          entry.target_id
-        }}</span>
+        <span
+          v-if="entry.target_type === 'setting' || entry.target_type === 'ip'"
+          class="font-mono text-xs text-ink"
+          >{{ entry.target_id }}</span
+        >
         <span v-else-if="entry.target_type === 'list'" class="text-ink">
           <RouterLink
             :to="{ name: 'admin-list', params: { id: entry.target_id } }"

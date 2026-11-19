@@ -1,4 +1,4 @@
-"""Admin routes: owner-only tools (docs/ADMIN_AND_ANALYTICS_PLAN.md).
+"""Admin routes: owner-only tools (docs/ARCHITECTURE.md §Admin and analytics).
 
 ``require_admin`` sits on the router itself, so a route added here can't forget it;
 tests/test_admin_access.py walks every ``/admin`` route to make sure. Every route
@@ -8,6 +8,8 @@ also gets the admin rate limit and ``Cache-Control: no-store``.
 import logging
 import time
 import uuid
+from collections.abc import Generator
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from typing import Any
 
@@ -16,7 +18,14 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db, require_admin
 from app.api.rate_limits import limit_admin
+from app.core.client_ip import client_ip
 from app.core.config import settings
+from app.core.ip_blocklist import (
+    BlockList,
+    BlockListError,
+    BlockListNotConfiguredError,
+    get_ip_blocklist,
+)
 from app.core.runtime_settings import (
     RuntimeSettings,
     RuntimeSettingsProvider,
@@ -27,6 +36,7 @@ from app.core.runtime_settings import (
 from app.models.list import List
 from app.models.user import User
 from app.schemas.admin import (
+    AbuseOverview,
     AdminAction,
     AdminListDetail,
     AdminListSummary,
@@ -34,13 +44,16 @@ from app.schemas.admin import (
     AdminUserDetail,
     AdminUserSummary,
     AuditLogEntryRead,
+    BlockIpRequest,
+    BlockListRead,
     Dashboard,
     SettingRead,
     SettingUpdate,
+    UnblockIpRequest,
 )
 from app.schemas.list import ListRead
 from app.schemas.list_item import ItemRead
-from app.services import admin_service, audit_service, dashboard_service
+from app.services import abuse_service, admin_service, audit_service, dashboard_service
 
 logger = logging.getLogger(__name__)
 
@@ -373,3 +386,82 @@ def reset_setting(
     except SettingNotWritableError as error:
         raise HTTPException(status_code=409, detail=f"Can't change it here: {error}") from None
     return _one_setting(db, provider, key)
+
+
+# ─── Abuse view ─────────────────────────────────────────────────────────────────
+
+MAX_ABUSE_WINDOW_HOURS = abuse_service.IP_RETENTION_DAYS * 24
+
+
+@contextmanager
+def _blocklist_errors() -> Generator[None]:
+    """Map block-list failures to responses: a bad address 422, a refused block 409,
+    no WAF configured 503, AWS refusing 502."""
+    try:
+        yield
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from None
+    except abuse_service.BlockRefusedError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from None
+    except abuse_service.NotBlockedError:
+        raise HTTPException(status_code=404, detail="That address isn't blocked.") from None
+    except BlockListNotConfiguredError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from None
+    except BlockListError as error:
+        raise HTTPException(status_code=502, detail=str(error)) from None
+
+
+def _block_list(db: Session, blocklist: BlockList) -> dict[str, Any]:
+    with _blocklist_errors():
+        entries = abuse_service.blocked_entries(db, blocklist)
+    return {"source": blocklist.source, "enforced": blocklist.source == "waf", "entries": entries}
+
+
+@router.get("/abuse", response_model=AbuseOverview)
+def read_abuse(
+    request: Request,
+    db: Session = Depends(get_db),
+    blocklist: BlockList = Depends(get_ip_blocklist),
+    hours: int = Query(default=24, ge=1, le=MAX_ABUSE_WINDOW_HOURS),
+) -> Any:
+    """429s by route class and the busiest client IPs over the last ``hours``."""
+    try:
+        blocked = blocklist.entries()
+    except BlockListError:
+        blocked = []  # The numbers are still worth showing without the "blocked" marks.
+    return abuse_service.overview(db, datetime.now(UTC), hours, blocked, client_ip(request))
+
+
+@router.get("/blocked-ips", response_model=BlockListRead)
+def read_blocked_ips(
+    db: Session = Depends(get_db), blocklist: BlockList = Depends(get_ip_blocklist)
+) -> Any:
+    """The block list, each entry with who added it, when and why."""
+    return _block_list(db, blocklist)
+
+
+@router.post("/blocked-ips", response_model=BlockListRead)
+def block_ip(
+    body: BlockIpRequest,
+    request: Request,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+    blocklist: BlockList = Depends(get_ip_blocklist),
+) -> Any:
+    """Block an address or range (at most a /24 or /48) at the edge. Reason required."""
+    with _blocklist_errors():
+        abuse_service.block(db, blocklist, admin, body.network, body.reason, client_ip(request))
+    return _block_list(db, blocklist)
+
+
+@router.post("/blocked-ips/remove", response_model=BlockListRead)
+def unblock_ip(
+    body: UnblockIpRequest,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+    blocklist: BlockList = Depends(get_ip_blocklist),
+) -> Any:
+    """Take an entry off the block list."""
+    with _blocklist_errors():
+        abuse_service.unblock(db, blocklist, admin, body.network, body.reason)
+    return _block_list(db, blocklist)

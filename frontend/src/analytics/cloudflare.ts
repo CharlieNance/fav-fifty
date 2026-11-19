@@ -1,5 +1,5 @@
 /**
- * Cloudflare Web Analytics (docs/ADMIN_AND_ANALYTICS_PLAN.md §Analytics A): page
+ * Cloudflare Web Analytics (docs/ARCHITECTURE.md §Analytics): page
  * views, referrers, countries and devices from a free, cookieless beacon. It works
  * without the site being hosted on Cloudflare and follows SPA route changes itself.
  *

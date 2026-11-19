@@ -93,7 +93,7 @@ Planning doc for how Fav Fifty runs in AWS. **Decided 2026-10-13**
   in Terraform yet. Confirm at build time.
 - **Configuration comes from the environment plus SSM Parameter Store** (standard
   parameters are free): secrets, provider keys, and the **runtime settings**
-  (switches and limits, see [ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md)).
+  (switches and limits, see [ARCHITECTURE.md](ARCHITECTURE.md#runtime-settings)).
 - **Portability rules** (also in CLAUDE.md), so any stateless route can move between
   the box and Lambda:
   - No in-process background work after the response; use a queue when that need
@@ -133,7 +133,7 @@ Planning doc for how Fav Fifty runs in AWS. **Decided 2026-10-13**
 - **Logs stay on the box:** Docker's json-file driver with rotation (`max-size`,
   `max-file`), so there's **no CloudWatch Logs ingestion cost** and no disk-full
   surprise. Request counters the dashboards need (429s, errors) are aggregated by the
-  app into Postgres; see ADMIN_AND_ANALYTICS_PLAN.md.
+  app into Postgres; see ARCHITECTURE.md §Dashboards.
 - **Health:**
   - A **Route 53 health check** on `/api/v1/health` (the first 50 are free) with an
     alarm.
@@ -209,6 +209,8 @@ the box becomes a real limitation. At ≤10 concurrent users it won't be.
    - Terraform: the box, S3, distribution #1 on the Free plan with WAF; update the
      Cognito callback URL.
    - Get backups running and do the test restore.
+   - Check `https://favfifty.com/robots.txt` comes back as the text file
+     (`frontend/public/robots.txt`), not the SPA's `index.html` fallback.
    - **Make the owner an admin** (one time; the role persists in the DB). Sign in once
      on the live site so the account exists, then on the box run the CLI inside the
      API container (service name per the compose file):
@@ -218,18 +220,28 @@ the box becomes a real limitation. At ≤10 concurrent users it won't be.
      docker compose exec api python -m app.cli list-admins   # verify
      ```
 
-     Reload the site and the Admin link appears.
-   - **Admin dashboard wiring** (ADMIN_AND_ANALYTICS_PLAN.md step 5):
+     Reload the site and the Admin link appears. (`tools/grant_admin.sh` is the
+     local-dev wrapper for the same CLI; it needs the repo checkout and `uv`, which
+     the box doesn't have.)
+   - **Admin and analytics wiring** (ARCHITECTURE.md §Admin and analytics; the app
+     side is built):
      - cron on the box, once a day:
-       `docker compose exec -T api python -m app.cli daily-jobs` (prunes request
-       counts, takes the cost snapshot);
+       `docker compose exec -T api python -m app.cli daily-jobs` (prunes request and
+       per-IP counts, rolls up analytics, takes the cost snapshot);
      - the box's IAM user gets `ce:GetCostAndUsage` (the account must allow IAM
        access to billing data), then set `COST_SNAPSHOT_ENABLED=true`;
      - Terraform creates the CloudWatch dashboard (CloudFront, WAF, Lambda,
        Lightsail, the Route 53 health check); put its console URL in
-       `CLOUDWATCH_DASHBOARD_URL`. `tools/grant_admin.sh` is the
-     local-dev wrapper for the same CLI; it needs the repo checkout and `uv`, which
-     the box doesn't have.
+       `CLOUDWATCH_DASHBOARD_URL`;
+     - Terraform creates the two block-list IP sets (IPv4 + IPv6, scope
+       `CLOUDFRONT`) and WAF rule 5 that blocks them; set `IP_BLOCKLIST_SOURCE=waf`,
+       `WAF_IPV4_IP_SET_ARN` and `WAF_IPV6_IP_SET_ARN`, and give the box's IAM user
+       `wafv2:GetIPSet`/`wafv2:UpdateIPSet` on those two ARNs only;
+     - create the Cloudflare Web Analytics site, set `VITE_CF_BEACON_TOKEN` (and
+       `VITE_APP_VERSION`) in the frontend build, and allow
+       `static.cloudflareinsights.com` (script) and `cloudflareinsights.com`
+       (connect) in the CSP;
+     - once live, switch on `features.events_enabled` from the admin Settings page.
 3. **Cost guardrails + game day** (COST_GUARDRAILS_PLAN.md) before announcing.
 4. **Hybrid:** when catalog lookup lands, route catalog and showcase to Lambda with
    reserved concurrency; add distribution #2 for images.

@@ -2,7 +2,7 @@
 
 Distinct from ``app.core.config`` (deploy-time config: DB URL, secrets, Cognito):
 these values are meant to change while the app is running, from the admin portal
-or the cost breaker (docs/ADMIN_AND_ANALYTICS_PLAN.md §Runtime settings).
+or the cost breaker (docs/ARCHITECTURE.md §Runtime settings).
 
 * **Sources.** In AWS they live in SSM Parameter Store, one parameter per setting,
   e.g. ``/favfifty/settings/limits/max_tags_per_list``. Locally (and in CI) the same
@@ -115,7 +115,7 @@ class RateLimits(BaseModel):
     model_config = ConfigDict(frozen=True, extra="ignore")
 
     enabled: bool = Field(default=True, description="Rate limiting on (off only in an emergency).")
-    # Admin routes, per admin (docs/ADMIN_AND_ANALYTICS_PLAN.md §Access control).
+    # Admin routes, per admin (docs/ARCHITECTURE.md §Access control).
     admin_per_minute: int = Field(
         default=60, ge=1, le=10_000, description="Admin requests per admin per minute."
     )
@@ -157,7 +157,7 @@ class RateLimits(BaseModel):
 
 
 class Features(BaseModel):
-    """On/off switches for optional features (docs/ADMIN_AND_ANALYTICS_PLAN.md
+    """On/off switches for optional features (docs/ARCHITECTURE.md
     §Runtime settings). Each lands with the feature it gates. Defaults are off: an
     optional feature stays off if the settings source can't be read (fail safe).
     """

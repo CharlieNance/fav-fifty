@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * A small, single-series bar chart in plain SVG (no chart library: the admin
- * dashboard needs a handful of these, docs/ADMIN_AND_ANALYTICS_PLAN.md
+ * dashboard needs a handful of these, docs/ARCHITECTURE.md
  * §Dashboards).
  *
  * - One series, so no legend: the heading names it. Bars wear the accent token;

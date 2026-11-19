@@ -1,4 +1,4 @@
-"""Request body for ``POST /api/v1/events`` (docs/ADMIN_AND_ANALYTICS_PLAN.md §Analytics B).
+"""Request body for ``POST /api/v1/events`` (docs/ARCHITECTURE.md §Analytics).
 
 The *shape* is checked strictly here (a malformed batch is a 422). The *content*
 is filtered leniently in app/services/analytics_service.py: an event name or a

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Admin → one list, any user's, deleted or not (docs/ADMIN_AND_ANALYTICS_PLAN.md
+ * Admin → one list, any user's, deleted or not (docs/ARCHITECTURE.md
  * §Content). Opening it is an audit-logged read. Remove (reason required) is the
  * owner's own soft delete, so it's reversible; Restore only undoes an admin's
  * removal, never the owner's own delete.

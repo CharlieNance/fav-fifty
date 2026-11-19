@@ -1,6 +1,6 @@
 """Admin content tools: read any user's lists (audit-logged), remove and restore.
 
-docs/ADMIN_AND_ANALYTICS_PLAN.md §Content. Access control for these routes is
+docs/ARCHITECTURE.md §Content. Access control for these routes is
 covered by the router walks in tests/test_admin_access.py.
 """
 

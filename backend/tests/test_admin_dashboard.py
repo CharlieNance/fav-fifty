@@ -29,7 +29,7 @@ from app.core.request_counts import (
 )
 from app.models.list import List
 from app.models.list_item import ListItem
-from app.models.metrics import CostSnapshot, RequestCount
+from app.models.metrics import CostSnapshot, IpRequestCount, RequestCount
 from app.models.user import ROLE_ADMIN, User
 from app.services import cost_service, dashboard_service, user_service
 from tests.conftest import API_BASE_URL, BROWSER_HEADERS
@@ -79,11 +79,19 @@ def test_the_postgres_counter_upserts_one_row_per_minute(db_session: Session) ->
     minute = datetime(2001, 1, 1, 12, 0, tzinfo=UTC)  # far from any real traffic
 
     for _ in range(3):
-        counter.record("lists", "2xx", minute)
-    counter.record("lists", "5xx", minute)
+        counter.record("lists", "2xx", minute, "192.0.2.10")
+    counter.record("lists", "5xx", minute, "192.0.2.10")
+    counter.record("auth", "429", minute.replace(minute=30), "192.0.2.10")
 
     rows = db_session.scalars(select(RequestCount).where(RequestCount.minute == minute)).all()
     assert sorted((row.status_class, row.count) for row in rows) == [("2xx", 3), ("5xx", 1)]
+    # The same IP, bucketed by hour: 5 requests, 1 of them a 429.
+    by_ip = db_session.scalars(
+        select(IpRequestCount).where(
+            IpRequestCount.hour == minute, IpRequestCount.ip == "192.0.2.10"
+        )
+    ).one()
+    assert (by_ip.requests, by_ip.rate_limited) == (5, 1)
 
 
 # ─── Dashboard numbers ──────────────────────────────────────────────────────────

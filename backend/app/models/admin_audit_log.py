@@ -1,7 +1,7 @@
 """Admin audit log: one append-only row per admin action.
 
 Every mutating admin action, and every read of a user's private content, writes a
-row in the same transaction as the action (docs/ADMIN_AND_ANALYTICS_PLAN.md §Audit
+row in the same transaction as the action (docs/ARCHITECTURE.md §Audit
 log). Nothing updates or deletes these rows.
 """
 

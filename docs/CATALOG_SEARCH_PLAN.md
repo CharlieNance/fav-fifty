@@ -135,7 +135,7 @@ backend/app/schemas/catalog.py      # response schema (CatalogResultRead)
   or disabling it.
   - **Disabling without a deploy:** `catalog_providers.<name>.enabled` and
     `.priority` are **runtime settings** (SSM-backed, editable in the admin
-    portal; [ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md) §Runtime
+    portal; [ARCHITECTURE.md](ARCHITECTURE.md) §Runtime
     settings).
   - A provider whose key is missing is skipped automatically.
   - The registry rebuilds from settings at most every ~30 s.

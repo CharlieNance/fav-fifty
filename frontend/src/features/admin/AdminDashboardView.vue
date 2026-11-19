@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Admin → Dashboard (docs/ADMIN_AND_ANALYTICS_PLAN.md §Dashboards): product
+ * Admin → Dashboard (docs/ARCHITECTURE.md §Dashboards): product
  * numbers from Postgres, sessions and events from `POST /events` (anonymous
  * visitors included), the last 24 hours of requests from the app's own counters,
  * and the latest daily cost snapshot. Aggregates only, never content.

@@ -2,7 +2,7 @@
 
 ``record`` only adds the row to the session; it never commits. The caller commits it
 together with the action itself, so an action and its audit row land (or roll back)
-as one (docs/ADMIN_AND_ANALYTICS_PLAN.md §Audit log). There's deliberately no
+as one (docs/ARCHITECTURE.md §Audit log). There's deliberately no
 update or delete here: the log is append-only.
 """
 

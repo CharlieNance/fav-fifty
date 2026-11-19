@@ -1,5 +1,5 @@
-"""``POST /api/v1/events`` — first-party analytics (docs/ADMIN_AND_ANALYTICS_PLAN.md
-§Analytics B).
+"""``POST /api/v1/events`` — first-party analytics (docs/ARCHITECTURE.md
+§Analytics).
 
 Public: anonymous visitors' activity happens on their device, so this is the only
 way the server hears of it. Clients batch events and send them every few seconds

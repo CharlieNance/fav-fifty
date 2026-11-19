@@ -48,11 +48,11 @@ class Settings(BaseSettings):
     session_cookie_name: str = "favfifty_session"
     session_max_age_seconds: int = 60 * 60 * 24 * 14  # 14 days
     # Admin routes also need a *recent* sign-in: the session must have been issued
-    # within this window (docs/ADMIN_AND_ANALYTICS_PLAN.md §Access control). Kept out
+    # within this window (docs/ARCHITECTURE.md §Access control). Kept out
     # of runtime settings on purpose: an SSM write shouldn't be able to weaken it.
     admin_recent_login_seconds: int = 60 * 60 * 12  # 12 hours
 
-    # Admin dashboard (docs/ADMIN_AND_ANALYTICS_PLAN.md §Dashboards).
+    # Admin dashboard (docs/ARCHITECTURE.md §Dashboards).
     # Per-minute request counts into Postgres. Always off on Lambda (no database).
     request_counts_enabled: bool = True
     # Link to the CloudWatch health dashboard (created by Terraform); empty = no link.
@@ -77,6 +77,15 @@ class Settings(BaseSettings):
     # there, not here, so they can change without a deploy.
     runtime_settings_source: Literal["env", "ssm"] = "env"
     runtime_settings_ssm_prefix: str = "/favfifty/settings"
+
+    # The IP block list the admin abuse view edits (app/core/ip_blocklist.py). "waf"
+    # = the two WAFv2 IP sets below (created by Terraform; the WAF enforces them at
+    # the edge). "local" = a git-ignored JSON file that nothing enforces, so the
+    # page works in development.
+    ip_blocklist_source: Literal["local", "waf"] = "local"
+    ip_blocklist_local_path: str = ".ip_blocklist.local.json"
+    waf_ipv4_ip_set_arn: str = ""
+    waf_ipv6_ip_set_arn: str = ""
 
     # Postgres cancels any app query running longer than this, so one pathological
     # query (e.g. an ILIKE search) can't pin the box's CPU. 0 turns it off.

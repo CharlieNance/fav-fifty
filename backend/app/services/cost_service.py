@@ -1,4 +1,4 @@
-"""Daily AWS cost snapshot from Cost Explorer (docs/ADMIN_AND_ANALYTICS_PLAN.md
+"""Daily AWS cost snapshot from Cost Explorer (docs/ARCHITECTURE.md
 §Dashboards, Cost panel).
 
 Cost Explorer's API charges $0.01 per request, so this makes exactly ONE call per

@@ -105,7 +105,7 @@ details.
 - **Runtime settings** (Q14, Q25): feature switches, limits and provider toggles live in
   **SSM Parameter Store**. Each has a code default and is editable from the admin portal
   without a deploy; env vars override them locally. Plan:
-  [ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md) §Runtime settings.
+  [ARCHITECTURE.md](ARCHITECTURE.md#runtime-settings).
 - **Quotas** (Q25), all runtime-configurable:
   - 100 lists per user;
   - **25 tags per list** (the existing `max_tags_per_list` setting, default lowered
@@ -301,7 +301,7 @@ feature that needs it:
   `catalog_kind`: [CATALOG_SEARCH_PLAN.md](CATALOG_SEARCH_PLAN.md).
 - `users.role` (`user` | `admin`), `admin_audit_log`, `analytics_events`,
   `analytics_daily`, per-minute request counters:
-  [ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md).
+  [ARCHITECTURE.md](ARCHITECTURE.md#admin-and-analytics).
 
 ## Development workflow & testing (decided 2026-07-09)
 

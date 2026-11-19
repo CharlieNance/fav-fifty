@@ -11,7 +11,7 @@ from app.models.admin_audit_log import AdminAuditLog
 from app.models.analytics import AnalyticsDaily, AnalyticsEvent
 from app.models.list import List
 from app.models.list_item import ListItem
-from app.models.metrics import CostSnapshot, RequestCount
+from app.models.metrics import CostSnapshot, IpRequestCount, RequestCount
 from app.models.tag import Tag, list_tags
 from app.models.user import User
 
@@ -24,6 +24,7 @@ __all__ = [
     "List",
     "ListItem",
     "CostSnapshot",
+    "IpRequestCount",
     "RequestCount",
     "Tag",
     "list_tags",

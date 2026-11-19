@@ -1,5 +1,5 @@
 /**
- * First-party product events (docs/ADMIN_AND_ANALYTICS_PLAN.md §Analytics B).
+ * First-party product events (docs/ARCHITECTURE.md §Analytics).
  *
  * Anonymous visitors' lists live on their device, so the server only hears what
  * they do through these events. The rules:
