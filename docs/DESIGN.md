@@ -2,8 +2,8 @@
 
 The living home for **visual/UX decisions** — the frontend counterpart to
 [DECISIONS.md](DECISIONS.md). The vibe we're going for: **modern, chill, inviting.**
-Right now everything below is a placeholder or an open question; fill it in as choices
-get made, then treat this file as the source of truth for the design system.
+**Decided** is the source of truth for the design system; **Open** holds what's still
+to choose. Move an item across when it's settled, with the date.
 
 The product is fundamentally **text in ranked lists**, so this is more a *typographic*
 design problem than a graphical one. Whitespace, type, and one good accent color carry it.
@@ -81,7 +81,7 @@ design problem than a graphical one. Whitespace, type, and one good accent color
     same way.
 - **Accessibility target: WCAG 2.1 AA (what Section 508 references) (2026-11-15).**
   The rules the app follows:
-  - **Contrast is tested.** `src/assets/theme.spec.ts` reads the tokens from
+  - **Contrast is tested.** `src/assets/theme.node.spec.ts` reads the tokens from
     `main.css` and checks both themes: text 4.5:1 on every surface, and form-field
     edges (`control` token) and the focus ring 3:1. A palette change that fails
     breaks the build.
@@ -139,15 +139,20 @@ design problem than a graphical one. Whitespace, type, and one good accent color
     top of the brand accent, so it’s a deep fill with near-white ink.
   - Usage is semantic, not decorative: success = it worked, warning = proceed with
     care, error = it failed. Nothing else borrows these colors.
-  - **When light mode lands**, re-check these against the light canvas before
-    reaching for a second set of values — the expectation is that only the
-    surrounding surfaces flip.
+  - **Checked against light mode (2026-11-15):** they held up, so one set of values
+    serves both themes, and `theme.node.spec.ts` keeps checking them.
+- **Gold is for a full fifty.** `--color-gold` (+ `-light`, `-border`, `-ink`) is
+  used only for the star on the list index's `ItemCountBadge` when a list hits the
+  cap. It's a deeper, warmer yellow than `warning`, so it never reads as just the
+  next tier. The badge's other tiers (`itemCountTier.ts`: 0–10, 11–25, 26–49) use
+  the normal surface tokens. Like the status colors, it's a filled chip, the same
+  in both themes.
 - **Logging out navigates home (2026-09-22).** Clearing the session in place left the
   user on `/lists` still reading them, corrected only by the next navigation. Log out
   now goes to `/` and toasts — home rather than login, since logging out isn’t a
   prelude to logging back in. (Pairs with sign-in landing on `/lists`, see
   [DECISIONS.md](DECISIONS.md).)
-- **Margin showcase (decided 2026-10-13, Q17).** Scrolling art in the side
+- **Margin showcase (decided 2026-10-13, Q17; not built yet).** Scrolling art in the side
   gutters, **only on screens ≥1280px** (not even fetched below that):
   - **posters on the left, album covers on the right**;
   - low opacity with edge fades;
@@ -167,8 +172,30 @@ design problem than a graphical one. Whitespace, type, and one good accent color
 
 ## Open — to decide (no rush; these don't block feature work)
 
-- **Wordmark / logo + favicon.** Even a simple type-based mark. (Current: the `fav·fifty`
-  text wordmark from the mock; favicon still the scaffold default.)
+- **Tooltips.** Wanted before the Discord playtest. Today the only hints are native
+  `title` attributes (`IconButton`, the drag handle, `ItemCountBadge`, the toast
+  close). Those never show on touch or keyboard focus, so most of our phone-first
+  audience never sees them. Whatever we pick has to follow these rules:
+  - **A tooltip is an extra, never the only label.** The button keeps its
+    `aria-label`, and nothing you need to finish a task lives only in a tooltip,
+    because touch users can't hover. If a hint matters on phones, it goes in visible
+    text or a tap-to-open "?" popover.
+  - **WCAG 1.4.13 (content on hover or focus):** it shows on hover *and* keyboard
+    focus, Escape closes it, the pointer can move onto it without it vanishing, and
+    it stays until dismissed or the pointer/focus leaves. The trigger points to it
+    with `aria-describedby`, and the tooltip has `role="tooltip"`.
+  - Use the existing tokens (`elevated` surface, `ink` text, `border`) in both
+    themes, behind a short delay (~400ms in, none out), and keep the ~200ms motion
+    rule.
+  - Options, roughly cheapest first: (a) a hand-rolled `BaseTooltip` (like
+    `BaseDialog` and the toasts); (b) the same plus `@floating-ui/vue` (MIT, small)
+    for edge-aware positioning, which matters on narrow phones; (c) Reka UI's
+    Tooltip (MIT), if we also want its other primitives. Leaning (a), adding
+    Floating UI only if positioning near screen edges gets fiddly. Add an axe scan
+    with a tooltip open, too.
+- **Wordmark / logo.** Even a simple type-based mark. (Current: the `fav·fifty` text
+  wordmark from the mock. The favicon is done: a "fav / fifty" tile in the palette's
+  colors, in `public/` with PNG sizes and an Apple touch icon.)
 - **Margin showcase: exact values.** The shape is decided (see Decided: Margin
   showcase). Opacity, tint, fade-mask depth and scroll speed get settled with a static
   mock before animating —
@@ -188,11 +215,36 @@ not by default:
 - **Building/editing a list.** ✅ First pass shipped (2026-08-08): add/edit in one
   modal, delete behind a confirm, reorder by drag (handle icon) or up/down buttons.
   Reorder library decided — see Decided above.
-- **Empty states.** New user with zero lists; new list with zero items. First thing
-  everyone sees; easiest to neglect. (The zero-items one now invites: "Every
-  all-timer list starts with a #1 — what's yours?")
-- **Loading & error states.** Skeletons/spinners and graceful failure, not just the happy
-  path.
+- **Empty states.** ✅ First pass: zero lists ("You haven't started a list yet…"),
+  no search matches, and zero items ("Every all-timer list starts with a #1 — what's
+  yours?"). First thing everyone sees; worth a second look after the playtest.
+- **Loading & error states.** First pass: muted text in a `role="status"` region
+  ("Loading your lists…"), plus a plain error line for failures, with separate copy
+  for on-device storage errors. No skeletons or spinners yet. Add them if testers
+  on slow phones notice the wait.
+
+## Playtesting and moving things around
+
+Planned: a first round with a few people from the Discord, then layout changes based
+on what they hit. To keep that cheap and safe:
+
+- **Write findings down here** (or link an issue): what the tester tried, where they
+  got stuck, which device and theme. Move a layout change to Decided once it ships,
+  with the date and the reason ("testers missed X").
+- **Things to watch:** do people find "Start a list" and reorder (drag *and* the
+  up/down buttons) on a phone? Do they notice the "Saved on this device only" note
+  and the backup banner? Do icon-only buttons make sense without a hover hint?
+  That last one is the case for tooltips.
+- **When moving elements, keep visual order and DOM order the same.** Reorder the
+  markup, not the CSS (`order`, `flex-row-reverse`, absolute positioning). Tab
+  order and screen readers follow the DOM (WCAG 1.3.2 / 2.4.3).
+- **Design the phone layout first**, then check `sm:`/`md:`. Playwright's `mobile`
+  project (Pixel 7) catches the obvious breaks.
+- **The tests survive moves if names don't change.** e2e specs find elements by
+  role and accessible name (`getByRole`), almost never by position or test id. A
+  pure move should leave them green. Renaming a button's label or a heading will
+  break specs, and that's intended. Run `npm run test:e2e`: the axe scan reruns on
+  every page in both themes.
 
 ## Cross-cutting principles
 
@@ -207,8 +259,11 @@ not by default:
 
 Not installed yet; reach for these at the moment of first real need, not before:
 
-- **Headless/accessible primitives** — Reka UI (Vue port of Radix) or Headless UI — for
-  modals, menus, dialogs done accessibly.
+- **Headless/accessible primitives** — Reka UI (Vue port of Radix) or Headless UI.
+  Dialogs didn't need it (`BaseDialog` is hand-rolled). Reconsider for tooltips or
+  menus (see Open: Tooltips).
+- **Positioning** — `@floating-ui/vue`, if a tooltip or popover needs edge-aware
+  placement.
 - ~~**Icons**~~ — added: Heroicons (`@heroicons/vue`).
 - ~~**Drag-and-drop**~~ — added: `vue-draggable-plus` (see Decided above).
 - **VueUse** — handy composables (`useLocalStorage`, …). Not needed for the theme
