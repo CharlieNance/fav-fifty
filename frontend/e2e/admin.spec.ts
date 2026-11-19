@@ -146,3 +146,54 @@ test('the admin reads a user’s list, removes it, then restores it', async ({
   await expect(entries.filter({ hasText: 'Viewed their lists' })).toHaveCount(1)
   await expectAccessible(page, 'admin audit log')
 })
+
+test('the admin blocks an address and unblocks it, each in the audit log', async ({
+  page,
+  devUserKey,
+}) => {
+  // An address from the IPv6 documentation range, unique to this run. Locally the
+  // block list is a file nothing enforces, so this blocks no one.
+  // Each group starts with 1, so it's already in the server's normalized form.
+  const address = `2001:db8::1${randomUUID().slice(0, 3)}:1${randomUUID().slice(0, 3)}`
+  const network = `${address}/128`
+
+  await devLogin(page)
+  grantAdmin(`dev+${devUserKey}@example.com`)
+  // However the test ends, don't leave the address in the local block-list file.
+  try {
+    await blockAndUnblock(page, address, network)
+  } finally {
+    await page.request.post('/api/v1/admin/blocked-ips/remove', {
+      data: { network },
+      headers: { Origin: new URL(page.url()).origin },
+    })
+  }
+})
+
+async function blockAndUnblock(page: Page, address: string, network: string): Promise<void> {
+  await page.goto('/admin/abuse')
+  await expect(page.getByRole('heading', { name: 'Abuse' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Busiest addresses' })).toBeVisible()
+  await expect(page.getByText('Not enforced here')).toBeVisible()
+  await expectAccessible(page, 'admin abuse')
+
+  await page.getByLabel('Address or range').fill(address)
+  await page.getByRole('button', { name: 'Block…' }).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByLabel(/Reason/).fill('e2e: testing a block')
+  await dialog.getByRole('button', { name: 'Block' }).click()
+
+  const entries = page.getByRole('list', { name: 'Blocked addresses' })
+  const entry = entries.getByRole('listitem').filter({ hasText: network })
+  await expect(entry).toContainText('“e2e: testing a block”')
+
+  await entry.getByRole('button', { name: `Unblock ${network}` }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Unblock' }).click()
+  await expect(entries.getByText(network)).toHaveCount(0)
+
+  // Both are in the audit log.
+  await page.goto('/admin/audit?target=ip')
+  const log = page.getByRole('list', { name: 'Audit log' }).getByRole('listitem')
+  await expect(log.filter({ hasText: network })).toHaveCount(2)
+  await expect(log.filter({ hasText: network }).first()).toContainText('Unblocked')
+}

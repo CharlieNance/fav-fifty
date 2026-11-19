@@ -38,6 +38,8 @@ node_modules/
 .vite/
 .cache/
 *.local
+# The dev IP block list (backend/app/core/ip_blocklist.py); the WAF holds the real one.
+.ip_blocklist.local.*
 frontend/dist/
 dist-ssr/
 .eslintcache

@@ -25,7 +25,7 @@ from app.core.config import settings
 from app.db.session import SessionLocal
 from app.models.metrics import RequestCount
 from app.models.user import ROLE_ADMIN, ROLE_USER
-from app.services import analytics_service, cost_service, user_service
+from app.services import abuse_service, analytics_service, cost_service, user_service
 
 
 class CliError(Exception):
@@ -61,7 +61,8 @@ COUNT_RETENTION_DAYS = 35
 def daily_jobs(db: Session, today: date | None = None, cost_client: Any = None) -> list[str]:
     """Once a day, from cron on the box: housekeeping for the admin dashboard.
 
-    Prunes request counts past ``COUNT_RETENTION_DAYS``, rolls up the last few days
+    Prunes request counts past ``COUNT_RETENTION_DAYS`` and per-IP counts past
+    ``abuse_service.IP_RETENTION_DAYS`` (a privacy-policy promise), rolls up the last few days
     of analytics events and prunes old ones (app/services/analytics_service.py), and,
     when ``COST_SNAPSHOT_ENABLED``, records one Cost Explorer snapshot ($0.01).
     """
@@ -70,6 +71,10 @@ def daily_jobs(db: Session, today: date | None = None, cost_client: Any = None) 
     pruned = db.execute(delete(RequestCount).where(RequestCount.minute < cutoff)).rowcount
     db.commit()
     report = [f"Pruned {pruned} request-count rows older than {cutoff.date()}."]
+    ip_pruned = abuse_service.prune(db, today)
+    report.append(
+        f"Pruned {ip_pruned} per-IP count rows older than {abuse_service.IP_RETENTION_DAYS} days."
+    )
     report.extend(analytics_service.daily_jobs(db, today))
 
     if settings.cost_snapshot_enabled or cost_client is not None:

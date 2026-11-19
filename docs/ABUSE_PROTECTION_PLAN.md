@@ -73,7 +73,7 @@ count against the plan's allowance. Proposed rule set (5 slots):
 | 2 | **IP rate limit, sensitive paths** (`/api/v1/auth/*`, `/api/v1/catalog/*`, `/api/v1/events`; e.g. 200 / 5 min / IP) | Protects login and the endpoints that cost third-party quota |
 | 3 | **AWS managed: Core rule set** | Common exploit patterns (path traversal, bad bots, …) |
 | 4 | **AWS managed: Amazon IP reputation list** | Known-bad sources |
-| 5 | **Block-list IP set** (managed from the admin portal or `tools/`) | Manual "block this IP now" |
+| 5 | **Block-list IP sets** (IPv4 + IPv6, managed from the admin Abuse page; app side done 2026-11-18) | Manual "block this IP now" |
 
 The cost breaker's Level 1 tightens rule 2 (COST_GUARDRAILS_PLAN.md).
 

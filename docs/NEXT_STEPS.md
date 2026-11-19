@@ -14,8 +14,9 @@ Last updated: 2026-11-17
    - quotas, rate limits, request hygiene and CSRF
      ([ABUSE_PROTECTION_PLAN.md](ABUSE_PROTECTION_PLAN.md));
    - the admin portal and analytics are done app-side
-     ([ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md) steps 1–6); the
-     breaker reset waits for the breaker, and the abuse view (step 7) is next.
+     ([ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md) steps 1–7); the
+     breaker reset waits for the breaker, and the WAF/CloudWatch/Cloudflare pieces
+     wait for the first deploy.
 2. **Remaining Phase 2:** publish/unpublish, list-title dedup.
 3. **First deploy** (Terraform: box, S3, CloudFront + WAF on the flat-rate plan,
    backups) → **breaker + game day**.
@@ -89,6 +90,8 @@ absorb a surprise bill, so these **block launch**. All decided (Q16, Q21–Q25 i
   - ~~lock/unlock/revoke; the Settings page~~ (done 2026-11-17);
   - ~~read/remove lists~~ (done 2026-11-18);
   - ~~the audit-log page~~ (done 2026-11-18);
+  - ~~the abuse view: 429s, busiest IPs, the IP block list~~ (app side done
+    2026-11-18); the WAF IP sets, rule 5 and their IAM (first deploy);
   - the breaker reset button (with the breaker).
 - [ ] **Dashboards + analytics** (same plan):
   - ~~product numbers from Postgres; request/429 counters; the daily cost-snapshot

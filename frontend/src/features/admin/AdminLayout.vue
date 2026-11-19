@@ -8,6 +8,7 @@
 const sections = [
   { to: { name: 'admin-dashboard' }, label: 'Dashboard' },
   { to: { name: 'admin-users' }, label: 'Users' },
+  { to: { name: 'admin-abuse' }, label: 'Abuse' },
   { to: { name: 'admin-settings' }, label: 'Settings' },
   { to: { name: 'admin-audit' }, label: 'Audit log' },
 ] as const

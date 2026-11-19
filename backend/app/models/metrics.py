@@ -1,5 +1,6 @@
 """Operational numbers the admin dashboard reads (docs/ADMIN_AND_ANALYTICS_PLAN.md
-§Dashboards): per-minute request counts and daily cost snapshots.
+§Dashboards): per-minute request counts, hourly per-IP counts for the abuse view, and
+daily cost snapshots.
 
 Both are small by construction: request counts are one row per minute × route
 class × status class that actually occurred (pruned after 35 days by
@@ -29,6 +30,23 @@ class RequestCount(Base):
     # the abuse and cost tripwires watch.
     status_class: Mapped[str] = mapped_column(String(8), primary_key=True)
     count: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class IpRequestCount(Base):
+    """How many requests one client IP made in one hour, and how many got a 429.
+
+    For the admin abuse view (docs/ADMIN_AND_ANALYTICS_PLAN.md §Abuse view). These
+    are the only IP addresses the app keeps: pruned after ``IP_RETENTION_DAYS``
+    (app/services/abuse_service.py) by the daily job, as the privacy policy says.
+    """
+
+    __tablename__ = "ip_request_counts"
+
+    hour: Mapped[datetime] = mapped_column(DateTime(timezone=True), primary_key=True)
+    # IPv4 or IPv6 text (at most 45 characters), or "unknown".
+    ip: Mapped[str] = mapped_column(String(45), primary_key=True)
+    requests: Mapped[int] = mapped_column(Integer, default=0)
+    rate_limited: Mapped[int] = mapped_column(Integer, default=0)
 
 
 class CostSnapshot(Base, UUIDPrimaryKeyMixin):

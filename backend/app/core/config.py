@@ -78,6 +78,15 @@ class Settings(BaseSettings):
     runtime_settings_source: Literal["env", "ssm"] = "env"
     runtime_settings_ssm_prefix: str = "/favfifty/settings"
 
+    # The IP block list the admin abuse view edits (app/core/ip_blocklist.py). "waf"
+    # = the two WAFv2 IP sets below (created by Terraform; the WAF enforces them at
+    # the edge). "local" = a git-ignored JSON file that nothing enforces, so the
+    # page works in development.
+    ip_blocklist_source: Literal["local", "waf"] = "local"
+    ip_blocklist_local_path: str = ".ip_blocklist.local.json"
+    waf_ipv4_ip_set_arn: str = ""
+    waf_ipv6_ip_set_arn: str = ""
+
     # Postgres cancels any app query running longer than this, so one pathological
     # query (e.g. an ILIKE search) can't pin the box's CPU. 0 turns it off.
     db_statement_timeout_ms: int = 5000

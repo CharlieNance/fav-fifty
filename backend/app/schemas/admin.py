@@ -202,3 +202,58 @@ class Dashboard(BaseModel):
     # None until the daily job has taken a snapshot.
     cost: CostRead | None
     cloudwatch_dashboard_url: str | None
+
+
+# ─── Abuse view ─────────────────────────────────────────────────────────────────
+
+
+class RouteRateLimits(BaseModel):
+    route_class: str
+    requests: int
+    rate_limited: int
+
+
+class IpActivity(BaseModel):
+    ip: str
+    requests: int
+    rate_limited: int
+    blocked_by: str | None = Field(description="The block-list entry covering this IP, if any.")
+
+
+class AbuseOverview(BaseModel):
+    """``GET /admin/abuse``: who's being rate limited, and the busiest IPs."""
+
+    window_hours: int
+    your_ip: str = Field(description="The address this request came from (never block it).")
+    rate_limited_total: int
+    by_route: list[RouteRateLimits]
+    top_ips: list[IpActivity]
+
+
+class BlockedIp(BaseModel):
+    network: str
+    # Null for an entry added outside the app, which has no audit row.
+    blocked_at: datetime | None
+    blocked_by: str | None
+    reason: str | None
+
+
+class BlockListRead(BaseModel):
+    """``GET /admin/blocked-ips``."""
+
+    source: Literal["waf", "local", "memory"]
+    enforced: bool = Field(description="True when the WAF enforces this list at the edge.")
+    entries: list[BlockedIp]
+
+
+MAX_NETWORK_LENGTH = 64
+
+
+class BlockIpRequest(AdminReasonRequired):
+    network: str = Field(
+        max_length=MAX_NETWORK_LENGTH, description="An IPv4/IPv6 address or a CIDR range."
+    )
+
+
+class UnblockIpRequest(AdminAction):
+    network: str = Field(max_length=MAX_NETWORK_LENGTH)

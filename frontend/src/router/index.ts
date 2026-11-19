@@ -90,6 +90,12 @@ const routes: RouteRecordRaw[] = [
         meta: { title: 'Admin: list' },
       },
       {
+        path: 'abuse',
+        name: 'admin-abuse',
+        component: () => import('@/features/admin/AdminAbuseView.vue'),
+        meta: { title: 'Admin: abuse' },
+      },
+      {
         path: 'audit',
         name: 'admin-audit',
         component: () => import('@/features/admin/AdminAuditView.vue'),

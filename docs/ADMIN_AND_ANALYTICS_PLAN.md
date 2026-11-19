@@ -159,6 +159,25 @@ Related: [ABUSE_PROTECTION_PLAN.md](ABUSE_PROTECTION_PLAN.md),
   - Rate limit 60/min; never cached at the edge.
   - The owner's Google account uses 2-step verification, since it *is* the admin
     credential.
+- Step 7, app side (2026-11-18): the abuse view at `/admin/abuse`.
+  - **Numbers:** `GET /admin/abuse?hours=` (1–168): 429s by route class from
+    `request_counts`, and the 25 busiest IPs (most 429s first) from the new
+    `ip_request_counts` (one row per IP per hour, written by the same middleware
+    upsert, pruned after 7 days by `daily-jobs`). The privacy policy says so.
+  - **Block list:** `GET /admin/blocked-ips`, `POST /admin/blocked-ips` (reason
+    required), `POST /admin/blocked-ips/remove`. The WAF is the single source of
+    truth and the only enforcer (decided 2026-11-18): `IP_BLOCKLIST_SOURCE=waf`
+    edits two WAFv2 IP sets (IPv4 and IPv6, scope `CLOUDFRONT`, us-east-1, with
+    lock-token retries); locally it's a git-ignored `.ip_blocklist.local.json` that
+    nothing enforces, and the page says so. Who blocked what and why lives in the
+    audit log (`block_ip`/`unblock_ip`, target type `ip`); the audit row commits only
+    if the list change succeeds. Refused: a range wider than /24 (IPv4) or /48
+    (IPv6), your own current address, duplicates, more than 1,000 entries.
+  - **First deploy:** Terraform creates the two IP sets and WAF rule 5, sets
+    `WAF_IPV4_IP_SET_ARN`/`WAF_IPV6_IP_SET_ARN`, and gives the box's IAM user
+    `wafv2:GetIPSet`/`wafv2:UpdateIPSet` on those two ARNs only.
+  - Tests: `tests/test_admin_abuse.py`, `AdminAbuseView.spec.ts`, and an e2e that
+    blocks and unblocks a documentation-range address and finds both in the audit log.
 - The `/admin` route guard in the frontend is **UX only**; the backend is the real
   gate.
 - **Dev:** no dev-login "admin" variant (it would be an API path that grants admin).
@@ -343,4 +362,5 @@ These are tracked in [CONSIDERATIONS.md](CONSIDERATIONS.md) §Legal.
    land with the first deploy.
 6. ~~Analytics: Cloudflare Web Analytics + `/events` + the daily rollup.~~ App side
    done 2026-11-18; the Cloudflare token and CSP land with the first deploy.
-7. The abuse view (IP block list).
+7. ~~The abuse view (IP block list).~~ App side done 2026-11-18; the WAF IP sets,
+   rule 5 and IAM land with the first deploy.

@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.router import API_V1_PREFIX, api_router
 from app.api.routes.events import MAX_EVENTS_BODY_BYTES
 from app.core.config import settings
+from app.core.ip_blocklist import build_blocklist
 from app.core.middleware import (
     BodySizeLimitMiddleware,
     CsrfOriginMiddleware,
@@ -53,6 +54,9 @@ def create_app() -> FastAPI:
     app.state.request_counter = PostgresRequestCounter(SessionLocal) if counting else None
     # The dashboard's few-minute cache (app/api/routes/admin.py).
     app.state.dashboard_cache = None
+    # The IP block list the abuse view edits (WAF in AWS, a file locally). Tests
+    # swap in an in-memory one.
+    app.state.ip_blocklist = build_blocklist()
 
     def body_limit_for(path: str) -> int | None:
         """The import takes whole device documents and events get a small cap;

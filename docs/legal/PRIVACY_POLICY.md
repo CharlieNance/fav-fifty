@@ -51,6 +51,18 @@ Fifty.
     isn't linked to anything that identifies you.
   - **Kept 90 days,** then only daily totals remain (counts, not individual notes).
 
+## Protecting the service from abuse
+
+Whether or not you sign in, our server counts the requests that reach it **per IP
+address, per hour**: how many there were, and how many were turned away for coming
+too fast. We use these counts only to spot floods and scraping, and to block an
+address that is abusing the service.
+
+- **Kept 7 days,** then deleted. They aren't linked to your account, your lists, or
+  the usage statistics above.
+- **A blocked address** stays on our block list, with a note of why, until we remove
+  it.
+
 ## Adding your on-device lists to an account
 
 When you sign in with lists saved on your device, the app asks whether to add them to
@@ -136,7 +148,8 @@ Anyone with access to your device and browser can see lists saved on it.
 If this policy changes in a meaningful way, we'll update the date above and, where
 practical, note what changed.
 
-- **2026-11-18:** usage statistics (Cloudflare Web Analytics and app events).
+- **2026-11-18:** usage statistics (Cloudflare Web Analytics and app events), and
+  per-IP request counts kept 7 days for abuse protection.
 - **2026-11-14:** using the app without an account, lists saved on your device, and
   adding them to an account.
 - **2026-10-13:** the operator's access to stored content.

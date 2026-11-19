@@ -117,6 +117,42 @@ export interface Dashboard {
   cloudwatch_dashboard_url: string | null
 }
 
+/** `GET /admin/abuse` (backend app/schemas/admin.py `AbuseOverview`). */
+export interface AbuseOverview {
+  window_hours: number
+  /** The address the admin's own requests come from: never block it. */
+  your_ip: string
+  rate_limited_total: number
+  by_route: { route_class: string; requests: number; rate_limited: number }[]
+  top_ips: IpActivity[]
+}
+
+export interface IpActivity {
+  ip: string
+  requests: number
+  rate_limited: number
+  /** The block-list entry covering this IP, if any. */
+  blocked_by: string | null
+}
+
+export interface BlockedIp {
+  network: string
+  /** Null for an entry added outside the app (no audit row). */
+  blocked_at: string | null
+  blocked_by: string | null
+  reason: string | null
+}
+
+/** `GET /admin/blocked-ips`. Only the WAF enforces the list; locally it's a file. */
+export interface BlockList {
+  source: 'waf' | 'local' | 'memory'
+  enforced: boolean
+  entries: BlockedIp[]
+}
+
+/** The windows the abuse view offers, in hours (the backend keeps 7 days). */
+export const ABUSE_WINDOWS = [1, 24, 72, 168] as const
+
 /** Any user's list, deleted ones included (backend AdminListSummary). */
 export interface AdminListSummary extends ListSummary {
   deleted_at: string | null
@@ -177,6 +213,19 @@ export const adminApi = {
     if (before) params.set('before', before)
     return apiFetch(`/admin/audit-log?${params}`)
   },
+  abuse(hours: number): Promise<AbuseOverview> {
+    return apiFetch(`/admin/abuse?hours=${hours}`)
+  },
+  blockedIps(): Promise<BlockList> {
+    return apiFetch('/admin/blocked-ips')
+  },
+  /** An address or CIDR range; the reason is required. */
+  blockIp(network: string, reason: string): Promise<BlockList> {
+    return post('/admin/blocked-ips', { network, reason })
+  },
+  unblockIp(network: string, reason: string): Promise<BlockList> {
+    return post('/admin/blocked-ips/remove', { network, reason: reason || null })
+  },
   listSettings(): Promise<Setting[]> {
     return apiFetch('/admin/settings')
   },
@@ -234,6 +283,8 @@ const ACTION_LABELS: Record<string, string> = {
   restore_list: 'Restored',
   update_setting: 'Changed',
   reset_setting: 'Reset to default',
+  block_ip: 'Blocked',
+  unblock_ip: 'Unblocked',
 }
 
 export function actionLabel(action: string): string {
@@ -247,6 +298,7 @@ export const TARGET_TYPE_LABELS: Record<string, string> = {
   user: 'Accounts',
   list: 'Lists',
   setting: 'Settings',
+  ip: 'IP addresses',
 }
 
 /** A setting change as `25 → 30`; "default" stands for no override. */
