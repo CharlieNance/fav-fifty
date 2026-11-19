@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
+import { analytics } from '@/analytics/events'
 import { ApiError, apiFetch, apiUrl } from '@/api/client'
 
 /**
@@ -38,6 +39,8 @@ export const useAuthStore = defineStore('auth', () => {
   async function fetchMe(): Promise<void> {
     try {
       user.value = await apiFetch<User>('/me')
+      // Back from a sign-in this tab started (e.g. the Google redirect)?
+      analytics.noteSignedIn()
     } catch (error) {
       // 401 = not logged in; anything else is a real failure worth surfacing.
       if (error instanceof ApiError && error.status === 401) {
@@ -57,8 +60,10 @@ export const useAuthStore = defineStore('auth', () => {
    * exercised locally before Cognito is wired.
    */
   async function devLogin(): Promise<void> {
+    analytics.noteSignInStarted('dev')
     user.value = await apiFetch<User>('/auth/dev-login', { method: 'POST' })
     isReady.value = true
+    analytics.noteSignedIn()
   }
 
   /**
@@ -71,6 +76,8 @@ export const useAuthStore = defineStore('auth', () => {
     if (redirect) {
       url.searchParams.set('redirect', redirect)
     }
+    // Sent as the page unloads; the success is counted after the redirect back.
+    analytics.noteSignInStarted('google')
     window.location.assign(url.toString())
   }
 

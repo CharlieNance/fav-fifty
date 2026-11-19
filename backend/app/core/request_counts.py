@@ -30,7 +30,7 @@ from app.models.metrics import RequestCount
 
 logger = logging.getLogger(__name__)
 
-ROUTE_CLASSES = ("lists", "auth", "config", "me", "admin")
+ROUTE_CLASSES = ("lists", "auth", "config", "me", "admin", "events")
 
 
 def route_class(path: str, prefix: str) -> str | None:

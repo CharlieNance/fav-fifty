@@ -1,8 +1,9 @@
 <script setup lang="ts">
 /**
  * Admin → Dashboard (docs/ADMIN_AND_ANALYTICS_PLAN.md §Dashboards): product
- * numbers from Postgres, the last 24 hours of requests from the app's own
- * counters, and the latest daily cost snapshot. Aggregates only, never content.
+ * numbers from Postgres, sessions and events from `POST /events` (anonymous
+ * visitors included), the last 24 hours of requests from the app's own counters,
+ * and the latest daily cost snapshot. Aggregates only, never content.
  * The server caches it for ~5 minutes; Refresh skips that.
  */
 import { computed, onMounted, ref } from 'vue'
@@ -48,6 +49,16 @@ type DailyKey = 'users_created' | 'lists_created' | 'items_created'
 function daily(key: DailyKey): Bar[] {
   return (data.value?.product.daily ?? []).map((d) => ({ label: dayLabel(d.day), value: d[key] }))
 }
+type SessionKey = 'anonymous_sessions' | 'signed_in_sessions'
+function sessions(key: SessionKey): Bar[] {
+  return (data.value?.analytics.daily ?? []).map((d) => ({ label: dayLabel(d.day), value: d[key] }))
+}
+/** `import_succeeded` → `Import succeeded`. */
+const eventLabel = (name: string) => {
+  const words = name.replace(/_/g, ' ')
+  return words.charAt(0).toUpperCase() + words.slice(1)
+}
+
 const hourly = computed<Bar[]>(() =>
   (data.value?.health.hourly ?? []).map((h) => ({ label: hourLabel(h.hour), value: h.requests })),
 )
@@ -117,7 +128,7 @@ function percent(part: number, whole: number): string {
         </div>
       </dl>
       <p class="mt-2 text-xs text-muted">
-        Signed-in accounts only. Anonymous visitors show up once analytics events land.
+        Signed-in accounts only. Anonymous visitors are under Analytics.
       </p>
 
       <div class="mt-6 grid gap-6 sm:grid-cols-3">
@@ -134,6 +145,65 @@ function percent(part: number, whole: number): string {
           <BarChart class="mt-2" title="Items added" :bars="daily('items_created')" />
         </div>
       </div>
+    </section>
+
+    <!-- Analytics -->
+    <section class="mt-10" aria-labelledby="dash-analytics">
+      <h2 id="dash-analytics" class="font-display text-xl font-bold text-ink">
+        Analytics, last {{ data.analytics.window_days }} days
+      </h2>
+      <p v-if="!data.analytics.enabled" class="mt-2 text-sm text-muted">
+        Event collection is off, so nothing new is being recorded. Turn on
+        <RouterLink
+          :to="{ name: 'admin-settings' }"
+          class="font-medium text-ink underline hover:text-accent"
+          >Events enabled</RouterLink
+        >
+        in Settings.
+      </p>
+
+      <div class="mt-4 grid gap-6 sm:grid-cols-2">
+        <div>
+          <h3 class="text-sm font-medium text-ink">Anonymous sessions per day</h3>
+          <BarChart
+            class="mt-2"
+            title="Anonymous sessions"
+            :bars="sessions('anonymous_sessions')"
+          />
+        </div>
+        <div>
+          <h3 class="text-sm font-medium text-ink">Signed-in sessions per day</h3>
+          <BarChart
+            class="mt-2"
+            title="Signed-in sessions"
+            :bars="sessions('signed_in_sessions')"
+          />
+        </div>
+      </div>
+
+      <table class="mt-6 w-full text-sm">
+        <caption class="text-left text-sm font-medium text-ink">
+          Events
+        </caption>
+        <thead>
+          <tr class="text-left text-xs text-muted">
+            <th scope="col" class="py-1 font-medium">Event</th>
+            <th scope="col" class="py-1 text-right font-medium">Anonymous</th>
+            <th scope="col" class="py-1 text-right font-medium">Signed in</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border">
+          <tr v-for="row in data.analytics.by_name" :key="row.name" class="text-ink">
+            <th scope="row" class="py-1 text-left font-normal">{{ eventLabel(row.name) }}</th>
+            <td class="py-1 text-right tabular-nums">{{ row.anonymous.toLocaleString() }}</td>
+            <td class="py-1 text-right tabular-nums">{{ row.signed_in.toLocaleString() }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="mt-2 text-xs text-muted">
+        A session is one browser tab, from opening the site until the tab closes. Page views and
+        referrers are in Cloudflare Web Analytics.
+      </p>
     </section>
 
     <!-- Health -->

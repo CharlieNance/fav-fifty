@@ -18,8 +18,10 @@ from app.api.deps import get_db, require_admin
 from app.api.rate_limits import limit_admin
 from app.core.config import settings
 from app.core.runtime_settings import (
+    RuntimeSettings,
     RuntimeSettingsProvider,
     SettingNotWritableError,
+    get_runtime_settings,
     get_runtime_settings_provider,
 )
 from app.models.admin_audit_log import AdminAuditLog
@@ -68,13 +70,19 @@ def read_dashboard(
     request: Request,
     db: Session = Depends(get_db),
     refresh: bool = Query(default=False, description="Skip the few-minute cache."),
+    runtime: RuntimeSettings = Depends(get_runtime_settings),
 ) -> Any:
-    """Product, health and cost numbers. Aggregates only; cached ~5 minutes."""
+    """Product, analytics, health and cost numbers. Aggregates only; cached ~5 minutes."""
     cached = request.app.state.dashboard_cache
     if cached is not None and not refresh and cached[0] > time.monotonic():
         return cached[1]
     data = Dashboard.model_validate(
-        dashboard_service.dashboard(db, datetime.now(UTC), settings.cloudwatch_dashboard_url)
+        dashboard_service.dashboard(
+            db,
+            datetime.now(UTC),
+            settings.cloudwatch_dashboard_url,
+            runtime.features.events_enabled,
+        )
     )
     request.app.state.dashboard_cache = (time.monotonic() + DASHBOARD_CACHE_SECONDS, data)
     return data

@@ -1,7 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
-import { DEFAULT_LIMITS, mergeLimits, useClientConfigStore } from '@/stores/clientConfig'
+import {
+  DEFAULT_FEATURES,
+  DEFAULT_LIMITS,
+  mergeFeatures,
+  mergeLimits,
+  useClientConfigStore,
+} from '@/stores/clientConfig'
 
 vi.mock('@/api/client', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/api/client')>()
@@ -48,6 +54,18 @@ describe('mergeLimits', () => {
   })
 })
 
+describe('mergeFeatures', () => {
+  it('starts with every optional feature off', () => {
+    expect(DEFAULT_FEATURES).toEqual({ events_enabled: false })
+  })
+
+  it('takes served booleans and ignores anything else', () => {
+    expect(mergeFeatures({ events_enabled: true })).toEqual({ events_enabled: true })
+    expect(mergeFeatures({ events_enabled: 'yes' })).toEqual(DEFAULT_FEATURES)
+    expect(mergeFeatures(undefined)).toEqual(DEFAULT_FEATURES) // an older server
+  })
+})
+
 describe('client config store', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -74,7 +92,17 @@ describe('client config store', () => {
 
     expect(apiFetchMock).toHaveBeenCalledWith('/config/client')
     expect(store.limits).toEqual(SERVED)
+    expect(store.features).toEqual(DEFAULT_FEATURES)
     expect(store.isLoaded).toBe(true)
+  })
+
+  it('loads the served feature switches', async () => {
+    apiFetchMock.mockResolvedValue({ limits: SERVED, features: { events_enabled: true } })
+    const store = useClientConfigStore()
+
+    await store.load()
+
+    expect(store.features.events_enabled).toBe(true)
   })
 
   it('keeps the defaults and does not throw when the request fails', async () => {

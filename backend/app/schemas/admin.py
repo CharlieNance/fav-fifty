@@ -125,7 +125,7 @@ class ProductNumbers(BaseModel):
     users_total: int
     users_new_7d: int
     users_new_30d: int
-    # Signed in during the last 7 days (anonymous use arrives with /events).
+    # Signed in during the last 7 days (anonymous use is in AnalyticsNumbers).
     users_signed_in_7d: int
     users_locked: int
     lists_live: int
@@ -167,9 +167,31 @@ class CostRead(BaseModel):
     by_service: dict[str, str]
 
 
+class DailySessions(BaseModel):
+    day: date
+    anonymous_sessions: int
+    signed_in_sessions: int
+
+
+class EventTotals(BaseModel):
+    name: str
+    anonymous: int
+    signed_in: int
+
+
+class AnalyticsNumbers(BaseModel):
+    # features.events_enabled: off means nothing new is being recorded.
+    enabled: bool
+    window_days: int
+    daily: list[DailySessions]
+    # Every allowlisted event, in a fixed order, zeros included.
+    by_name: list[EventTotals]
+
+
 class Dashboard(BaseModel):
     generated_at: datetime
     product: ProductNumbers
+    analytics: AnalyticsNumbers
     health: HealthNumbers
     # None until the daily job has taken a snapshot.
     cost: CostRead | None

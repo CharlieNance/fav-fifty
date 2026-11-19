@@ -30,5 +30,11 @@ class ClientLimits(BaseModel):
     max_tag_length: int
 
 
+class ClientFeatures(BaseModel):
+    # Send analytics events to POST /events. Off: send nothing.
+    events_enabled: bool
+
+
 class ClientConfig(BaseModel):
     limits: ClientLimits
+    features: ClientFeatures

@@ -78,6 +78,14 @@ export interface Dashboard {
       items_created: number
     }[]
   }
+  /** First-party events (`POST /events`): sessions per day and totals per event. */
+  analytics: {
+    /** `features.events_enabled`: off means nothing new is being recorded. */
+    enabled: boolean
+    window_days: number
+    daily: { day: string; anonymous_sessions: number; signed_in_sessions: number }[]
+    by_name: { name: string; anonymous: number; signed_in: number }[]
+  }
   health: {
     window_hours: number
     totals: RequestCounts

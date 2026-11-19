@@ -73,6 +73,37 @@ Built so far:
     with the breaker.
   - Charts are a hand-rolled SVG `BarChart.vue` (no chart library), each with a
     table view.
+- Step 6, app side (2026-11-18): analytics.
+  - **Events:** public `POST /events` (`app/api/routes/events.py`), behind the
+    `features.events_enabled` switch (default **off**: the fail-safe rule; turn it on
+    from Settings). Rate-limited per IP (`rate_limits.events_per_minute`, 20), 16 KiB
+    body cap, ≤50 events a batch, always `204`. The allowlist in
+    `app/services/analytics_service.py` maps each name to its allowed props *and
+    values* (e.g. `import_started.target` ∈ device/account/claim), so no free text
+    can be stored; unknown names and props are dropped, not rejected. The user id
+    comes only from the session cookie. Client timestamps more than a day old or 5
+    minutes ahead are replaced by the arrival time.
+  - **Storage:** `analytics_events` (no IP; deleting a user deletes their events) and
+    `analytics_daily` (day × name × platform × signed-in → events, distinct
+    sessions). `daily-jobs` re-rolls the last 2 days (idempotent), then prunes raw
+    events past 90 days.
+  - **Client:** `src/analytics/events.ts` queues from page load but sends only once
+    `/config/client` says `features.events_enabled`; off drops the queue. Flushes 5 s
+    after the first event, at 50 events, and on page hide, with
+    `fetch(…, { keepalive: true })` rather than `sendBeacon` (sendBeacon can't send
+    `application/json` reliably). A sign-in success is counted after the Google
+    redirect from a `sessionStorage` flag. Wired: session start, list created, item
+    added, export, file import and claim (`target`), sign-in started/succeeded.
+    `catalog_search`/`catalog_pick` are allowlisted for the catalog track.
+  - **Dashboard:** an Analytics section with anonymous and signed-in sessions per day
+    and per-event totals (past days from the rollup, today live).
+  - **Cloudflare Web Analytics:** `src/analytics/cloudflare.ts` adds the beacon in
+    production builds when `VITE_CF_BEACON_TOKEN` is set.
+  - Privacy policy updated for both (2026-11-18).
+  - Tests: `tests/test_events.py`, `src/analytics/*.spec.ts`, the dashboard spec.
+  - **Still deploy-side:** create the Cloudflare site and set its token, allow
+    `static.cloudflareinsights.com` (script) and `cloudflareinsights.com` (connect)
+    in the CSP, and set `VITE_APP_VERSION` in the build.
 
 Related: [ABUSE_PROTECTION_PLAN.md](ABUSE_PROTECTION_PLAN.md),
 [COST_GUARDRAILS_PLAN.md](COST_GUARDRAILS_PLAN.md).
@@ -178,7 +209,7 @@ shared with the cost breaker (which flips switches) and the quotas (Q25).
 | `catalog_providers.<name>.enabled` / `.priority` | per-provider | Turn a single provider on or off, or reorder fallbacks (Q14) |
 | `showcase_enabled` | switch | Margin showcase not rendered |
 | `import_enabled` | switch | Claim dialog says "try again later" |
-| `events_enabled` | switch | Analytics events dropped |
+| `features.events_enabled` | switch | Analytics events dropped (built; default off) |
 | `limits.*` (lists per user, tags per list, description length, daily writes, import size) | numbers | Quotas from ABUSE_PROTECTION_PLAN.md (Q25). Code defaults apply when unset. |
 | `breaker_level` (0/1/2) | **read + reset only** | Set by the breaker; reset manually by the owner |
 
@@ -241,9 +272,9 @@ shared with the cost breaker (which flips switches) and the quotas (Q25).
 
 Anonymous users' activity happens on-device, so the server can't see it otherwise.
 
-- `POST /api/v1/events`: public; batched (the client queues events and flushes with
-  `navigator.sendBeacon` on page hide); rate-limited; size-capped; behind
-  `events_enabled`.
+- `POST /api/v1/events`: public; batched (the client queues events and flushes on
+  page hide with a `keepalive` fetch); rate-limited; size-capped; behind
+  `features.events_enabled`.
 - **An allowlist of event names**, ~10 to start: `session_start`, `list_created`,
   `item_added`, `catalog_search`, `catalog_pick`, `export_file`, `import_started`,
   `import_succeeded`, `sign_in_started`, `sign_in_succeeded`. Unknown names are
@@ -268,13 +299,9 @@ Anonymous users' activity happens on-device, so the server can't see it otherwis
 
 ## Privacy policy
 
-Updated **2026-10-13** for operator access (Q24), since that's true today. Still
-owed **when each piece ships**:
-
-- Cloudflare Web Analytics.
-- First-party events: what's collected, and that signed-in events include the
-  account id.
-- Anonymous on-device storage, and catalog search relayed to third parties.
+Updated **2026-10-13** for operator access (Q24), **2026-11-14** for on-device
+storage, and **2026-11-18** for Cloudflare Web Analytics and first-party events.
+Still owed when it ships: catalog search relayed to third parties.
 
 These are tracked in [CONSIDERATIONS.md](CONSIDERATIONS.md) §Legal.
 
@@ -307,5 +334,6 @@ These are tracked in [CONSIDERATIONS.md](CONSIDERATIONS.md) §Legal.
 5. ~~Product dashboard + request/429 counters + CloudWatch dashboard link + the cost
    snapshot job.~~ App side done 2026-11-18; the CloudWatch dashboard, cron and IAM
    land with the first deploy.
-6. Analytics: Cloudflare Web Analytics + `/events` + the daily rollup.
+6. ~~Analytics: Cloudflare Web Analytics + `/events` + the daily rollup.~~ App side
+   done 2026-11-18; the Cloudflare token and CSP land with the first deploy.
 7. The abuse view (IP block list).

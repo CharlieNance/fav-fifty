@@ -19,7 +19,7 @@ from app.db.session import get_db
 from app.models.user import User
 from app.services import user_service
 
-__all__ = ["get_db", "get_current_user", "require_admin"]
+__all__ = ["get_db", "get_current_user", "get_optional_user", "require_admin"]
 
 
 def _unauthorized() -> HTTPException:
@@ -57,6 +57,18 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> User:
         raise _unauthorized()
 
     return user
+
+
+def get_optional_user(request: Request, db: Session = Depends(get_db)) -> User | None:
+    """The signed-in user, or ``None`` for anyone else (no cookie, expired, locked).
+
+    For public routes that only *note* who is calling, such as ``POST /events``. Never
+    use it to guard anything: that's ``get_current_user``.
+    """
+    try:
+        return get_current_user(request, db)
+    except HTTPException:
+        return None
 
 
 def require_admin(request: Request, user: User = Depends(get_current_user)) -> User:

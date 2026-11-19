@@ -60,8 +60,31 @@ export function mergeLimits(served: unknown): ClientLimits {
   return merged
 }
 
+/** The switches served by `GET /config/client`. */
+export interface ClientFeatures {
+  /** Send analytics events (`POST /events`). Off until the server says otherwise. */
+  events_enabled: boolean
+}
+
+/** Optional features stay off until the server turns them on. */
+export const DEFAULT_FEATURES: Readonly<ClientFeatures> = Object.freeze({
+  events_enabled: false,
+})
+
+/** Keep each served switch only if it's a boolean (an older server may not send it). */
+export function mergeFeatures(served: unknown): ClientFeatures {
+  const merged: ClientFeatures = { ...DEFAULT_FEATURES }
+  if (!served || typeof served !== 'object') return merged
+  const source = served as Record<string, unknown>
+  for (const key of Object.keys(DEFAULT_FEATURES) as (keyof ClientFeatures)[]) {
+    if (typeof source[key] === 'boolean') merged[key] = source[key]
+  }
+  return merged
+}
+
 export const useClientConfigStore = defineStore('clientConfig', () => {
   const limits = ref<ClientLimits>({ ...DEFAULT_LIMITS })
+  const features = ref<ClientFeatures>({ ...DEFAULT_FEATURES })
   // True once the server's values have arrived. Defaults are in effect until then.
   const isLoaded = ref(false)
   let inFlight: Promise<void> | null = null
@@ -75,8 +98,9 @@ export const useClientConfigStore = defineStore('clientConfig', () => {
     if (isLoaded.value) return Promise.resolve()
     inFlight ??= (async () => {
       try {
-        const config = await apiFetch<{ limits?: unknown }>('/config/client')
+        const config = await apiFetch<{ limits?: unknown; features?: unknown }>('/config/client')
         limits.value = mergeLimits(config?.limits)
+        features.value = mergeFeatures(config?.features)
         isLoaded.value = true
       } catch {
         console.warn('Could not load client config; using bundled defaults.')
@@ -87,5 +111,5 @@ export const useClientConfigStore = defineStore('clientConfig', () => {
     return inFlight
   }
 
-  return { limits, isLoaded, load }
+  return { limits, features, isLoaded, load }
 })

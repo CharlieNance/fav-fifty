@@ -897,7 +897,7 @@
           "admin"
         ],
         "summary": "Read Dashboard",
-        "description": "Product, health and cost numbers. Aggregates only; cached ~5 minutes.",
+        "description": "Product, analytics, health and cost numbers. Aggregates only; cached ~5 minutes.",
         "operationId": "read_dashboard_api_v1_admin_dashboard_get",
         "parameters": [
           {
@@ -1677,6 +1677,41 @@
           }
         }
       }
+    },
+    "/api/v1/events": {
+      "post": {
+        "tags": [
+          "events"
+        ],
+        "summary": "Record Events",
+        "description": "Record a batch of product events. The user id comes from the session cookie.",
+        "operationId": "record_events_api_v1_events_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EventBatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2045,6 +2080,40 @@
         "title": "AdminUserSummary",
         "description": "A user as the admin sees them in search results."
       },
+      "AnalyticsNumbers": {
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled"
+          },
+          "window_days": {
+            "type": "integer",
+            "title": "Window Days"
+          },
+          "daily": {
+            "items": {
+              "$ref": "#/components/schemas/DailySessions"
+            },
+            "type": "array",
+            "title": "Daily"
+          },
+          "by_name": {
+            "items": {
+              "$ref": "#/components/schemas/EventTotals"
+            },
+            "type": "array",
+            "title": "By Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enabled",
+          "window_days",
+          "daily",
+          "by_name"
+        ],
+        "title": "AnalyticsNumbers"
+      },
       "AuditLogEntryRead": {
         "properties": {
           "id": {
@@ -2116,13 +2185,30 @@
         "properties": {
           "limits": {
             "$ref": "#/components/schemas/ClientLimits"
+          },
+          "features": {
+            "$ref": "#/components/schemas/ClientFeatures"
           }
         },
         "type": "object",
         "required": [
-          "limits"
+          "limits",
+          "features"
         ],
         "title": "ClientConfig"
+      },
+      "ClientFeatures": {
+        "properties": {
+          "events_enabled": {
+            "type": "boolean",
+            "title": "Events Enabled"
+          }
+        },
+        "type": "object",
+        "required": [
+          "events_enabled"
+        ],
+        "title": "ClientFeatures"
       },
       "ClientLimits": {
         "properties": {
@@ -2268,6 +2354,30 @@
         ],
         "title": "DailyProduct"
       },
+      "DailySessions": {
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date",
+            "title": "Day"
+          },
+          "anonymous_sessions": {
+            "type": "integer",
+            "title": "Anonymous Sessions"
+          },
+          "signed_in_sessions": {
+            "type": "integer",
+            "title": "Signed In Sessions"
+          }
+        },
+        "type": "object",
+        "required": [
+          "day",
+          "anonymous_sessions",
+          "signed_in_sessions"
+        ],
+        "title": "DailySessions"
+      },
       "Dashboard": {
         "properties": {
           "generated_at": {
@@ -2277,6 +2387,9 @@
           },
           "product": {
             "$ref": "#/components/schemas/ProductNumbers"
+          },
+          "analytics": {
+            "$ref": "#/components/schemas/AnalyticsNumbers"
           },
           "health": {
             "$ref": "#/components/schemas/HealthNumbers"
@@ -2307,11 +2420,112 @@
         "required": [
           "generated_at",
           "product",
+          "analytics",
           "health",
           "cost",
           "cloudwatch_dashboard_url"
         ],
         "title": "Dashboard"
+      },
+      "EventBatch": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Session Id"
+          },
+          "platform": {
+            "type": "string",
+            "enum": [
+              "web",
+              "ios",
+              "android"
+            ],
+            "title": "Platform"
+          },
+          "app_version": {
+            "type": "string",
+            "pattern": "^[0-9A-Za-z.+_-]{1,32}$",
+            "title": "App Version"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/EventIn"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Events"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "platform",
+          "app_version",
+          "events"
+        ],
+        "title": "EventBatch"
+      },
+      "EventIn": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 40,
+            "title": "Name"
+          },
+          "at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "At"
+          },
+          "props": {
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 40
+            },
+            "propertyNames": {
+              "maxLength": 40
+            },
+            "type": "object",
+            "maxProperties": 8,
+            "title": "Props"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "EventIn"
+      },
+      "EventTotals": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "anonymous": {
+            "type": "integer",
+            "title": "Anonymous"
+          },
+          "signed_in": {
+            "type": "integer",
+            "title": "Signed In"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "anonymous",
+          "signed_in"
+        ],
+        "title": "EventTotals"
       },
       "HTTPValidationError": {
         "properties": {

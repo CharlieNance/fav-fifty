@@ -23,7 +23,7 @@ class RequestCount(Base):
     __tablename__ = "request_counts"
 
     minute: Mapped[datetime] = mapped_column(DateTime(timezone=True), primary_key=True)
-    # lists | auth | config | me | admin | other (app/core/request_counts.py).
+    # lists | auth | config | me | admin | events | other (app/core/request_counts.py).
     route_class: Mapped[str] = mapped_column(String(16), primary_key=True)
     # 2xx | 3xx | 4xx | 429 | 5xx: 429 is split out of 4xx because it's the one
     # the abuse and cost tripwires watch.
