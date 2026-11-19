@@ -48,11 +48,11 @@ class Settings(BaseSettings):
     session_cookie_name: str = "favfifty_session"
     session_max_age_seconds: int = 60 * 60 * 24 * 14  # 14 days
     # Admin routes also need a *recent* sign-in: the session must have been issued
-    # within this window (docs/ADMIN_AND_ANALYTICS_PLAN.md §Access control). Kept out
+    # within this window (docs/ARCHITECTURE.md §Access control). Kept out
     # of runtime settings on purpose: an SSM write shouldn't be able to weaken it.
     admin_recent_login_seconds: int = 60 * 60 * 12  # 12 hours
 
-    # Admin dashboard (docs/ADMIN_AND_ANALYTICS_PLAN.md §Dashboards).
+    # Admin dashboard (docs/ARCHITECTURE.md §Dashboards).
     # Per-minute request counts into Postgres. Always off on Lambda (no database).
     request_counts_enabled: bool = True
     # Link to the CloudWatch health dashboard (created by Terraform); empty = no link.

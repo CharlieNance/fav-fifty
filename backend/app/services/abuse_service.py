@@ -1,4 +1,4 @@
-"""The admin abuse view (docs/ADMIN_AND_ANALYTICS_PLAN.md §Abuse view): who is being
+"""The admin abuse view (docs/ARCHITECTURE.md §Abuse view): who is being
 rate limited, which IPs are busiest, and the WAF block list.
 
 The numbers come from what the app already counts (app/core/request_counts.py):

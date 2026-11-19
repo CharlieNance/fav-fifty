@@ -1,6 +1,6 @@
 """First-party analytics events: what's accepted, stored, rolled up and shown.
 
-docs/ADMIN_AND_ANALYTICS_PLAN.md §Analytics B. The rules that keep this small and
+docs/ARCHITECTURE.md §Analytics. The rules that keep this small and
 private live here, in one place:
 
 * **An allowlist.** Only the event names in ``EVENT_PROPS`` are stored, and each

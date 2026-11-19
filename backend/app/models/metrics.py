@@ -1,4 +1,4 @@
-"""Operational numbers the admin dashboard reads (docs/ADMIN_AND_ANALYTICS_PLAN.md
+"""Operational numbers the admin dashboard reads (docs/ARCHITECTURE.md
 §Dashboards): per-minute request counts, hourly per-IP counts for the abuse view, and
 daily cost snapshots.
 
@@ -35,7 +35,7 @@ class RequestCount(Base):
 class IpRequestCount(Base):
     """How many requests one client IP made in one hour, and how many got a 429.
 
-    For the admin abuse view (docs/ADMIN_AND_ANALYTICS_PLAN.md §Abuse view). These
+    For the admin abuse view (docs/ARCHITECTURE.md §Abuse view). These
     are the only IP addresses the app keeps: pruned after ``IP_RETENTION_DAYS``
     (app/services/abuse_service.py) by the daily job, as the privacy policy says.
     """

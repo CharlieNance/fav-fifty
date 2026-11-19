@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Admin → Abuse (docs/ADMIN_AND_ANALYTICS_PLAN.md §Abuse view): who's being rate
+ * Admin → Abuse (docs/ARCHITECTURE.md §Abuse view): who's being rate
  * limited, the busiest client addresses, and the IP block list.
  *
  * The numbers are the app's own counts (per route per minute, per IP per hour, IPs

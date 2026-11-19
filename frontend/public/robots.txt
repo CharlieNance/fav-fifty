@@ -1,0 +1,15 @@
+# Fav Fifty. Crawlers are welcome on the public pages; please go easy on a small server.
+#
+# Only polite bots read this file. Crawl-delay is honored by Bing, Yandex and some
+# others; Google ignores it and slows itself down when the site answers slowly. The
+# real limits are the WAF's per-IP rules (docs/ABUSE_PROTECTION_PLAN.md).
+
+User-agent: *
+Crawl-delay: 10
+# The JSON API and its docs: nothing to index.
+Disallow: /api/
+# Owner-only tools (the backend refuses everyone else anyway).
+Disallow: /admin
+# Lists are private (on the device or behind sign-in) today. Revisit when published
+# lists get public pages, so those can be indexed.
+Disallow: /lists

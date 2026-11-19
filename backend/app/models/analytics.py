@@ -1,4 +1,4 @@
-"""First-party product events (docs/ADMIN_AND_ANALYTICS_PLAN.md §Analytics B).
+"""First-party product events (docs/ARCHITECTURE.md §Analytics).
 
 Anonymous visitors keep their lists on the device, so the server never sees what
 they do unless the client says so. ``POST /events`` records what it's told, from an

@@ -80,7 +80,7 @@ suspicious."
 ## Useful files
 
 - [docs/NEXT_STEPS.md](docs/NEXT_STEPS.md) — phased roadmap and immediate next actions.
-- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — how lists, items, tags and on-device storage work, and why.
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — how lists, items, tags, on-device storage and the admin area work, and why.
 - [docs/CONSIDERATIONS.md](docs/CONSIDERATIONS.md) — security, cost, scaling, and legal notes.
 - [docs/DECISIONS.md](docs/DECISIONS.md) §Scope expansion — the 2026-10 decisions in one place.
 - **Feature plans (decided, not built yet):**
@@ -90,8 +90,9 @@ suspicious."
   [deployment topology](docs/DEPLOYMENT_TOPOLOGY_PLAN.md).
 - **Pre-launch hardening plans (decided, block launch):**
   [cost guardrails](docs/COST_GUARDRAILS_PLAN.md) — the owner prefers the site going
-  down over a surprise bill; [abuse protection](docs/ABUSE_PROTECTION_PLAN.md);
-  [admin, runtime settings, dashboards & analytics](docs/ADMIN_AND_ANALYTICS_PLAN.md).
+  down over a surprise bill; [abuse protection](docs/ABUSE_PROTECTION_PLAN.md).
+  The admin portal, runtime settings, dashboards and analytics are built (app side):
+  see [ARCHITECTURE.md §Admin and analytics](docs/ARCHITECTURE.md#admin-and-analytics).
 
 **Rules for new backend code (from those plans):**
 

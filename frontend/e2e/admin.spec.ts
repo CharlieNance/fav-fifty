@@ -7,7 +7,7 @@ import type { Page } from '@playwright/test'
 
 import { expect, expectAccessible, test, useDevUser } from './fixtures.ts'
 
-// The admin area end to end (docs/ADMIN_AND_ANALYTICS_PLAN.md §Tests). No API
+// The admin area end to end (docs/ARCHITECTURE.md §Testing notes). No API
 // path can make anyone an admin, so the test does what the owner does: signs in
 // once, then runs the grant-admin CLI against the same database.
 

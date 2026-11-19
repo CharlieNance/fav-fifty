@@ -1,4 +1,4 @@
-"""The IP block list: which addresses the edge refuses (docs/ADMIN_AND_ANALYTICS_PLAN.md
+"""The IP block list: which addresses the edge refuses (docs/ARCHITECTURE.md
 §Abuse view, docs/ABUSE_PROTECTION_PLAN.md Layer 1, WAF rule 5).
 
 The WAF is the single source of truth and the only enforcer: a blocked visitor never

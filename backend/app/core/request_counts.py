@@ -1,6 +1,6 @@
 """Per-minute request counters in Postgres, for the admin Health dashboard.
 
-docs/ADMIN_AND_ANALYTICS_PLAN.md §Dashboards: logs stay on the box, so the app
+docs/ARCHITECTURE.md §Dashboards: logs stay on the box, so the app
 counts what it answered (requests, 4xx, 5xx, 429 per route class per minute) into
 ``request_counts`` itself, and per client IP per hour into ``ip_request_counts`` for
 the abuse view. Two upserts in one transaction per request is nothing at our scale.

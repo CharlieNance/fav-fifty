@@ -7,7 +7,7 @@ offline rather than running up the bill, and it comes back only when the owner
 revives it.** Numbers decided in Q21/Q22 (2026-10-13). Nothing is built yet. Related:
 [DEPLOYMENT_TOPOLOGY_PLAN.md](DEPLOYMENT_TOPOLOGY_PLAN.md),
 [ABUSE_PROTECTION_PLAN.md](ABUSE_PROTECTION_PLAN.md),
-[ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md).
+[ARCHITECTURE.md](ARCHITECTURE.md#admin-and-analytics).
 
 ## The honest starting point
 
@@ -139,7 +139,7 @@ Re-run it after any topology change.
 
 1. **Now (the account is already Paid):** Budgets ($25/$50/$100), anomaly detection,
    the SNS topic, email + mobile-app push + the Discord webhook.
-2. **Runtime settings** in SSM plus the app reading them (ADMIN_AND_ANALYTICS_PLAN.md).
+2. **Runtime settings** in SSM plus the app reading them (ARCHITECTURE.md §Admin and analytics).
    The breaker's Level 1 needs them.
 3. **First deploy:** flat-rate plans, WAF, Lambda reserved
    concurrency, box log rotation.

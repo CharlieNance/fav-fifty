@@ -184,8 +184,9 @@ extensibility, scalability.**
   - Cloudflare Web Analytics (cookieless);
   - a minimal first-party event stream (account id when signed in, no IPs, 90-day
     retention);
+  - per-IP request counts for the abuse view, kept 7 days (2026-11-18);
   - product numbers and request/429 counters from Postgres;
   - a CloudWatch health dashboard and a daily cost snapshot;
   - errors via logs only, for now.
 
-  [ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md)
+  [ARCHITECTURE.md](ARCHITECTURE.md#admin-and-analytics)

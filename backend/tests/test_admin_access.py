@@ -1,6 +1,6 @@
 """Admin access control: who can reach ``/admin``, and that nothing grants admin.
 
-docs/ADMIN_AND_ANALYTICS_PLAN.md §Access control and §Tests. The walks below are
+docs/ARCHITECTURE.md §Access control. The walks below are
 behavioral, like tests/test_route_protection.py: a new admin route that somehow
 skips ``require_admin`` fails CI.
 """

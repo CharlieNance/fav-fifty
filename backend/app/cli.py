@@ -1,6 +1,6 @@
 """Management commands run with direct access to the box: ``python -m app.cli ...``.
 
-This is the ONLY way to make someone an admin (docs/ADMIN_AND_ANALYTICS_PLAN.md
+This is the ONLY way to make someone an admin (docs/ARCHITECTURE.md
 §Access control, CLAUDE.md): no API path reads or writes ``users.role``. Wrapped by
 ``tools/grant_admin.sh``.
 

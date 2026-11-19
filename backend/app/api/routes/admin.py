@@ -1,4 +1,4 @@
-"""Admin routes: owner-only tools (docs/ADMIN_AND_ANALYTICS_PLAN.md).
+"""Admin routes: owner-only tools (docs/ARCHITECTURE.md §Admin and analytics).
 
 ``require_admin`` sits on the router itself, so a route added here can't forget it;
 tests/test_admin_access.py walks every ``/admin`` route to make sure. Every route

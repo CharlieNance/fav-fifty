@@ -107,7 +107,7 @@ months. So:
 - **Minimum-version gate:** a public `GET /api/v1/config/client` returning
   `{ minSupportedVersion, latestVersion }`, so the apps can show "please update"
   instead of failing strangely. It's the same public config endpoint that serves
-  runtime limits and switches ([ADMIN_AND_ANALYTICS_PLAN.md](ADMIN_AND_ANALYTICS_PLAN.md)
+  runtime limits and switches ([ARCHITECTURE.md](ARCHITECTURE.md#admin-and-analytics)
   §Runtime settings).
 - **Contract as an artifact:** FastAPI's OpenAPI schema is committed
   (`backend/openapi.json`) and **CI fails on unreviewed changes**

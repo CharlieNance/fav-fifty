@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * Admin → Audit log: every admin action and every read of someone's lists, newest
- * first (docs/ADMIN_AND_ANALYTICS_PLAN.md §Audit log). Filter by action, by what
+ * first (docs/ARCHITECTURE.md §Audit log). Filter by action, by what
  * it was done to, or (from a user's page) by everything about one user. Filters
  * live in the URL, so a filtered view can be bookmarked or linked to.
  *

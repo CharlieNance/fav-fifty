@@ -1,4 +1,4 @@
-"""The admin dashboard's numbers (docs/ADMIN_AND_ANALYTICS_PLAN.md §Dashboards).
+"""The admin dashboard's numbers (docs/ARCHITECTURE.md §Dashboards).
 
 Aggregates only, never content. Product numbers come from the existing tables;
 health from ``request_counts``; cost from the latest ``cost_snapshots`` row. The

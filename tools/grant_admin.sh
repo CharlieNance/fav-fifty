@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Grant (or revoke) the admin role. The ONLY way anyone becomes an admin: no API
-# path can do it (docs/ADMIN_AND_ANALYTICS_PLAN.md §Access control). The person
+# path can do it (docs/ARCHITECTURE.md §Access control). The person
 # must have signed in once so their account exists.
 #
 #   ./tools/grant_admin.sh you@example.com            # grant

@@ -1,7 +1,7 @@
 # Architecture
 
 How the built parts of Fav Fifty work, and **why** they're shaped the way they are.
-Read this before changing lists, items, tags or on-device storage. For *what's decided*
+Read this before changing lists, items, tags, on-device storage or the admin area. For *what's decided*
 see [DECISIONS.md](DECISIONS.md); for *what's next* see [NEXT_STEPS.md](NEXT_STEPS.md).
 
 The code is the source of truth for details. This doc keeps the reasons and the traps
@@ -15,6 +15,7 @@ that the code alone doesn't make obvious.
 - [Tags and search](#tags-and-search)
 - [Frontend patterns](#frontend-patterns)
 - [Anonymous lists (on-device storage)](#anonymous-lists-on-device-storage)
+- [Admin and analytics](#admin-and-analytics)
 - [Testing notes](#testing-notes)
 
 ## Layers
@@ -268,6 +269,157 @@ Rules in `localListTransfer.ts`, I/O in `useListTransfer.ts`. Both work signed i
 - Returns `200` (a retry creates nothing): `{ lists: [{ local_id, outcome, list,
   renamed_from }] }`.
 
+## Admin and analytics
+
+The owner's tools for **seeing what's happening** and **acting on it** without a
+database shell or a redeploy, plus the numbers behind them. Decided as Q14 and
+Q23–Q25 in [DECISIONS.md](DECISIONS.md); built 2026-10-14 to 2026-11-18. The admin
+area is web-only, at `/admin` (its own lazy chunk), for one admin: the owner.
+
+What still lands later, and where it's tracked:
+
+- the deploy-time wiring (WAF IP sets, CloudWatch dashboard, cron, IAM, Cloudflare
+  token and CSP): [DEPLOYMENT_TOPOLOGY_PLAN.md](DEPLOYMENT_TOPOLOGY_PLAN.md)
+  §Sequencing;
+- the breaker and its reset button: [COST_GUARDRAILS_PLAN.md](COST_GUARDRAILS_PLAN.md);
+- the switches each future feature brings (`maintenance_mode`, `signups_enabled`,
+  catalog and per-provider toggles, `showcase_enabled`, `import_enabled`): with that
+  feature, in `runtime_settings.py`;
+- deleting a user and their data: with account deletion
+  ([MOBILE_READINESS.md](MOBILE_READINESS.md));
+- a report queue for public content: ABUSE_PROTECTION_PLAN.md §Phase 3 hooks.
+
+### Access control
+
+- **Nothing in the app can make anyone an admin.** `users.role` (`user` | `admin`)
+  is set only by `python -m app.cli grant-admin | revoke-admin` on the box
+  (`tools/grant_admin.sh` locally), audit-logged with no admin id. No API accepts
+  `role` as input; `tests/test_admin_access.py` checks every schema. There's no
+  dev-login admin either: that would be an API path that grants admin.
+- **`require_admin` sits on the admin router**, so a new route can't forget it; a
+  test walks every `/admin` route. It builds on `get_current_user` (a locked admin is
+  locked out) and also needs a **recent sign-in**: the session cookie's signed
+  timestamp must be under 12 h old (`ADMIN_RECENT_LOGIN_SECONDS`, kept out of
+  runtime settings so an SSM write can't weaken it).
+- The router also adds the admin rate limit (60/min) and `Cache-Control: no-store`.
+  The frontend's `/admin` guard is UX only.
+- The owner's Google account has 2-step verification: it *is* the admin credential.
+
+### Audit log
+
+`admin_audit_log` gets one row for **every mutating admin action and every read of
+someone's lists**, staged in the action's own transaction (`audit_service.record`
+never commits), so an action and its row land or roll back together. When the action
+writes outside Postgres (SSM, the `.env` file, the WAF), the row is flushed first and
+committed only after that write succeeds: no record of a change that never happened.
+Append-only: nothing updates or deletes rows.
+
+- `target_id` is text (a UUID, a setting key, a CIDR), not a foreign key.
+  `admin_user_id` is null for CLI actions.
+- **A list is named by its owner, never its title** (`details.owner_id`), so reading
+  the log doesn't leak content. The audit page (`/admin/audit`) shows "a list of
+  <owner>", and opening the list is itself a logged read.
+- `GET /admin/audit-log` adds `admin_display_name` and `subject_user_id`/`_name` (the
+  target user, or a list's owner) and filters by `subject_user_id`, so a user's page
+  can link to everything about them, their lists included.
+
+### Runtime settings
+
+One mechanism for everything the owner changes without a deploy: feature switches,
+limits, provider toggles, and later the breaker. `app/core/runtime_settings.py` holds
+typed, bounded models with code defaults.
+
+- **SSM Parameter Store in AWS, not Postgres,** so the breaker Lambda can flip a
+  switch without reaching the box, and the box and Lambda read the same values.
+  Locally they're `RUNTIME_<GROUP>__<NAME>` lines in `backend/.env`, which the
+  Settings page writes (409 for a key pinned by a real env var).
+- **Fail safe:** a missing or invalid value uses the code default, and unreachable
+  SSM means optional features **off** and limits at their defaults. So every new
+  switch defaults to off (e.g. `features.events_enabled`).
+- A ~30 s in-process cache is an optimization only; a write drops this process's
+  copy, so it applies here at once and elsewhere within ~30 s.
+- `GET /config/client` serves the user-facing subset, so web and mobile validate and
+  degrade the same way.
+
+### Content
+
+The owner may read any user's lists (Q24), and the privacy policy says so plainly.
+
+- The user page loads their lists only on "Show lists": opening a profile never reads
+  content implicitly. Item image URLs show as text, never loaded.
+- **Remove** reuses the owner's soft delete and needs a reason. **Restore** undoes
+  only an admin removal (the latest `remove_list`/`restore_list` row decides), so the
+  admin can't resurrect a list its owner deleted (409). It ignores the owner's list
+  quota, since it puts back a list they already had.
+- **Lock** also ends the user's sessions, so a later unlock doesn't revive an old
+  cookie. You can't lock yourself.
+
+### Dashboards
+
+`GET /admin/dashboard` returns aggregates only, cached 5 minutes (`?refresh=true`
+skips the cache). Charts are a hand-rolled SVG `BarChart.vue`, each with a table
+view; no chart library.
+
+- **Product:** totals and 30-day daily counts from the existing tables.
+- **Health:** `RequestCountMiddleware`, the outermost layer (so it also counts what
+  the guards refuse), upserts `request_counts` per minute × route class × status
+  class (2xx/3xx/4xx/429/5xx; `/health` isn't counted). The write runs before the
+  response returns (no background work) and never fails a request. It's off on Lambda
+  (no DB) and in memory under pytest. Edge, Lambda and box metrics belong in the
+  CloudWatch dashboard, which the page links to.
+- **Cost:** `python -m app.cli daily-jobs` (cron, once a day) makes **one** Cost
+  Explorer call ($0.01) into `cost_snapshots`. The forecast is a free straight-line
+  projection, not the paid forecast API.
+- `daily-jobs` is the only housekeeping: it prunes request counts (35 days) and
+  per-IP counts (7 days), re-rolls 2 days of analytics, and prunes raw events (90
+  days).
+
+### Analytics
+
+Two sources, neither using cookies:
+
+- **Traffic: Cloudflare Web Analytics.** `src/analytics/cloudflare.ts` adds the
+  beacon in production builds when `VITE_CF_BEACON_TOKEN` is set.
+- **Product events: first-party `POST /events`.** Anonymous visitors' lists live on
+  their device, so the server only learns what they do through these.
+  - Behind `features.events_enabled` (default off). The endpoint is public, rate
+    limited per IP, capped at 16 KiB and 50 events, and always answers `204`.
+  - **No free text can be stored:** the allowlist in `analytics_service.py` fixes
+    each event's props *and their values* (e.g. `import_started.target` is device,
+    account or claim). Unknown names and props are dropped, not rejected, so a newer
+    mobile app doesn't break against an older server. Keep the frontend's
+    `EVENT_NAMES` in step.
+  - The user id comes **only** from the session cookie; no IP is stored with events.
+    Client timestamps outside [now − 1 day, now + 5 min] are replaced.
+  - `analytics_events` keeps 90 days; `analytics_daily` (day × name × platform ×
+    signed in) keeps the totals. The dashboard reads the rollup for past days and
+    computes today live.
+  - The client (`src/analytics/events.ts`) queues from page load, sends only once
+    `/config/client` says it's on, and drops the queue if it's off. It flushes 5 s
+    after the first event, at 50, and on page hide, with `fetch(…, { keepalive:
+    true })`: `sendBeacon` can't send `application/json` reliably. A Google sign-in's
+    success is counted after the redirect, from a `sessionStorage` flag.
+- **Errors:** logs on the box plus the 5xx counter. Sentry stays an option.
+
+### Abuse view
+
+`/admin/abuse`: who's being rate limited, the busiest addresses, and the block list.
+
+- **Counts:** the same middleware upsert also writes `ip_request_counts` (IP × hour
+  → requests, 429s). These are **the only IP addresses the app keeps**, for 7 days,
+  as the privacy policy says. The page ranks the 25 busiest IPs, most 429s first.
+- **The block list is the WAF's** (decided 2026-11-18). The WAF is the single source
+  of truth and the only enforcer, so a blocked visitor never reaches the app, the
+  Lambda routes included. `app/core/ip_blocklist.py` edits two WAFv2 IP sets (WAF
+  keeps one address family per set), scope `CLOUDFRONT`, so the API is in us-east-1,
+  and retries on `WAFOptimisticLockException`. Locally (`IP_BLOCKLIST_SOURCE=local`)
+  it's a git-ignored `.ip_blocklist.local.json` that **nothing enforces**, and the
+  page says so.
+- Who blocked what, and why (a reason is required), lives in the audit log
+  (`block_ip`/`unblock_ip`, target type `ip`), not in the IP set.
+- Refused: ranges wider than a /24 (IPv4) or /48 (IPv6), your own current address,
+  duplicates, and more than 1,000 entries.
+
 ## Testing notes
 
 - **Backend tests run against the real Dockerized Postgres** with per-test rollback.
@@ -289,3 +441,6 @@ Rules in `localListTransfer.ts`, I/O in `useListTransfer.ts`. Both work signed i
   use `expectAccessible(page, '<screen>')` from `fixtures.ts` on new screens. CI runs
   them too (`e2e` job, retries
   and an uploaded report + traces on failure).
+- **Admin e2e** (`e2e/admin.spec.ts`) makes its dev user an admin with the real
+  grant-admin CLI, the way the owner does. Anything it changes outside its own rows
+  (the local block-list file) it undoes in a `finally`.

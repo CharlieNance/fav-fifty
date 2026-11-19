@@ -1,7 +1,7 @@
 """add ip_request_counts
 
 Hourly per-IP request and 429 counts for the admin abuse view
-(docs/ADMIN_AND_ANALYTICS_PLAN.md §Abuse view), kept 7 days.
+(docs/ARCHITECTURE.md §Abuse view), kept 7 days.
 
 Revision ID: b4e8c1d7a2f3
 Revises: 9a3e6b2d4f17
