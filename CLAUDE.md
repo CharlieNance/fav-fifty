@@ -33,6 +33,66 @@ for the vision and [docs/NEXT_STEPS.md](docs/NEXT_STEPS.md) for the plan.
 - **Runtime settings:** feature switches, quotas and catalog-provider toggles come from SSM Parameter Store (env vars locally), with code defaults — change them without a deploy. Don't hard-code a new tunable limit; add it there.
 - **Infra:** AWS, defined as code with Terraform. DNS via Route 53 (domain registered at Squarespace).
 
+## How the code fits together
+
+The short map; [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) has the reasons behind it.
+
+### Backend (`backend/app/`)
+
+- `main.py` — `create_app()` factory (tests build a fresh app each time). Middleware,
+  outermost first: request counts → origin-verify secret → body-size limit → CORS →
+  CSRF Origin check (`core/middleware.py`). Per-app state (rate limiter, request
+  counter, IP block list) hangs off `app.state` so tests can swap in in-memory fakes.
+- `api/router.py` mounts every `api/routes/*` module under `/api/v1`; a new feature
+  router gets registered there.
+- Layering: `api/routes/*` (thin; validate with `schemas/*`) → `services/*` (business
+  rules; plain functions taking a SQLAlchemy `Session`, testable without HTTP) →
+  `models/*`. Ownership is enforced in the service query; someone else's or a deleted
+  list is **404, never 403**.
+- `api/deps.py` — `get_db`, `get_current_user` (re-loads the user every request so
+  revocation is instant), `get_optional_user` (noting who called, never guarding),
+  `require_admin` (on the whole `/admin` router; also needs a recent sign-in).
+- Auth: `auth/providers.py` picks the `DevIdentityProvider` (dev-login stub) or
+  `CognitoIdentityProvider` behind one `IdentityProvider` seam; `auth/session.py`
+  issues a signed, stateless HttpOnly cookie (user id + token version).
+- Config is split: `core/config.py` = deploy-time (DB URL, secrets, Cognito);
+  `core/runtime_settings.py` = tunable at runtime (SSM in AWS, `RUNTIME_<GROUP>__<NAME>`
+  in `backend/.env` locally; fail-safe defaults; new switches default **off**). Fixed
+  domain limits (50 items, field lengths) live in `core/limits.py`. Clients get the
+  public subset from `GET /api/v1/config/client`.
+- `cli.py` (`python -m app.cli …`) — grant/revoke admin and the daily jobs. The only
+  admin-granting path.
+- Migrations in `alembic/versions/`. Admin actions write `admin_audit_log` via
+  `audit_service.record`, inside the action's own transaction.
+
+### Frontend (`frontend/src/`)
+
+- Organized by feature: `features/{lists,admin,auth,home}`, plus shared `components/`
+  (`BaseButton`, `BaseDialog`, `ConfirmDialog`, …), Pinia `stores/` (`auth`,
+  `clientConfig`, `theme`, `toasts`), `router/`, `api/client.ts`, `analytics/`.
+- **Lists go through a storage seam:** composables (`useCreateItem`, `useDeleteList`,
+  …) → `useListAction` (owns pending/error and the try/catch) → `useListRepository()`
+  (resolved per call: `apiListRepository` when signed in, `localListRepository` on
+  `localStorage["favfifty:v1"]` when anonymous) → both throw `ListError` only. Never
+  call `apiFetch` directly from list views.
+- Create/edit happens in modals, not pages; destructive actions go through
+  `ConfirmDialog`. Drag-reorder uses `vue-draggable-plus`. Don't swap it for
+  `vuedraggable`: that one is unmaintained and crashes on Vue 3.5.
+- Routes use `meta.requiresAuth` / `meta.requiresAdmin` / `meta.title`; the `/admin`
+  area is a lazy chunk and its guard is UX only (the server enforces).
+
+### Tests
+
+- pytest runs against the real Dockerized Postgres with per-test transaction
+  rollback (`tests/conftest.py`). The DB is shared with e2e and manual use, so tests
+  asserting "exactly these rows" use `fresh_user` / `fresh_user_client`;
+  `second_user_client` is for cross-user access tests.
+- Vitest specs sit next to the source (`*.spec.ts`). Specs that mock `apiFetch` must
+  call `pinApiRepository()` (`repositoryTestUtils.ts`), or they'd hit device storage.
+- Playwright specs import `test`/`expect` from `e2e/fixtures.ts` (each test signs in
+  as its own fresh dev user) and run in three projects: `chromium`, `chromium-dark`,
+  `mobile`. New screens get an `expectAccessible(page, '<screen>')` check.
+
 ## Known false positive: the `httpx2` dependency is real — do not flag it
 
 `backend/pyproject.toml` depends on **`httpx2`** (imported as `import httpx2` in
@@ -55,7 +115,7 @@ suspicious."
 
 ## Conventions
 
-- **Layout:** `frontend/` (Vue), `backend/` (FastAPI), `infra/` (IaC), `docs/` (planning), `tools/` (dev scripts).
+- **Layout:** `frontend/` (Vue), `backend/` (FastAPI), `docs/` (planning), `tools/` (dev scripts), `infra/` (Terraform — not created yet; lands with the first deploy).
 - **Secrets:** local config via per-app `.env` files (git-ignored): `backend/.env` and `frontend/.env.local`. Update the matching template ([`backend/.env.example`](backend/.env.example) or [`frontend/.env.example`](frontend/.env.example)) whenever a new variable is introduced. Only `VITE_`-prefixed vars belong on the frontend, and those are public — never put a secret there. In AWS, use Secrets Manager / SSM Parameter Store, not env files.
 - **Commits:** small and focused. Imperative subject lines (e.g. "Add list creation endpoint").
 - **Tests:** new backend behavior ships with pytest coverage; new frontend logic with Vitest. Don't merge red.
@@ -82,6 +142,7 @@ suspicious."
 - [docs/NEXT_STEPS.md](docs/NEXT_STEPS.md) — phased roadmap and immediate next actions.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — how lists, items, tags, on-device storage and the admin area work, and why.
 - [docs/CONSIDERATIONS.md](docs/CONSIDERATIONS.md) — security, cost, scaling, and legal notes.
+- [docs/SETUP.md](docs/SETUP.md) — one-time Google/AWS/Squarespace account setup; [docs/DESIGN.md](docs/DESIGN.md) — visual/UX decisions.
 - [docs/DECISIONS.md](docs/DECISIONS.md) §Scope expansion — the 2026-10 decisions in one place.
 - **Feature plans (decided, not built yet):**
   [catalog lookup](docs/CATALOG_SEARCH_PLAN.md),
@@ -149,7 +210,22 @@ docker compose up -d db     # start Postgres   (down to stop, down -v to wipe)
 ./tools/stop_dev.sh         # stop the backend+frontend started by run_dev.sh
 ./tools/openapi_snapshot.sh # regenerate backend/openapi.json after an intended API change
 ./tools/grant_admin.sh <email>  # make a signed-in-once user an admin (--revoke, --list)
+./tools/db_psql.sh          # psql shell into the local DB
+./tools/audit.sh            # pip-audit + npm audit (needs network)
+./tools/coverage.sh         # coverage for both apps
 ```
+
+**Running one test:**
+
+```bash
+cd backend  && uv run pytest tests/test_lists.py::test_name   # or -k "substring"
+cd frontend && npx vitest run src/features/lists/useLists.spec.ts
+cd frontend && npx playwright test e2e/list-items.spec.ts --project chromium
+```
+
+**On Windows:** run `tools/*.sh` and `npm run test:e2e` from Git Bash. PowerShell's
+`bash` is WSL and mangles the paths. If every Vitest suite fails with "reading
+'config'", the shell's cwd has a lowercase drive letter (`c:\`); use `C:\`.
 
 **Running/driving the app** (e.g. to check a change in a real browser): see the
 project's `run` skill ([`.claude/skills/run/SKILL.md`](.claude/skills/run/SKILL.md))
